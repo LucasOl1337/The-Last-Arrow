@@ -6,7 +6,7 @@
 
 Um prototipo de combate 2D em Unity pensado para crescer com foco em partidas online e locais.
 
-Sem enrolacao: a base ja esta de pe, os personagens ja tem identidade visual forte e o combate ja comeca a mostrar personalidade.
+a base ja esta de pe, os personagens ja tem identidade visual forte e o combate ja comeca a mostrar personalidade.
 
 ## O que ja temos de mais legal
 
