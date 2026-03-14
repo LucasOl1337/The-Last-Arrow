@@ -1,20 +1,21 @@
 # The Last Arrow
 
 <p align="center">
-  <img src="Docs/media/github-hero.jpg" alt="The Last Arrow prototype preview" width="100%">
+  <img src="Assets/ProjectPVP/Environment/Backgrounds/Maps/background1.png" alt="The Last Arrow map preview" width="100%">
 </p>
 
-Um prototipo PvP local em Unity que ja chegou naquele ponto gostoso em que a ideia comeca a virar jogo de verdade.
+Um prototipo de combate 2D em Unity pensado para crescer com foco em partidas online e locais.
 
 Sem enrolacao: a base ja esta de pe, os personagens ja tem identidade visual forte e o combate ja comeca a mostrar personalidade.
 
 ## O que ja temos de mais legal
 
 - 2 personagens jogaveis com vibes bem diferentes
-- combate local PvP funcionando
+- combate base ja funcionando e pronto para evoluir
 - tiro, melee, dash e ult no ar
 - arena com uma atmosfera dark fantasy muito forte
 - uma base solida para seguir polindo sensacao, impacto e estilo
+- um caminho claro para levar o projeto bem no online e no local
 
 ## Personagens
 

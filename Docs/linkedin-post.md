@@ -2,7 +2,7 @@
 
 Sugestao de imagem para acompanhar o post:
 
-- `Docs/media/github-hero.jpg`
+- `Assets/ProjectPVP/Environment/Backgrounds/Maps/background1.png`
 
 Texto:
 
@@ -10,10 +10,11 @@ Depois de bastante iteracao, a gente chegou numa versao esqueleto 0.1 de **The L
 
 Ainda e um prototipo, mas ja tem bastante coisa viva ali:
 
-- PvP local funcionando
+- base de combate funcionando
 - 2 personagens jogaveis
 - tiro, melee, dash e ult
 - uma direcao visual que comecou a ganhar identidade de verdade
+- um foco claro em fazer esse jogo funcionar bem tanto online quanto local
 
 O mais legal dessa fase e que o projeto ja nao esta mais so no papel.
 Agora da para jogar, sentir o ritmo do combate e enxergar bem melhor pra onde ele pode crescer.
