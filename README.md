@@ -33,14 +33,14 @@ Sem enrolacao: a base ja esta de pe, os personagens ja tem identidade visual for
       <br>
       <strong>Mizu</strong>
       <br>
-      Arqueira rapida, precisa e perigosa de longe.
+      Samurai veloz que abusa de sua destreza e cortes rapidos no combate
     </td>
     <td align="center" width="50%">
       <img src="Assets/ProjectPVP/Characters/StormDragon/Animations/aim/west/frame_000.png" alt="Storm Dragon" width="170">
       <br>
       <strong>Storm Dragon</strong>
       <br>
-      Presenca eletrica, agressiva e feita para pressionar.
+      Artista marcial com elementos eletricos 
     </td>
   </tr>
 </table>
@@ -50,10 +50,9 @@ Sem enrolacao: a base ja esta de pe, os personagens ja tem identidade visual for
 - deixar o combate ainda mais gostoso de jogar
 - melhorar feedback visual, clareza e impacto
 - empurrar mais a identidade de cada personagem
-- transformar o prototipo 0.1 em uma vertical slice cada vez mais forte
 
 ## Video rapido
 
 Tambem gravei um video mostrando a estrutura do projeto, as mecanicas basicas e o caminho que quero seguir daqui pra frente.
 
-O link entra aqui em breve.
+
