@@ -15,6 +15,7 @@ Ainda e um prototipo, mas ja tem bastante coisa viva ali:
 - tiro, melee, dash e ult
 - uma direcao visual que comecou a ganhar identidade de verdade
 - um foco claro em fazer esse jogo funcionar bem tanto online quanto local
+- uma estrutura modular, simples de manter e pronta para crescer sem virar bagunca
 
 O mais legal dessa fase e que o projeto ja nao esta mais so no papel.
 Agora da para jogar, sentir o ritmo do combate e enxergar bem melhor pra onde ele pode crescer.

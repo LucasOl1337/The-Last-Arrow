@@ -17,6 +17,13 @@ Sem enrolacao: a base ja esta de pe, os personagens ja tem identidade visual for
 - uma base solida para seguir polindo sensacao, impacto e estilo
 - um caminho claro para levar o projeto bem no online e no local
 
+## Estrutura pensada para crescer
+
+- `Scripts/Runtime` separado por responsabilidade, com blocos como `Core`, `Gameplay`, `Input`, `Match` e `Presentation`
+- personagens organizados em pastas proprias com animacoes, dados e rotacoes, sem misturar tudo num lugar so
+- area `Shared` para o que e comum entre personagens e `Resources` para centralizar o que precisa ser carregado
+- uma base modular e simples de manter, que facilita ajustar mecanicas, adicionar conteudo novo e seguir evoluindo o projeto sem virar bagunca
+
 ## Personagens
 
 <table>
