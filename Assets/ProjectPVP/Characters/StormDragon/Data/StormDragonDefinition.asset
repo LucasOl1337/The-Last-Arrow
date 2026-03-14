@@ -1,0 +1,150 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc5548227c8ce4d42aac497315a9b2cf, type: 3}
+  m_Name: StormDragonDefinition
+  m_EditorClassIdentifier: ProjectPVP.Runtime::ProjectPVP.Data.CharacterDefinition
+  id: storm_dragon
+  displayName: Storm Dragon
+  spriteScale: {x: 3.6, y: 3.6}
+  spriteAnchorOffset: {x: 0, y: -0}
+  animationScaleMax: 1
+  animationScaleMin: 0
+  visualReferenceWidth: 0
+  visualReferenceHeight: 0
+  targetVisualHeight: 0
+  groundAnchorRatio: 1
+  aimSkipLeft: 0
+  defaultSprite: {fileID: 21300000, guid: e5a436694310dcb49ad1ad09de69251c, type: 3}
+  overridesStats: 0
+  moveSpeed: 240
+  acceleration: 1600
+  friction: 2000
+  jumpVelocity: 360
+  gravity: 1200
+  maxFallSpeed: 2000
+  shootCooldown: 0.001
+  maxArrows: 5
+  meleeCooldown: 0.45
+  meleeDuration: 0.12
+  colliderSize: {x: 90, y: 210}
+  colliderOffset: {x: 0, y: -0}
+  wallJumpHorizontalForce: 500
+  wallJumpVerticalForce: 720
+  wallSlideSpeed: 60
+  wallGravityScale: 0.2
+  runtimeMoveScale: 1
+  runtimeJumpScale: 1
+  runtimeGravityScale: 1
+  runtimeDashScale: 1
+  dashMultiplier: 1.8
+  dashDuration: 0.12
+  dashCooldown: 0.45
+  dashDistance: 100
+  dashUpwardMultiplier: 0.5
+  projectileForward: 1
+  projectileForwardFacing: 0
+  projectileVerticalOffset: 0
+  projectileInheritVelocityFactor: 0.5
+  projectileScale: 1
+  projectileOriginMode: 1
+  projectileOriginOffset: {x: 28, y: 45}
+  projectileUseBowNode: 0
+  projectileSprite: {fileID: 21300000, guid: e029b34344b58684e8f9f6afa346e20e, type: 3}
+  actionConfig: {fileID: 11400000, guid: edaaa79c7dfb44d18cf57f1b9a94773d, type: 2}
+  actionSkipLeft: []
+  actionTargetVisualHeight: []
+  actionGroundAnchorRatio: []
+  actionAnimationDurations: []
+  actionAnimationCancelable: []
+  actionAnimationSpeeds: []
+  actionSpriteScale: []
+  actionSpriteOffset: []
+  actionColliderOverrides: []
+  actionSpriteAnimations:
+  - actionName: aim
+    directionKey: left
+    framesPerSecond: 12
+    loop: 1
+    frames:
+    - {fileID: 21300000, guid: 65bf6ea18d746334fa2aa40a74b03564, type: 3}
+  - actionName: aim
+    directionKey: right
+    framesPerSecond: 12
+    loop: 1
+    frames:
+    - {fileID: 21300000, guid: 7158ab25d244b444ba14b8c70c1b86f6, type: 3}
+  - actionName: dash
+    directionKey: left
+    framesPerSecond: 12
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: f9a337c042891754bbbbfd26a23363b6, type: 3}
+    - {fileID: 21300000, guid: 92bccfe99debe334bb06d195acc4b87e, type: 3}
+    - {fileID: 21300000, guid: f0193136acc9ac54787d95065dad0108, type: 3}
+    - {fileID: 21300000, guid: f4f9bd7f254e9214f985b59a887cdc76, type: 3}
+    - {fileID: 21300000, guid: 302eb085642f25a49a5f7d723283594c, type: 3}
+    - {fileID: 21300000, guid: fa9e7c3b60ba17944b573efa4200099c, type: 3}
+    - {fileID: 21300000, guid: 291a86a29bc570d4391e23f1c494fd73, type: 3}
+    - {fileID: 21300000, guid: 9f51cc5877e8ec242829dbca0d2e80c3, type: 3}
+  - actionName: dash
+    directionKey: right
+    framesPerSecond: 12
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: e659043d2da38ea4ab558d4c8c3dfb49, type: 3}
+    - {fileID: 21300000, guid: 4354c3b497a39ab46b152bd4c3e06c7c, type: 3}
+    - {fileID: 21300000, guid: 2b72bd26d368c0b42a0509f6f49c6826, type: 3}
+    - {fileID: 21300000, guid: a237da7eda093f047b4e463e882b28a6, type: 3}
+    - {fileID: 21300000, guid: 2f145ac288efda749be4e136a9772525, type: 3}
+    - {fileID: 21300000, guid: 38857a0f3a9ce4b46a2289ca989614d8, type: 3}
+    - {fileID: 21300000, guid: 3212fe2b3f35d7f4cae9e20f7589abc3, type: 3}
+    - {fileID: 21300000, guid: 748f529d2acc14243aafcf82c5e3a8a4, type: 3}
+    - {fileID: 21300000, guid: 08ef1a3756021ed4dabceaa4d15ad08c, type: 3}
+    - {fileID: 21300000, guid: 2b06ba1da2c6e3044993619d9d3fe502, type: 3}
+    - {fileID: 21300000, guid: 1094ffd3ab1a7c84088bdd34e9c410d6, type: 3}
+  - actionName: melee
+    directionKey: left
+    framesPerSecond: 12
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: 4c83fa77b71a86b4f98630d8f3b4513e, type: 3}
+    - {fileID: 21300000, guid: 3d1edfb555e9c7b4093196b2dbcc4ec8, type: 3}
+    - {fileID: 21300000, guid: 67d549b0ac688cf438574df8ff6aaf13, type: 3}
+    - {fileID: 21300000, guid: d4d7f6d6e3eebbe44bd9df0f2b3268bd, type: 3}
+    - {fileID: 21300000, guid: ded8c26f0ebf2e64b9645c6efd7140bb, type: 3}
+  - actionName: melee
+    directionKey: right
+    framesPerSecond: 12
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: f44f74005b2d329459d9b67789538f7d, type: 3}
+    - {fileID: 21300000, guid: bfc89941953bc834b94d90e15fef9924, type: 3}
+    - {fileID: 21300000, guid: a3fc2a56d9bcf974b801e07f58f685af, type: 3}
+    - {fileID: 21300000, guid: 2c8dffd53219db94fbe02ad8ab841d77, type: 3}
+  - actionName: running
+    directionKey: left
+    framesPerSecond: 12
+    loop: 1
+    frames:
+    - {fileID: 21300000, guid: c139a116562c9784c94d1258a1b43a2d, type: 3}
+    - {fileID: 21300000, guid: 1ba736dbdebd6c24292b16eaf9ff8e89, type: 3}
+    - {fileID: 21300000, guid: 0af41f2943d95fd4fade96693d9df92d, type: 3}
+    - {fileID: 21300000, guid: 5255f69caa3137546a5b9f2823e7413e, type: 3}
+  - actionName: running
+    directionKey: right
+    framesPerSecond: 12
+    loop: 1
+    frames:
+    - {fileID: 21300000, guid: 7c6c8fb31392ec54695d18271b6ed98f, type: 3}
+    - {fileID: 21300000, guid: 7ad3013d12f1f2448b8b87d3cd19ebc5, type: 3}
+    - {fileID: 21300000, guid: 66893bedc785f1c45b6ce985d5378983, type: 3}
+    - {fileID: 21300000, guid: c83e8c202b65cf543b3456c3a737b826, type: 3}

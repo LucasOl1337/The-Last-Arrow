@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 827214ccd3bccbf4780cf04b7f517ffd, type: 3}
+  m_Name: default_arena
+  m_EditorClassIdentifier: ProjectPVP.Runtime::ProjectPVP.Data.ArenaDefinitionAsset
+  id: default_arena
+  displayName: "Padr\xE3o"
+  backgroundSprite: {fileID: 21300000, guid: 6ab3d2dd211e2f9458fda23f3a7813aa, type: 3}
+  backgroundMusicAsset: {fileID: 0}
+  backgroundMusicResourcesPath: ProjectPVP/Audio/Music/IronDragon1
+  backgroundMusicVolumeDb: -600
+  spawnPoints:
+  - {x: -639, y: -572}
+  - {x: 690, y: -576}
+  wrapBounds:
+    serializedVersion: 2
+    x: -1280
+    y: -720
+    width: 2560
+    height: 1440
+  wrapPadding: {x: 40, y: 40}

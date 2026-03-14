@@ -1,0 +1,148 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc5548227c8ce4d42aac497315a9b2cf, type: 3}
+  m_Name: MizuDefinition
+  m_EditorClassIdentifier: ProjectPVP.Runtime::ProjectPVP.Data.CharacterDefinition
+  id: mizu
+  displayName: Mizu
+  spriteScale: {x: 3.2, y: 3.2}
+  spriteAnchorOffset: {x: 15, y: -0}
+  animationScaleMax: 1
+  animationScaleMin: 0
+  visualReferenceWidth: 0
+  visualReferenceHeight: 0
+  targetVisualHeight: 0
+  groundAnchorRatio: 1
+  aimSkipLeft: 0
+  defaultSprite: {fileID: 21300000, guid: 9c125381598af204b963b72220389898, type: 3}
+  overridesStats: 1
+  moveSpeed: 240
+  acceleration: 1600
+  friction: 2000
+  jumpVelocity: 360
+  gravity: 1200
+  maxFallSpeed: 2000
+  shootCooldown: 0.001
+  maxArrows: 50
+  meleeCooldown: 0.45
+  meleeDuration: 0.12
+  colliderSize: {x: 90, y: 240}
+  colliderOffset: {x: 0, y: -0}
+  wallJumpHorizontalForce: 500
+  wallJumpVerticalForce: 720
+  wallSlideSpeed: 60
+  wallGravityScale: 0.2
+  runtimeMoveScale: 1
+  runtimeJumpScale: 1
+  runtimeGravityScale: 1
+  runtimeDashScale: 1
+  dashMultiplier: 1.8
+  dashDuration: 0.12
+  dashCooldown: 0.45
+  dashDistance: 100
+  dashUpwardMultiplier: 0.5
+  projectileForward: 1
+  projectileForwardFacing: 0
+  projectileVerticalOffset: -0
+  projectileInheritVelocityFactor: 1
+  projectileScale: 1.5
+  projectileOriginMode: 1
+  projectileOriginOffset: {x: 28, y: 45}
+  projectileUseBowNode: 0
+  projectileSprite: {fileID: 21300000, guid: e029b34344b58684e8f9f6afa346e20e, type: 3}
+  actionConfig: {fileID: 11400000, guid: 5b58d9063ecf4a74b1af2a8abec7b708, type: 2}
+  actionSkipLeft: []
+  actionTargetVisualHeight: []
+  actionGroundAnchorRatio: []
+  actionAnimationDurations: []
+  actionAnimationCancelable: []
+  actionAnimationSpeeds: []
+  actionSpriteScale: []
+  actionSpriteOffset: []
+  actionColliderOverrides: []
+  actionSpriteAnimations:
+  - actionName: aim
+    directionKey: left
+    framesPerSecond: 45
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: c76feaf0883cff94fba4e25c0844defb, type: 3}
+    - {fileID: 21300000, guid: fed5e7d83e456ce44be1c3cbbc82894d, type: 3}
+    - {fileID: 21300000, guid: 0c13ecea2d8f8a64184b1acad2543a9c, type: 3}
+    - {fileID: 21300000, guid: 309e3f060e3b6024e9a6bad42a6d2771, type: 3}
+  - actionName: aim
+    directionKey: right
+    framesPerSecond: 45
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: b3f48b11ff6b6044982260bea9e91806, type: 3}
+    - {fileID: 21300000, guid: 1fc4188ec127fc045b115d4d6c0209b3, type: 3}
+    - {fileID: 21300000, guid: 91cfb4de104ef8145b750bb0a1c5ee48, type: 3}
+    - {fileID: 21300000, guid: defc5d25ce2e90243a549b331369440e, type: 3}
+  - actionName: dash
+    directionKey: left
+    framesPerSecond: 12
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: 7e405dcaa5cd3404997760218eb768b3, type: 3}
+    - {fileID: 21300000, guid: 70cf6c4af2f2dab4eacd20715cbf87ac, type: 3}
+    - {fileID: 21300000, guid: 813bb122383687943a3e5b4f89928a73, type: 3}
+    - {fileID: 21300000, guid: f5c43ca060e26e4479df7d381606520f, type: 3}
+  - actionName: dash
+    directionKey: right
+    framesPerSecond: 12
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: 2bab8d4eaa6e10c4da424e83c4ab5a50, type: 3}
+    - {fileID: 21300000, guid: 6000279491a31674e80517bd1d01d50f, type: 3}
+    - {fileID: 21300000, guid: 50242a2cd4465c04bb15642b2a0a0ae0, type: 3}
+    - {fileID: 21300000, guid: 8175ffcacd115b24ab994200cc7fdd92, type: 3}
+  - actionName: shoot
+    directionKey: left
+    framesPerSecond: 12
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: a66aa8066a3a38543968cd9c8cdbdad7, type: 3}
+    - {fileID: 21300000, guid: cf35844c6165475438274fd2fd77ada0, type: 3}
+    - {fileID: 21300000, guid: 1fd1feeeef5dbd947bf573b8cbe8f21e, type: 3}
+    - {fileID: 21300000, guid: b8a7151a202a63c4c80dba6a80dcd0b1, type: 3}
+  - actionName: shoot
+    directionKey: right
+    framesPerSecond: 12
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: 6981d10c5d87f1d4dad8100d16226023, type: 3}
+    - {fileID: 21300000, guid: bba6981342d17574f9b202e0934e5605, type: 3}
+    - {fileID: 21300000, guid: 9503a189761c2374cb24615b71e456c0, type: 3}
+    - {fileID: 21300000, guid: ec5cf1ab1e946074c860acae0edb209e, type: 3}
+  - actionName: walk
+    directionKey: left
+    framesPerSecond: 12
+    loop: 1
+    frames:
+    - {fileID: 21300000, guid: 4b59e2bbf533c08438affae450cc32a1, type: 3}
+    - {fileID: 21300000, guid: ff8abbe1b17265a4589bf72824fcd66e, type: 3}
+    - {fileID: 21300000, guid: 6d1413bc6f485de429f5ce30b0f3bb97, type: 3}
+    - {fileID: 21300000, guid: 86393b36beea7cb4bb9372d46748476c, type: 3}
+    - {fileID: 21300000, guid: ca87cddfbed34054cb75caf0341fb7dc, type: 3}
+    - {fileID: 21300000, guid: dc2b5752f5989e947b3cc94369e40cf1, type: 3}
+  - actionName: walk
+    directionKey: right
+    framesPerSecond: 12
+    loop: 1
+    frames:
+    - {fileID: 21300000, guid: b375372edf666f3459b1b812cdc5320d, type: 3}
+    - {fileID: 21300000, guid: 77ec4ee4f47cd3b42b1a000963a2c560, type: 3}
+    - {fileID: 21300000, guid: f0988dc0276320a4190ee1a4164485d7, type: 3}
+    - {fileID: 21300000, guid: 90b4d23951c91e74095de3ffff50d17f, type: 3}
+    - {fileID: 21300000, guid: cc8776c9671b7dd4993805d5976697b2, type: 3}
+    - {fileID: 21300000, guid: ee773f29411504f4fba0a60a97522b27, type: 3}

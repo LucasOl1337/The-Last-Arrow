@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a4e9aaf4d6b4f6c8bb2dc9b66d3f1ac, type: 3}
+  m_Name: DefaultGamepadControlProfile
+  m_EditorClassIdentifier: ProjectPVP.Runtime::ProjectPVP.Input.GamepadControlProfileAsset
+  actionMap:
+    moveHorizontalAxis: ProjectPVP_GamepadMoveX
+    moveVerticalAxis: ProjectPVP_GamepadMoveY
+    dpadHorizontalAxis: ProjectPVP_GamepadDpadX
+    dpadVerticalAxis: ProjectPVP_GamepadDpadY
+    lookHorizontalAxis: ProjectPVP_GamepadLookX_A
+    lookVerticalAxis: ProjectPVP_GamepadLookY_A
+    lookHorizontalAxisAlt: ProjectPVP_GamepadLookX_B
+    lookVerticalAxisAlt: ProjectPVP_GamepadLookY_B
+    dashSecondaryAxis: ProjectPVP_GamepadTriggerR_A
+    dashSecondaryAxisAlt: ProjectPVP_GamepadTriggerR_B
+    dashSecondaryAxisThird: ProjectPVP_GamepadTriggerR_C
+    jumpButton: 0
+    jumpAlternateButton: -1
+    shootButton: 2
+    meleeButton: 1
+    ultimateButton: 3
+    dashPrimaryButton: 4
+    dashPrimaryAlternateButton: 5
+    dashPrimaryThirdButton: 6
+    dashSecondaryButton: 7
+    dpadLeftButton: -1
+    dpadRightButton: -1
+    dpadUpButton: -1
+    dpadDownButton: -1
+    deadzone: 0.18
+    aimDeadzone: 0.22
+    triggerPressThreshold: 0.45
+    useMoveStickAsAimFallback: 1
