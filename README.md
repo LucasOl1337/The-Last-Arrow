@@ -48,6 +48,4 @@ Sem enrolacao: a base ja esta de pe, os personagens ja tem identidade visual for
 
 Tambem gravei um video mostrando a estrutura do projeto, as mecanicas basicas e o caminho que quero seguir daqui pra frente.
 
-Quando quiser publicar, e so trocar este link:
-
-[assistir ao video do projeto](COLE_O_LINK_DO_VIDEO_AQUI)
+O link entra aqui em breve.
