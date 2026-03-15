@@ -8,6 +8,8 @@ Um prototipo de combate 2D em Unity pensado para crescer com foco em partidas on
 
 a base ja esta de pe, os personagens ja tem identidade visual forte e o combate ja comeca a mostrar personalidade.
 
+Patch notes do projeto: [PatchNotes.md](PatchNotes.md)
+
 ## O que ja temos de mais legal
 
 - 2 personagens jogaveis com vibes bem diferentes
@@ -54,4 +56,3 @@ a base ja esta de pe, os personagens ja tem identidade visual forte e o combate 
 ## Video rapido
 
 Tambem gravei um video mostrando a estrutura do projeto, as mecanicas basicas e o caminho que quero seguir daqui pra frente.
-
