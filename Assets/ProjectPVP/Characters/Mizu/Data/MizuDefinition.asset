@@ -14,8 +14,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: ProjectPVP.Runtime::ProjectPVP.Data.CharacterDefinition
   id: mizu
   displayName: Mizu
-  spriteScale: {x: 3.2, y: 3.2}
+  pixelLabCharacterId: 9fe4efef-1f46-4eb7-8b87-3a1f227cb6e6
+  pixelLabActionAliases:
+  - pattern: aiming the bow and arrow
+    actionName: aim
+  - pattern: fast dash
+    actionName: dash
+  - pattern: melle swing
+    actionName: melee
+  - pattern: ultimate movement
+    actionName: ult
+  - pattern: katana lunge
+    actionName: ult
+  spriteScale: {x: 1, y: 1}
   spriteAnchorOffset: {x: 15, y: -0}
+  nativeSpriteBakeScale: 3
   animationScaleMax: 1
   animationScaleMin: 0
   visualReferenceWidth: 0
@@ -25,16 +38,17 @@ MonoBehaviour:
   aimSkipLeft: 0
   defaultSprite: {fileID: 21300000, guid: 9c125381598af204b963b72220389898, type: 3}
   overridesStats: 1
-  moveSpeed: 240
-  acceleration: 1600
-  friction: 2000
-  jumpVelocity: 360
-  gravity: 1200
-  maxFallSpeed: 2000
+  moveSpeed: 415
+  acceleration: 2200
+  friction: 2400
+  jumpVelocity: 660
+  gravity: 1500
+  maxFallSpeed: 1500
   shootCooldown: 0.001
   maxArrows: 50
   meleeCooldown: 0.45
   meleeDuration: 0.12
+  meleeCanSeverProjectiles: 1
   colliderSize: {x: 90, y: 240}
   colliderOffset: {x: 0, y: -0}
   wallJumpHorizontalForce: 500
@@ -50,14 +64,20 @@ MonoBehaviour:
   dashCooldown: 0.45
   dashDistance: 100
   dashUpwardMultiplier: 0.5
-  projectileForward: 1
+  ultimateWindupRatio: 0.45
+  ultimateDashDistance: 120
+  ultimateDashDuration: 0.12
+  ultimateBlocksProjectiles: 1
+  ultimateProjectileBlockDuration: 0.18
+  ultimateReplayDelay: 1
+  projectileForward: 0
   projectileForwardFacing: 0
   projectileVerticalOffset: -0
   projectileInheritVelocityFactor: 1
   projectileScale: 1.5
-  projectileOriginMode: 1
-  projectileOriginOffset: {x: 28, y: 45}
-  projectileUseBowNode: 0
+  projectileOriginMode: 0
+  projectileOriginOffset: {x: 54, y: 80}
+  projectileUseBowNode: 1
   projectileSprite: {fileID: 21300000, guid: e029b34344b58684e8f9f6afa346e20e, type: 3}
   actionConfig: {fileID: 11400000, guid: 5b58d9063ecf4a74b1af2a8abec7b708, type: 2}
   actionSkipLeft: []
@@ -75,37 +95,73 @@ MonoBehaviour:
     framesPerSecond: 45
     loop: 0
     frames:
-    - {fileID: 21300000, guid: c76feaf0883cff94fba4e25c0844defb, type: 3}
-    - {fileID: 21300000, guid: fed5e7d83e456ce44be1c3cbbc82894d, type: 3}
-    - {fileID: 21300000, guid: 0c13ecea2d8f8a64184b1acad2543a9c, type: 3}
-    - {fileID: 21300000, guid: 309e3f060e3b6024e9a6bad42a6d2771, type: 3}
+    - {fileID: 21300000, guid: c9ada9bf2c354c64e85fb8c0c83140e5, type: 3}
+    - {fileID: 21300000, guid: 23efa9eb04077e7478f642d79cfa5844, type: 3}
+    - {fileID: 21300000, guid: d2d1c0fb15add4942b8084948ece4922, type: 3}
+    - {fileID: 21300000, guid: 13d457f59a8abc749be4947788a55594, type: 3}
   - actionName: aim
     directionKey: right
     framesPerSecond: 45
     loop: 0
     frames:
-    - {fileID: 21300000, guid: b3f48b11ff6b6044982260bea9e91806, type: 3}
-    - {fileID: 21300000, guid: 1fc4188ec127fc045b115d4d6c0209b3, type: 3}
-    - {fileID: 21300000, guid: 91cfb4de104ef8145b750bb0a1c5ee48, type: 3}
-    - {fileID: 21300000, guid: defc5d25ce2e90243a549b331369440e, type: 3}
+    - {fileID: 21300000, guid: f47806ea208ece0428adf8596c33ddd8, type: 3}
+    - {fileID: 21300000, guid: 1316d2efbdcc4324eb5d1c3367d08a9e, type: 3}
+    - {fileID: 21300000, guid: 9cbde1e40458b86428c3f8c2a713fcd7, type: 3}
+    - {fileID: 21300000, guid: 26cd0da7ac0674d418e9f0804e221781, type: 3}
   - actionName: dash
     directionKey: left
     framesPerSecond: 12
     loop: 0
     frames:
-    - {fileID: 21300000, guid: 7e405dcaa5cd3404997760218eb768b3, type: 3}
-    - {fileID: 21300000, guid: 70cf6c4af2f2dab4eacd20715cbf87ac, type: 3}
-    - {fileID: 21300000, guid: 813bb122383687943a3e5b4f89928a73, type: 3}
-    - {fileID: 21300000, guid: f5c43ca060e26e4479df7d381606520f, type: 3}
+    - {fileID: 21300000, guid: 38076b17649f616458f6d9f5eb7ef234, type: 3}
+    - {fileID: 21300000, guid: 6774c5c7068b7834aa7f6736d6ecf6e2, type: 3}
+    - {fileID: 21300000, guid: 77368c8f26482b44ba593cdd813a0a88, type: 3}
+    - {fileID: 21300000, guid: 3fb11e71ee8c6c24f917a0c4dbe79394, type: 3}
   - actionName: dash
     directionKey: right
     framesPerSecond: 12
     loop: 0
     frames:
-    - {fileID: 21300000, guid: 2bab8d4eaa6e10c4da424e83c4ab5a50, type: 3}
-    - {fileID: 21300000, guid: 6000279491a31674e80517bd1d01d50f, type: 3}
-    - {fileID: 21300000, guid: 50242a2cd4465c04bb15642b2a0a0ae0, type: 3}
-    - {fileID: 21300000, guid: 8175ffcacd115b24ab994200cc7fdd92, type: 3}
+    - {fileID: 21300000, guid: 291cdc9582c13404580de4e1d45cb261, type: 3}
+    - {fileID: 21300000, guid: 4e12e0a473dced8428e9fb6b75f13c23, type: 3}
+    - {fileID: 21300000, guid: 60bd0ae53ee066b45a548338023f27fe, type: 3}
+    - {fileID: 21300000, guid: 550fc01e892a6bf4d9393035a9c94ca6, type: 3}
+  - actionName: death
+    directionKey: left
+    framesPerSecond: 12
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: 5ba9ec55374b103439087661d6bfefe3, type: 3}
+    - {fileID: 21300000, guid: 3da33e7d48eb1fc46b1a5bcabb171e07, type: 3}
+    - {fileID: 21300000, guid: c15a3c009cb41a24ba5043ce5e29e0fe, type: 3}
+    - {fileID: 21300000, guid: 4e208e6aa082e744ea027b42dc9f766e, type: 3}
+  - actionName: death
+    directionKey: right
+    framesPerSecond: 12
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: 767a78a7c84b6024eaed6542f9c0cfc4, type: 3}
+    - {fileID: 21300000, guid: b1428d8befca7164da11b0388af62860, type: 3}
+    - {fileID: 21300000, guid: dafd77bcecfe7dd40827bab7c167bfae, type: 3}
+    - {fileID: 21300000, guid: 586c7b7838e83ec498e7d13ab2baad90, type: 3}
+  - actionName: melee
+    directionKey: left
+    framesPerSecond: 12
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: 4ef7b8319f536f342afcf7c779b3291b, type: 3}
+    - {fileID: 21300000, guid: c14fe60adffadb840b7e8bfc4b0a773b, type: 3}
+    - {fileID: 21300000, guid: ddc52832afbb7c14a97641fb3a8aa34d, type: 3}
+    - {fileID: 21300000, guid: 342f9fb9965b64f44922a24f2f73272b, type: 3}
+  - actionName: melee
+    directionKey: right
+    framesPerSecond: 12
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: 0dcb97111a4641f44afd0b6c2398bd3f, type: 3}
+    - {fileID: 21300000, guid: 1d04959838258e94e902aa66bff4b0f5, type: 3}
+    - {fileID: 21300000, guid: fbe0741b4c74d504d83f441e26315b62, type: 3}
+    - {fileID: 21300000, guid: 15f4361faefcd0344b991e29000f9444, type: 3}
   - actionName: shoot
     directionKey: left
     framesPerSecond: 12
@@ -124,6 +180,24 @@ MonoBehaviour:
     - {fileID: 21300000, guid: bba6981342d17574f9b202e0934e5605, type: 3}
     - {fileID: 21300000, guid: 9503a189761c2374cb24615b71e456c0, type: 3}
     - {fileID: 21300000, guid: ec5cf1ab1e946074c860acae0edb209e, type: 3}
+  - actionName: ult
+    directionKey: left
+    framesPerSecond: 5
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: c60af56972236cc4d8916fa76051a481, type: 3}
+    - {fileID: 21300000, guid: ed5a3da1b796b5146be3b776e259b24a, type: 3}
+    - {fileID: 21300000, guid: 734aab4d8dfd60b4caa8a5165b0f6a63, type: 3}
+    - {fileID: 21300000, guid: 3269ad99fab6fa64295c0a0b91b4c507, type: 3}
+  - actionName: ult
+    directionKey: right
+    framesPerSecond: 5
+    loop: 0
+    frames:
+    - {fileID: 21300000, guid: 9398d7b682c471c42a42808f5dbe99d9, type: 3}
+    - {fileID: 21300000, guid: 1d94f8e7558712a4ab1651abfacc7bd8, type: 3}
+    - {fileID: 21300000, guid: 9bb7b9c97c794e645b8f066b76dec6d1, type: 3}
+    - {fileID: 21300000, guid: 6db476f81ddd9424d96a571db41cc35d, type: 3}
   - actionName: walk
     directionKey: left
     framesPerSecond: 12

@@ -91,8 +91,7 @@ namespace ProjectPVP.Presentation
                 return;
             }
 
-            spriteRenderer.sprite = resolvedFrame;
-            spriteRenderer.flipX = selection.flipX;
+            ApplyResolvedSprite(resolvedFrame, selection.flipX);
         }
 
         private string ResolveActionName()
@@ -267,8 +266,7 @@ namespace ProjectPVP.Presentation
         {
             if (TryResolveDirectionalFallbackFrame(actionName, directionKey, out Sprite directionalSprite, out bool resolvedFlip))
             {
-                spriteRenderer.flipX = resolvedFlip;
-                spriteRenderer.sprite = directionalSprite;
+                ApplyResolvedSprite(directionalSprite, resolvedFlip);
                 return;
             }
 
@@ -339,6 +337,63 @@ namespace ProjectPVP.Presentation
             {
                 spriteRenderer.sprite = player.characterDefinition.defaultSprite;
             }
+
+            ApplySpriteLayout();
+        }
+
+        private void ApplyResolvedSprite(Sprite sprite, bool flipX)
+        {
+            spriteRenderer.sprite = sprite;
+            spriteRenderer.flipX = flipX;
+            ApplySpriteLayout();
+        }
+
+        private void ApplySpriteLayout()
+        {
+            if (player == null || player.characterDefinition == null || spriteRenderer == null)
+            {
+                return;
+            }
+
+            Transform spriteTransform = spriteRenderer.transform;
+            Vector2 baseScale = player.characterDefinition.spriteScale;
+            Vector2 anchorOffset = player.characterDefinition.spriteAnchorOffset;
+            float scaleFactor = ResolveScaleFactor(player.characterDefinition.defaultSprite, spriteRenderer.sprite);
+            float scaleX = baseScale.x * scaleFactor;
+            float scaleY = baseScale.y * scaleFactor;
+            float positionY = anchorOffset.y + ResolveBottomAlignmentOffset(player.characterDefinition.defaultSprite, spriteRenderer.sprite, baseScale.y, scaleY);
+
+            spriteTransform.localScale = new Vector3(scaleX, scaleY, 1f);
+            spriteTransform.localPosition = new Vector3(anchorOffset.x, positionY, 0f);
+        }
+
+        private static float ResolveScaleFactor(Sprite referenceSprite, Sprite currentSprite)
+        {
+            if (referenceSprite == null || currentSprite == null)
+            {
+                return 1f;
+            }
+
+            float referenceHeight = referenceSprite.bounds.size.y;
+            float currentHeight = currentSprite.bounds.size.y;
+            if (referenceHeight <= 0.0001f || currentHeight <= 0.0001f)
+            {
+                return 1f;
+            }
+
+            return Mathf.Clamp(referenceHeight / currentHeight, 0.01f, 100f);
+        }
+
+        private static float ResolveBottomAlignmentOffset(Sprite referenceSprite, Sprite currentSprite, float referenceScaleY, float currentScaleY)
+        {
+            if (referenceSprite == null || currentSprite == null)
+            {
+                return 0f;
+            }
+
+            float referenceBottom = referenceSprite.bounds.min.y * referenceScaleY;
+            float currentBottom = currentSprite.bounds.min.y * currentScaleY;
+            return referenceBottom - currentBottom;
         }
 
         private static bool HasUsableFrames(ActionSpriteAnimation animation)

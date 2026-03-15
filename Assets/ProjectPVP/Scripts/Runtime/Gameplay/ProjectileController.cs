@@ -18,6 +18,13 @@ namespace ProjectPVP.Gameplay
         public float maxRange = 1440f;
         public bool rotateWithVelocity = true;
         public bool collectableWhenStuck = true;
+
+        [Header("Hitbox")]
+        public Vector2 flightHitboxSize = new Vector2(24f, 10f);
+        public Vector2 flightHitboxOffset = new Vector2(32f, 0f);
+        public Vector2 collectibleHitboxSize = new Vector2(96f, 24f);
+        public Vector2 collectibleHitboxOffset = Vector2.zero;
+
         public Rigidbody2D body;
         public BoxCollider2D hitCollider;
         public SpriteRenderer spriteRenderer;
@@ -47,6 +54,22 @@ namespace ProjectPVP.Gameplay
             body = GetComponent<Rigidbody2D>();
             hitCollider = GetComponent<BoxCollider2D>();
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            ApplyFlightHitbox();
+        }
+
+        private void OnValidate()
+        {
+            if (Application.isPlaying)
+            {
+                return;
+            }
+
+            if (hitCollider == null)
+            {
+                hitCollider = GetComponent<BoxCollider2D>();
+            }
+
+            ApplyFlightHitbox();
         }
 
         private void FixedUpdate()
@@ -111,7 +134,7 @@ namespace ProjectPVP.Gameplay
 
             if (_distanceTravelled >= maxRange || _lifetimeLeft <= 0f)
             {
-                Stick(collectableWhenStuck);
+                Stick(_isCollectible);
             }
         }
 
@@ -154,7 +177,7 @@ namespace ProjectPVP.Gameplay
                 }
                 else if (player == null)
                 {
-                    Stick(true);
+                    Stick(_isCollectible);
                 }
 
                 return;
@@ -164,13 +187,20 @@ namespace ProjectPVP.Gameplay
             {
                 if (player.HandleIncomingProjectile(this))
                 {
-                    Destroy(gameObject);
+                    if (_isDisarmed)
+                    {
+                        Stick(_isCollectible);
+                    }
+                    else
+                    {
+                        Destroy(gameObject);
+                    }
                 }
 
                 return;
             }
 
-            Stick(collectableWhenStuck);
+            Stick(_isCollectible);
         }
 
         public void Launch(GameObject sourceObject, Vector2 origin, Vector2 direction, Vector2 inheritedVelocity, float inheritFactor, Sprite overrideSprite)
@@ -203,6 +233,7 @@ namespace ProjectPVP.Gameplay
 
             if (hitCollider != null)
             {
+                ApplyFlightHitbox();
                 hitCollider.enabled = true;
             }
         }
@@ -219,6 +250,8 @@ namespace ProjectPVP.Gameplay
             _velocity = Vector2.zero;
             _forwardSpeed = 0f;
 
+            ApplyCollectibleHitbox();
+
             if (body != null)
             {
                 body.linearVelocity = Vector2.zero;
@@ -227,6 +260,11 @@ namespace ProjectPVP.Gameplay
 
         private bool ShouldIgnoreCollider(Collider2D other)
         {
+            if (other.GetComponentInParent<PlayerCombatAnchor>() != null)
+            {
+                return true;
+            }
+
             if (_sourceObject == null)
             {
                 return false;
@@ -307,6 +345,58 @@ namespace ProjectPVP.Gameplay
             {
                 body.linearVelocity = Vector2.zero;
             }
+
+            ApplyCollectibleHitbox();
+        }
+
+        public void SeverByMelee()
+        {
+            if (!_launched || _isStuck || _isDisarmed)
+            {
+                return;
+            }
+
+            _isDisarmed = true;
+            _isCollectible = false;
+            _forwardDirection = Vector2.zero;
+            _forwardSpeed = 0f;
+
+            if (_velocity.sqrMagnitude > 0.01f)
+            {
+                _velocity = new Vector2(_velocity.x * 0.2f, Mathf.Min(_velocity.y, -120f));
+            }
+            else
+            {
+                _velocity = new Vector2(0f, -120f);
+            }
+
+            if (body != null)
+            {
+                body.linearVelocity = Vector2.zero;
+            }
+
+            ApplyCollectibleHitbox();
+        }
+
+        private void ApplyFlightHitbox()
+        {
+            ApplyHitboxProfile(flightHitboxSize, flightHitboxOffset);
+        }
+
+        private void ApplyCollectibleHitbox()
+        {
+            ApplyHitboxProfile(collectibleHitboxSize, collectibleHitboxOffset);
+        }
+
+        private void ApplyHitboxProfile(Vector2 size, Vector2 offset)
+        {
+            if (hitCollider == null)
+            {
+                return;
+            }
+
+            hitCollider.size = size;
+            hitCollider.offset = offset;
         }
     }
 }

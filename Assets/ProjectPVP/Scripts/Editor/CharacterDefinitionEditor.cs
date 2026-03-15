@@ -11,9 +11,12 @@ namespace ProjectPVP.Editor
     {
         private SerializedProperty _idProperty;
         private SerializedProperty _displayNameProperty;
+        private SerializedProperty _pixelLabCharacterIdProperty;
+        private SerializedProperty _pixelLabActionAliasesProperty;
         private SerializedProperty _defaultSpriteProperty;
         private SerializedProperty _spriteScaleProperty;
         private SerializedProperty _spriteAnchorOffsetProperty;
+        private SerializedProperty _nativeSpriteBakeScaleProperty;
         private SerializedProperty _overridesStatsProperty;
         private SerializedProperty _moveSpeedProperty;
         private SerializedProperty _accelerationProperty;
@@ -25,6 +28,7 @@ namespace ProjectPVP.Editor
         private SerializedProperty _maxArrowsProperty;
         private SerializedProperty _meleeCooldownProperty;
         private SerializedProperty _meleeDurationProperty;
+        private SerializedProperty _meleeCanSeverProjectilesProperty;
         private SerializedProperty _colliderSizeProperty;
         private SerializedProperty _colliderOffsetProperty;
         private SerializedProperty _wallJumpHorizontalForceProperty;
@@ -57,6 +61,7 @@ namespace ProjectPVP.Editor
         private SerializedProperty _actionSpriteAnimationsProperty;
 
         private bool _showGameplay = true;
+        private bool _showPixelLabSync = true;
         private bool _showMovementTuning = true;
         private bool _showProjectile = true;
         private bool _showActionTuning = true;
@@ -67,9 +72,12 @@ namespace ProjectPVP.Editor
         {
             _idProperty = serializedObject.FindProperty("id");
             _displayNameProperty = serializedObject.FindProperty("displayName");
+            _pixelLabCharacterIdProperty = serializedObject.FindProperty("pixelLabCharacterId");
+            _pixelLabActionAliasesProperty = serializedObject.FindProperty("pixelLabActionAliases");
             _defaultSpriteProperty = serializedObject.FindProperty("defaultSprite");
             _spriteScaleProperty = serializedObject.FindProperty("spriteScale");
             _spriteAnchorOffsetProperty = serializedObject.FindProperty("spriteAnchorOffset");
+            _nativeSpriteBakeScaleProperty = serializedObject.FindProperty("nativeSpriteBakeScale");
             _overridesStatsProperty = serializedObject.FindProperty("overridesStats");
             _moveSpeedProperty = serializedObject.FindProperty("moveSpeed");
             _accelerationProperty = serializedObject.FindProperty("acceleration");
@@ -81,6 +89,7 @@ namespace ProjectPVP.Editor
             _maxArrowsProperty = serializedObject.FindProperty("maxArrows");
             _meleeCooldownProperty = serializedObject.FindProperty("meleeCooldown");
             _meleeDurationProperty = serializedObject.FindProperty("meleeDuration");
+            _meleeCanSeverProjectilesProperty = serializedObject.FindProperty("meleeCanSeverProjectiles");
             _colliderSizeProperty = serializedObject.FindProperty("colliderSize");
             _colliderOffsetProperty = serializedObject.FindProperty("colliderOffset");
             _wallJumpHorizontalForceProperty = serializedObject.FindProperty("wallJumpHorizontalForce");
@@ -125,9 +134,69 @@ namespace ProjectPVP.Editor
 
             EditorGUILayout.PropertyField(_idProperty);
             EditorGUILayout.PropertyField(_displayNameProperty);
+
+            _showPixelLabSync = EditorGUILayout.BeginFoldoutHeaderGroup(_showPixelLabSync, "PixelLab Sync");
+            if (_showPixelLabSync)
+            {
+                EditorGUILayout.PropertyField(_pixelLabCharacterIdProperty, new GUIContent("Character Id"));
+                EditorGUILayout.PropertyField(_pixelLabActionAliasesProperty, new GUIContent("Action Aliases"), true);
+                EditorGUILayout.HelpBox("O sync do PixelLab baixa o ZIP direto da API, normaliza nomes customizados para actions do runtime, usa somente direcoes laterais e preserva a escala visual configurada do personagem.", MessageType.Info);
+
+                EditorGUILayout.BeginHorizontal();
+                EditorGUI.BeginDisabledGroup(string.IsNullOrWhiteSpace(_pixelLabCharacterIdProperty.stringValue));
+                if (GUILayout.Button("Sync From PixelLab"))
+                {
+                    if (ProjectPvpPixelLabImportTools.SyncFromPixelLab(definition, out string summary))
+                    {
+                        Debug.Log(summary);
+                        serializedObject.Update();
+                    }
+                    else
+                    {
+                        Debug.LogWarning(summary);
+                    }
+                }
+
+                EditorGUI.EndDisabledGroup();
+
+                if (GUILayout.Button("Sync All From PixelLab"))
+                {
+                    ProjectPvpPixelLabImportTools.SyncAllConfiguredCharactersFromPixelLab();
+                    serializedObject.Update();
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.EndFoldoutHeaderGroup();
+
             EditorGUILayout.PropertyField(_defaultSpriteProperty);
             EditorGUILayout.PropertyField(_spriteScaleProperty);
             EditorGUILayout.PropertyField(_spriteAnchorOffsetProperty);
+            EditorGUILayout.PropertyField(_nativeSpriteBakeScaleProperty, new GUIContent("Native Sprite Bake Scale"));
+            EditorGUILayout.HelpBox("Esse valor e usado so no import/offline. O fluxo recomendado e bake nearest-neighbor dos PNGs e depois usar spriteScale = 1 no runtime.", MessageType.None);
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Bake Native Sprites"))
+            {
+                if (ProjectPvpCharacterSpriteImportTools.BakeCharacterSpritesToNativeScale(definition, out string summary))
+                {
+                    Debug.Log(summary);
+                    serializedObject.Update();
+                }
+                else
+                {
+                    Debug.LogWarning(summary);
+                }
+            }
+
+            if (GUILayout.Button("Use Native Scale (1,1)"))
+            {
+                Undo.RecordObject(definition, "Use Native Sprite Scale");
+                definition.spriteScale = Vector2.one;
+                EditorUtility.SetDirty(definition);
+                serializedObject.Update();
+            }
+            EditorGUILayout.EndHorizontal();
 
             _showGameplay = EditorGUILayout.BeginFoldoutHeaderGroup(_showGameplay, "Gameplay Core");
             if (_showGameplay)
@@ -143,6 +212,7 @@ namespace ProjectPVP.Editor
                 EditorGUILayout.PropertyField(_maxArrowsProperty);
                 EditorGUILayout.PropertyField(_meleeCooldownProperty);
                 EditorGUILayout.PropertyField(_meleeDurationProperty);
+                EditorGUILayout.PropertyField(_meleeCanSeverProjectilesProperty, new GUIContent("Melee Can Sever Projectiles"));
                 EditorGUILayout.PropertyField(_colliderSizeProperty);
                 EditorGUILayout.PropertyField(_colliderOffsetProperty);
             }
@@ -172,6 +242,7 @@ namespace ProjectPVP.Editor
             _showProjectile = EditorGUILayout.BeginFoldoutHeaderGroup(_showProjectile, "Projectile");
             if (_showProjectile)
             {
+                EditorGUILayout.HelpBox("BowNode usa projectileOriginOffset como socket local do disparo. O X e espelhado automaticamente entre east/west e a bolinha de debug acompanha esse ponto.", MessageType.None);
                 EditorGUILayout.PropertyField(_projectileForwardProperty);
                 EditorGUILayout.PropertyField(_projectileForwardFacingProperty);
                 EditorGUILayout.PropertyField(_projectileVerticalOffsetProperty);
@@ -284,6 +355,19 @@ namespace ProjectPVP.Editor
             if (GUILayout.Button("Ping Action Config"))
             {
                 PingActionConfig();
+            }
+
+            if (GUILayout.Button("Sync PixelLab"))
+            {
+                if (ProjectPvpPixelLabImportTools.SyncFromPixelLab(definition, out string summary))
+                {
+                    Debug.Log(summary);
+                    serializedObject.Update();
+                }
+                else
+                {
+                    Debug.LogWarning(summary);
+                }
             }
 
             if (GUILayout.Button("Sync Clips"))

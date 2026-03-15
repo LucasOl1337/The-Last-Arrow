@@ -13,7 +13,7 @@ a base ja esta de pe, os personagens ja tem identidade visual forte e o combate 
 - 2 personagens jogaveis com vibes bem diferentes
 - combate base ja funcionando e pronto para evoluir
 - tiro, melee, dash e ult no ar
-- arena com uma atmosfera dark fantasy muito forte
+- arena com identidade visual propria e espaco claro para evoluir o estilo
 - uma base solida para seguir polindo sensacao, impacto e estilo
 - um caminho claro para levar o projeto bem no online e no local
 
@@ -54,5 +54,4 @@ a base ja esta de pe, os personagens ja tem identidade visual forte e o combate 
 ## Video rapido
 
 Tambem gravei um video mostrando a estrutura do projeto, as mecanicas basicas e o caminho que quero seguir daqui pra frente.
-
 

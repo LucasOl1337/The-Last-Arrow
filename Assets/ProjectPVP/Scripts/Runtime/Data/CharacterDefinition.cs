@@ -51,6 +51,13 @@ namespace ProjectPVP.Data
         public List<Sprite> frames = new List<Sprite>();
     }
 
+    [Serializable]
+    public sealed class PixelLabActionAlias
+    {
+        public string pattern = string.Empty;
+        public string actionName = string.Empty;
+    }
+
     [CreateAssetMenu(fileName = "CharacterDefinition", menuName = "ProjectPVP/Character Definition")]
     public sealed class CharacterDefinition : ScriptableObject
     {
@@ -58,9 +65,14 @@ namespace ProjectPVP.Data
         public string id = string.Empty;
         public string displayName = string.Empty;
 
+        [Header("PixelLab Sync")]
+        public string pixelLabCharacterId = string.Empty;
+        public List<PixelLabActionAlias> pixelLabActionAliases = new List<PixelLabActionAlias>();
+
         [Header("Visual")]
         public Vector2 spriteScale = new Vector2(3.6f, 3.6f);
         public Vector2 spriteAnchorOffset = Vector2.zero;
+        [Min(1)] public int nativeSpriteBakeScale = 1;
         public float animationScaleMax = 1f;
         public float animationScaleMin;
         public float visualReferenceWidth;
@@ -82,6 +94,7 @@ namespace ProjectPVP.Data
         public int maxArrows = 5;
         public float meleeCooldown = 0.45f;
         public float meleeDuration = 0.12f;
+        public bool meleeCanSeverProjectiles;
 
         [Header("Collider")]
         public Vector2 colliderSize = new Vector2(90f, 210f);
@@ -105,6 +118,14 @@ namespace ProjectPVP.Data
         public float dashCooldown = 0.45f;
         public float dashDistance = 100f;
         public float dashUpwardMultiplier = 0.5f;
+
+        [Header("Ultimate")]
+        [Range(0f, 1f)] public float ultimateWindupRatio = 0.45f;
+        public float ultimateDashDistance;
+        public float ultimateDashDuration = 0.1f;
+        public bool ultimateBlocksProjectiles;
+        public float ultimateProjectileBlockDuration = 0.12f;
+        public float ultimateReplayDelay;
 
         [Header("Projectile")]
         public float projectileForward = 80f;

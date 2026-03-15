@@ -9,6 +9,8 @@ namespace ProjectPVP.Editor
 {
     internal static class ProjectPvpCharacterAnimationSync
     {
+        private const string SharedDirectionKey = "shared";
+
         private readonly struct ClipTemplate
         {
             public ClipTemplate(float framesPerSecond, bool loop)
@@ -188,6 +190,14 @@ namespace ProjectPVP.Editor
                 }
 
                 var clipsByDirection = new Dictionary<string, List<Sprite>>(StringComparer.OrdinalIgnoreCase);
+                var directionPriorityByKey = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+                List<Sprite> sharedRootFrames = LoadSpritesFromFolder(actionDirectory, topDirectoryOnly: true);
+                if (sharedRootFrames.Count > 0)
+                {
+                    clipsByDirection[SharedDirectionKey] = sharedRootFrames;
+                    directionPriorityByKey[SharedDirectionKey] = 0;
+                }
 
                 string[] directionDirectories = Directory.GetDirectories(actionDirectory);
                 Array.Sort(directionDirectories, StringComparer.OrdinalIgnoreCase);
@@ -195,17 +205,39 @@ namespace ProjectPVP.Editor
                 {
                     string directionDirectory = directionDirectories[directionIndex];
                     string folderName = Path.GetFileName(directionDirectory);
-                    if (!TryMapFolderToDirection(folderName, out string directionKey))
+                    if (TryMapFolderToDirection(folderName, out string directionKey))
                     {
-                        ignoredDirectionFolders += 1;
+                        List<Sprite> frames = LoadSpritesFromFolder(directionDirectory, topDirectoryOnly: true);
+                        if (frames.Count > 0)
+                        {
+                            int sourcePriority = ResolveDirectionSourcePriority(folderName);
+                            if (!directionPriorityByKey.TryGetValue(directionKey, out int currentPriority) || sourcePriority >= currentPriority)
+                            {
+                                clipsByDirection[directionKey] = frames;
+                                directionPriorityByKey[directionKey] = sourcePriority;
+                            }
+                        }
+
                         continue;
                     }
 
-                    List<Sprite> frames = LoadSpritesFromFolder(directionDirectory, topDirectoryOnly: true);
-                    if (frames.Count > 0)
+                    if (LooksLikeDirectionFolder(folderName))
                     {
-                        clipsByDirection[directionKey] = frames;
+                        List<Sprite> sharedFrames = LoadSpritesFromFolder(directionDirectory, topDirectoryOnly: true);
+                        if (sharedFrames.Count > 0)
+                        {
+                            int sourcePriority = ResolveSharedSourcePriority(folderName);
+                            if (!directionPriorityByKey.TryGetValue(SharedDirectionKey, out int currentPriority) || sourcePriority >= currentPriority)
+                            {
+                                clipsByDirection[SharedDirectionKey] = sharedFrames;
+                                directionPriorityByKey[SharedDirectionKey] = sourcePriority;
+                            }
+                        }
+
+                        continue;
                     }
+
+                    ignoredDirectionFolders += 1;
                 }
 
                 AddClipIfPresent(rebuiltClips, existingTemplates, actionName, "left", clipsByDirection);
@@ -229,7 +261,7 @@ namespace ProjectPVP.Editor
             string directionKey,
             Dictionary<string, List<Sprite>> clipsByDirection)
         {
-            if (!clipsByDirection.TryGetValue(directionKey, out List<Sprite> frames) || frames == null || frames.Count == 0)
+            if (!TryResolveFramesForDirection(directionKey, clipsByDirection, out List<Sprite> frames))
             {
                 return;
             }
@@ -243,6 +275,25 @@ namespace ProjectPVP.Editor
                 loop = template.loop,
                 frames = frames,
             });
+        }
+
+        private static bool TryResolveFramesForDirection(
+            string directionKey,
+            Dictionary<string, List<Sprite>> clipsByDirection,
+            out List<Sprite> frames)
+        {
+            frames = null;
+            if (clipsByDirection == null || string.IsNullOrWhiteSpace(directionKey))
+            {
+                return false;
+            }
+
+            if (clipsByDirection.TryGetValue(directionKey, out frames) && frames != null && frames.Count > 0)
+            {
+                return true;
+            }
+
+            return clipsByDirection.TryGetValue(SharedDirectionKey, out frames) && frames != null && frames.Count > 0;
         }
 
         private static Dictionary<string, ClipTemplate> BuildExistingTemplates(List<ActionSpriteAnimation> clips)
@@ -337,6 +388,38 @@ namespace ProjectPVP.Editor
                     return true;
                 default:
                     return false;
+            }
+        }
+
+        private static int ResolveDirectionSourcePriority(string folderName)
+        {
+            switch ((folderName ?? string.Empty).Trim().ToLowerInvariant())
+            {
+                case "east":
+                case "west":
+                    return 2;
+                case "left":
+                case "right":
+                    return 1;
+                default:
+                    return 0;
+            }
+        }
+
+        private static int ResolveSharedSourcePriority(string folderName)
+        {
+            switch ((folderName ?? string.Empty).Trim().ToLowerInvariant())
+            {
+                case "shared":
+                case "default":
+                    return 2;
+                case "north":
+                case "south":
+                case "up":
+                case "down":
+                    return 1;
+                default:
+                    return 0;
             }
         }
 

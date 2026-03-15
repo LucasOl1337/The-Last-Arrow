@@ -11,6 +11,7 @@ namespace ProjectPVP.Match
         public ArenaDefinitionAsset arenaDefinition;
         public PlayerController playerOne;
         public PlayerController playerTwo;
+        public bool useScenePlayerPositionsAsSpawn = true;
         public bool wrapEnabled = true;
         public int maxWins = 5;
         public float roundResetDelay = 1.25f;
@@ -23,11 +24,15 @@ namespace ProjectPVP.Match
         private int _playerOneWins;
         private int _playerTwoWins;
         private Coroutine _roundResetRoutine;
+        private Vector2 _scenePlayerOneSpawn;
+        private Vector2 _scenePlayerTwoSpawn;
 
         public int PlayerOneWins => _playerOneWins;
         public int PlayerTwoWins => _playerTwoWins;
         public bool IsRoundResetPending => _roundResetRoutine != null;
         public Rect ActiveWrapBounds => arenaDefinition != null ? arenaDefinition.wrapBounds : defaultWrapBounds;
+        public Vector2 PlayerOneSpawnPoint => GetSpawnPoint(0);
+        public Vector2 PlayerTwoSpawnPoint => GetSpawnPoint(1);
 
         private void OnEnable()
         {
@@ -57,6 +62,7 @@ namespace ProjectPVP.Match
 
         private void Start()
         {
+            CacheSceneSpawnPoints();
             EnsureMusicSource();
             PlayArenaMusic();
             RespawnPlayers();
@@ -110,12 +116,33 @@ namespace ProjectPVP.Match
         {
             if (playerOne != null)
             {
-                playerOne.SetSpawnPosition(GetSpawnPoint(0));
+                playerOne.SetSpawnPosition(PlayerOneSpawnPoint);
             }
 
             if (playerTwo != null)
             {
-                playerTwo.SetSpawnPosition(GetSpawnPoint(1));
+                playerTwo.SetSpawnPosition(PlayerTwoSpawnPoint);
+            }
+        }
+
+        private void CacheSceneSpawnPoints()
+        {
+            if (playerOne != null)
+            {
+                _scenePlayerOneSpawn = playerOne.ConfiguredSpawnWorldPosition;
+            }
+            else
+            {
+                _scenePlayerOneSpawn = defaultPlayerOneSpawn;
+            }
+
+            if (playerTwo != null)
+            {
+                _scenePlayerTwoSpawn = playerTwo.ConfiguredSpawnWorldPosition;
+            }
+            else
+            {
+                _scenePlayerTwoSpawn = defaultPlayerTwoSpawn;
             }
         }
 
@@ -169,6 +196,20 @@ namespace ProjectPVP.Match
 
         private Vector2 GetSpawnPoint(int index)
         {
+            if (useScenePlayerPositionsAsSpawn)
+            {
+                if (!Application.isPlaying)
+                {
+                    PlayerController player = index == 0 ? playerOne : playerTwo;
+                    if (player != null)
+                    {
+                        return player.ConfiguredSpawnWorldPosition;
+                    }
+                }
+
+                return index == 0 ? _scenePlayerOneSpawn : _scenePlayerTwoSpawn;
+            }
+
             if (arenaDefinition == null || arenaDefinition.spawnPoints == null || arenaDefinition.spawnPoints.Count == 0)
             {
                 return index == 0 ? defaultPlayerOneSpawn : defaultPlayerTwoSpawn;

@@ -18,25 +18,26 @@ namespace ProjectPVP.Presentation
 
         private void OnDrawGizmos()
         {
-            ArenaDefinitionAsset arena = matchController != null ? matchController.arenaDefinition : null;
             Rect bounds = matchController != null ? matchController.ActiveWrapBounds : new Rect(-1280f, -720f, 2560f, 1440f);
 
             Gizmos.color = boundsColor;
             Gizmos.DrawWireCube(bounds.center, bounds.size);
 
-            if (arena == null || arena.spawnPoints == null)
+            if (matchController == null)
             {
                 return;
             }
 
             Gizmos.color = spawnColor;
-            for (int index = 0; index < arena.spawnPoints.Count; index += 1)
-            {
-                Vector3 spawnPoint = arena.spawnPoints[index];
-                Gizmos.DrawWireSphere(spawnPoint, spawnMarkerRadius);
-                Gizmos.DrawLine(spawnPoint + Vector3.left * spawnMarkerRadius, spawnPoint + Vector3.right * spawnMarkerRadius);
-                Gizmos.DrawLine(spawnPoint + Vector3.up * spawnMarkerRadius, spawnPoint + Vector3.down * spawnMarkerRadius);
-            }
+            DrawSpawnMarker(matchController.PlayerOneSpawnPoint);
+            DrawSpawnMarker(matchController.PlayerTwoSpawnPoint);
+        }
+
+        private void DrawSpawnMarker(Vector2 spawnPoint)
+        {
+            Gizmos.DrawWireSphere(spawnPoint, spawnMarkerRadius);
+            Gizmos.DrawLine(spawnPoint + Vector2.left * spawnMarkerRadius, spawnPoint + Vector2.right * spawnMarkerRadius);
+            Gizmos.DrawLine(spawnPoint + Vector2.up * spawnMarkerRadius, spawnPoint + Vector2.down * spawnMarkerRadius);
         }
     }
 }

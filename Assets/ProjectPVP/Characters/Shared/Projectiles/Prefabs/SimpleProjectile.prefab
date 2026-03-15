@@ -187,7 +187,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 32, y: 0}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0, y: 0}
@@ -197,7 +197,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 96, y: 32}
+  m_Size: {x: 24, y: 10}
   m_EdgeRadius: 0
 --- !u!114 &5354265590473386510
 MonoBehaviour:
@@ -225,6 +225,10 @@ MonoBehaviour:
   maxRange: 1440
   rotateWithVelocity: 1
   collectableWhenStuck: 1
+  flightHitboxSize: {x: 24, y: 10}
+  flightHitboxOffset: {x: 32, y: 0}
+  collectibleHitboxSize: {x: 96, y: 24}
+  collectibleHitboxOffset: {x: 0, y: 0}
   body: {fileID: 3403405167712037193}
   hitCollider: {fileID: 5238493731347721680}
   spriteRenderer: {fileID: 8110341331954877455}

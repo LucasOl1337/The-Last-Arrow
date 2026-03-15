@@ -260,12 +260,16 @@ namespace ProjectPVP.Input
             }
 
             string resolvedAxisName = ResolveAxisNameForSlot(axisName, slot);
-            if (!string.IsNullOrWhiteSpace(resolvedAxisName))
+            float value = !string.IsNullOrWhiteSpace(resolvedAxisName)
+                ? ReadAxisRaw(resolvedAxisName)
+                : 0f;
+
+            if (Mathf.Abs(value) > 0.001f)
             {
-                return ReadAxisRaw(resolvedAxisName);
+                return value;
             }
 
-            return 0f;
+            return ShouldUseGenericJoystickFallback(slot) ? ReadAxisRaw(axisName) : value;
         }
 
         private float ReadStrongestAxisForSlot(int slot, params string[] axisNames)
@@ -543,13 +547,31 @@ namespace ProjectPVP.Input
                 return -1;
             }
 
+            int preferredConnectedIndex = Mathf.Clamp(preferredGamepadIndex, 0, connectedCount - 1);
+            int preferredSlot = _connectedGamepadSlots[preferredConnectedIndex];
+
             if (connectedCount == 1)
             {
-                return playerId == 1 ? _connectedGamepadSlots[0] : -1;
+                // Keep a single connected gamepad bound to its intended player so one pad
+                // does not start driving every enabled input source at once.
+                return preferredGamepadIndex == 0 ? preferredSlot : -1;
             }
 
-            int preferredConnectedIndex = Mathf.Clamp(preferredGamepadIndex, 0, connectedCount - 1);
-            return _connectedGamepadSlots[preferredConnectedIndex];
+            if (IsGamepadSlotActive(preferredSlot))
+            {
+                return preferredSlot;
+            }
+
+            for (int index = 0; index < connectedCount; index += 1)
+            {
+                int slot = _connectedGamepadSlots[index];
+                if (IsGamepadSlotActive(slot))
+                {
+                    return slot;
+                }
+            }
+
+            return preferredSlot;
         }
 
         private bool IsGamepadSlotActive(int slot)
@@ -561,12 +583,14 @@ namespace ProjectPVP.Input
 
             float moveX = ReadAxisForSlot(gamepadActionMap.moveHorizontalAxis, slot);
             float moveY = ReadAxisForSlot(gamepadActionMap.moveVerticalAxis, slot);
+            Vector2 dpad = ReadGamepadDpadVectorDirect(slot);
             float lookX = ReadStrongestAxisForSlot(slot, gamepadActionMap.lookHorizontalAxis, gamepadActionMap.lookHorizontalAxisAlt);
             float lookY = ReadStrongestAxisForSlot(slot, gamepadActionMap.lookVerticalAxis, gamepadActionMap.lookVerticalAxisAlt);
             float trigger = ReadStrongestAxisForSlot(slot, gamepadActionMap.dashSecondaryAxis, gamepadActionMap.dashSecondaryAxisAlt, gamepadActionMap.dashSecondaryAxisThird);
 
             if (Mathf.Abs(moveX) > gamepadActionMap.deadzone
                 || Mathf.Abs(moveY) > gamepadActionMap.deadzone
+                || dpad.sqrMagnitude > 0.01f
                 || Mathf.Abs(lookX) > gamepadActionMap.aimDeadzone
                 || Mathf.Abs(lookY) > gamepadActionMap.aimDeadzone
                 || trigger >= gamepadActionMap.triggerPressThreshold)
@@ -747,25 +771,30 @@ namespace ProjectPVP.Input
 
         private Vector2 ReadGamepadDpadVector(int slot)
         {
+            return ReadGamepadDpadVectorDirect(slot);
+        }
+
+        private Vector2 ReadGamepadDpadVectorDirect(int slot)
+        {
             float horizontal = QuantizeDigitalAxis(ReadAxisForSlot(gamepadActionMap.dpadHorizontalAxis, slot));
             float vertical = QuantizeDigitalAxis(ReadAxisForSlot(gamepadActionMap.dpadVerticalAxis, slot));
 
-            if (ReadGamepadButton(gamepadActionMap.dpadLeftButton))
+            if (gamepadActionMap.dpadLeftButton >= 0 && IsJoystickButtonHeld(slot, gamepadActionMap.dpadLeftButton))
             {
                 horizontal -= 1f;
             }
 
-            if (ReadGamepadButton(gamepadActionMap.dpadRightButton))
+            if (gamepadActionMap.dpadRightButton >= 0 && IsJoystickButtonHeld(slot, gamepadActionMap.dpadRightButton))
             {
                 horizontal += 1f;
             }
 
-            if (ReadGamepadButton(gamepadActionMap.dpadUpButton))
+            if (gamepadActionMap.dpadUpButton >= 0 && IsJoystickButtonHeld(slot, gamepadActionMap.dpadUpButton))
             {
                 vertical += 1f;
             }
 
-            if (ReadGamepadButton(gamepadActionMap.dpadDownButton))
+            if (gamepadActionMap.dpadDownButton >= 0 && IsJoystickButtonHeld(slot, gamepadActionMap.dpadDownButton))
             {
                 vertical -= 1f;
             }
@@ -775,12 +804,12 @@ namespace ProjectPVP.Input
 
         private static float QuantizeDigitalAxis(float value)
         {
-            if (value >= 0.5f)
+            if (value >= 0.2f)
             {
                 return 1f;
             }
 
-            if (value <= -0.5f)
+            if (value <= -0.2f)
             {
                 return -1f;
             }

@@ -194,25 +194,13 @@ namespace ProjectPVP.Presentation
                 return;
             }
 
-            Vector2 colliderSize = ResolveColliderSize(player);
-            Vector2 colliderOffset = ResolveColliderOffset(player);
-            Vector2 chestOffset = new Vector2(colliderSize.x * 0.15f * player.Facing, colliderSize.y * 0.15f);
-            Vector2 anchorOffset = new Vector2((colliderSize.x * 0.5f + 12f) * player.Facing, 0f);
-            Vector2 center = ResolvePlayerWorldPosition(player) + colliderOffset + chestOffset + anchorOffset;
-            ActionColliderOverride overrideData = player.characterDefinition != null
-                ? player.characterDefinition.FindActionColliderOverride("melee")
-                : null;
-
-            Vector2 size = overrideData != null
-                ? overrideData.size
-                : new Vector2(
-                    Mathf.Max(72f, colliderSize.x * 0.85f),
-                    Mathf.Max(64f, colliderSize.y * 0.45f));
-
             Gizmos.color = player.IsMeleeActive
                 ? new Color(1f, 0.28f, 0.28f, 0.92f)
                 : WithAlpha(tint, 0.28f);
-            Gizmos.DrawWireCube(center, size);
+            if (!TryDrawAnchorCollider(player.meleeHitboxAnchor))
+            {
+                Gizmos.DrawWireCube(player.MeleeHitboxCenter, player.MeleeHitboxSize);
+            }
         }
 
         private void DrawUltimateHitbox(PlayerController player, Color tint)
@@ -222,19 +210,13 @@ namespace ProjectPVP.Presentation
                 return;
             }
 
-            Vector2 colliderSize = ResolveColliderSize(player);
-            Vector2 colliderOffset = ResolveColliderOffset(player);
-            float radius = player.characterDefinition != null
-                ? Mathf.Max(DefaultUltimateRadius * 0.7f, colliderSize.x * 1.4f)
-                : DefaultUltimateRadius;
-            Vector2 chestOffset = new Vector2(colliderSize.x * 0.2f * player.Facing, colliderSize.y * 0.1f);
-            Vector2 forwardOffset = new Vector2((colliderSize.x * 0.4f + radius * 0.4f) * player.Facing, 0f);
-            Vector2 center = ResolvePlayerWorldPosition(player) + colliderOffset + chestOffset + forwardOffset;
-
             Gizmos.color = player.IsUltimateActive
                 ? new Color(1f, 0.2f, 0.9f, 0.92f)
                 : WithAlpha(tint, 0.22f);
-            Gizmos.DrawWireSphere(center, radius);
+            if (!TryDrawAnchorCollider(player.ultimateHitboxAnchor))
+            {
+                Gizmos.DrawWireSphere(player.UltimateHitboxCenter, player.UltimateHitboxRadius);
+            }
         }
 
         private void DrawProjectiles()
@@ -265,9 +247,11 @@ namespace ProjectPVP.Presentation
                 {
                     if (projectile.hitCollider != null)
                     {
-                        Bounds bounds = projectile.hitCollider.bounds;
                         Gizmos.color = WithAlpha(tint, 0.95f);
-                        Gizmos.DrawWireCube(bounds.center, bounds.size);
+                        Matrix4x4 previousMatrix = Gizmos.matrix;
+                        Gizmos.matrix = projectile.hitCollider.transform.localToWorldMatrix;
+                        Gizmos.DrawWireCube(projectile.hitCollider.offset, projectile.hitCollider.size);
+                        Gizmos.matrix = previousMatrix;
                     }
                     else
                     {
@@ -310,14 +294,45 @@ namespace ProjectPVP.Presentation
 
         private static bool TryGetProjectileOrigin(PlayerController player, out Vector2 origin)
         {
-            if (player.projectileOrigin != null)
+            if (player == null)
             {
-                origin = player.projectileOrigin.position;
-                return true;
+                origin = Vector2.zero;
+                return false;
             }
 
-            origin = ResolvePlayerWorldPosition(player);
-            return player != null;
+            origin = player.ProjectileOriginWorldPosition;
+            return true;
+        }
+
+        private static bool TryDrawAnchorCollider(PlayerCombatAnchor anchor)
+        {
+            if (anchor == null || anchor.AttachedCollider == null)
+            {
+                return false;
+            }
+
+            Collider2D collider = anchor.AttachedCollider;
+            Matrix4x4 previousMatrix = Gizmos.matrix;
+            Gizmos.matrix = collider.transform.localToWorldMatrix;
+
+            switch (collider)
+            {
+                case BoxCollider2D box:
+                    Gizmos.DrawWireCube(box.offset, box.size);
+                    break;
+                case CircleCollider2D circle:
+                    Gizmos.DrawWireSphere(circle.offset, circle.radius);
+                    break;
+                case CapsuleCollider2D capsule:
+                    Gizmos.DrawWireCube(capsule.offset, capsule.size);
+                    break;
+                default:
+                    Gizmos.matrix = previousMatrix;
+                    return false;
+            }
+
+            Gizmos.matrix = previousMatrix;
+            return true;
         }
 
         private static bool TryGetColliderGeometry(PlayerController player, out Vector2 center, out Vector2 extents)

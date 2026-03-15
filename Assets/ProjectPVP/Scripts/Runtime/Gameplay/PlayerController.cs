@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using ProjectPVP.Audio;
 using ProjectPVP.Data;
@@ -10,9 +11,9 @@ namespace ProjectPVP.Gameplay
     public sealed class PlayerController : MonoBehaviour
     {
         private const int PriorityNegativeInfinity = -99999;
-        private const float DefaultMoveSpeed = 350f;
-        private const float DefaultAcceleration = 2600f;
-        private const float DefaultFriction = 2000f;
+        private const float DefaultMoveSpeed = 605f;
+        private const float DefaultAcceleration = 3200f;
+        private const float DefaultFriction = 2600f;
         private const float DefaultGravity = 1500f;
         private const float DefaultMaxFallSpeed = 1500f;
         private const float DefaultJumpVelocity = 660f;
@@ -24,6 +25,8 @@ namespace ProjectPVP.Gameplay
         private const float DefaultUltimateDuration = 0.28f;
         private const float DefaultUltimateRadius = 180f;
         private const float DefaultUltimateWindupRatio = 0.45f;
+        private const float DefaultUltimateDashDuration = 0.1f;
+        private const float DefaultUltimateProjectileBlockDuration = 0.12f;
         private const float DefaultWallJumpHorizontalForce = 500f;
         private const float DefaultWallJumpVerticalForce = 720f;
         private const float DefaultWallSlideSpeed = 60f;
@@ -35,10 +38,17 @@ namespace ProjectPVP.Gameplay
         private const float DefaultDashUpwardMultiplier = 0.5f;
         private const float DashParryWindow = 0.2f;
         private const float DashPressParryWindow = 0.2f;
-        private const float DashComboWindow = 0.05f;
-        private const float JumpGraceTime = 0.12f;
+        private const float DashComboWindow = 0.2f;
+        private const float JumpGraceTime = 0.16f;
         private const float ShootAnimationDuration = 0.18f;
         private const float JumpStartAnimationDuration = 0.12f;
+        private const float AirAccelerationMultiplier = 0.78f;
+        private const float AirFrictionMultiplier = 0.3f;
+        private const float TurnAccelerationMultiplier = 1.2f;
+        private const float JumpCutGravityMultiplier = 2.1f;
+        private const float FallGravityMultiplier = 1.2f;
+        private const float ApexGravityMultiplier = 0.82f;
+        private const float ApexVerticalSpeedThreshold = 120f;
         private const float GroundSnapDistance = 240f;
         private const float SpawnGroundPadding = 2f;
         private const float CollisionSkinWidth = 2f;
@@ -55,7 +65,10 @@ namespace ProjectPVP.Gameplay
         public Rigidbody2D body;
         public BoxCollider2D bodyCollider;
         public SpriteRenderer spriteRenderer;
+        public PlayerCombatAnchor spawnAnchor;
         public Transform projectileOrigin;
+        public PlayerCombatAnchor meleeHitboxAnchor;
+        public PlayerCombatAnchor ultimateHitboxAnchor;
         public ProjectileController projectilePrefab;
 
         [Header("Collision")]
@@ -75,6 +88,13 @@ namespace ProjectPVP.Gameplay
             public string action;
             public float remaining;
             public bool cancelable;
+        }
+
+        private enum UltimateReplayShapeKind
+        {
+            Circle = 0,
+            Box = 1,
+            Capsule = 2,
         }
 
         private static PhysicsMaterial2D s_runtimeNoFrictionMaterial;
@@ -123,7 +143,31 @@ namespace ProjectPVP.Gameplay
         private int _pendingOverridePriority = PriorityNegativeInfinity;
         private float _pendingOverrideLockLeft;
         private bool _ultimateImpactApplied;
-
+        private Vector2 _ultimateDashVelocity = Vector2.zero;
+        private Vector2 _lastUltimateDashVelocity = Vector2.zero;
+        private Vector2 _ultimateReplayRootStart = Vector2.zero;
+        private Vector2 _ultimateReplayRootEnd = Vector2.zero;
+        private Vector2 _ultimateReplayImpactCenter = Vector2.zero;
+        private Vector2 _ultimateReplayShapeSize = Vector2.zero;
+        private Vector2 _ultimateReplayGhostSpriteOffset = Vector2.zero;
+        private Vector3 _ultimateReplayGhostScale = Vector3.one;
+        private Vector3 _ultimateReplayGhostEulerAngles = Vector3.zero;
+        private float _ultimateDashTimeLeft;
+        private float _ultimateProjectileBlockTimer;
+        private float _ultimateReplayDelayLeft;
+        private float _ultimateReplayTimeLeft;
+        private float _ultimateReplayShapeRadius;
+        private float _ultimateReplayShapeAngle;
+        private bool _ultimateReplayQueued;
+        private bool _ultimateReplayImpactPending;
+        private bool _ultimateReplayGhostFlipX;
+        private UltimateReplayShapeKind _ultimateReplayShapeKind;
+        private CapsuleDirection2D _ultimateReplayCapsuleDirection = CapsuleDirection2D.Horizontal;
+        private GameObject _ultimateReplayGhostObject;
+        private SpriteRenderer _ultimateReplayGhostRenderer;
+        private Sprite _ultimateReplayGhostSprite;
+        private int _ultimateReplayGhostSortingLayerId;
+        private int _ultimateReplayGhostSortingOrder;
         public int Facing => _facing;
         public int CurrentArrows => _arrows;
         public bool IsDead => _isDead;
@@ -140,6 +184,12 @@ namespace ProjectPVP.Gameplay
         public Vector2 CurrentVelocity => body != null ? body.linearVelocity : Vector2.zero;
         public float HorizontalVelocity => body != null ? body.linearVelocity.x : 0f;
         public float VerticalVelocity => body != null ? body.linearVelocity.y : 0f;
+        public Vector2 ConfiguredSpawnWorldPosition => ResolveConfiguredSpawnWorldPosition();
+        public Vector2 ProjectileOriginWorldPosition => ResolveProjectileOriginWorldPosition(_facing);
+        public Vector2 MeleeHitboxCenter => GetMeleeHitboxCenter();
+        public Vector2 MeleeHitboxSize => GetMeleeHitboxSize();
+        public Vector2 UltimateHitboxCenter => GetUltimateHitboxCenter();
+        public float UltimateHitboxRadius => ResolveUltimateRadius();
         public float DashParryTimeLeft => _dashParryTimer;
         public float DashPressTimeLeft => _dashPressTimer;
         public PlayerInputFrame CurrentInputFrame => _currentInputFrame;
@@ -171,6 +221,7 @@ namespace ProjectPVP.Gameplay
             EnsureFrictionlessColliderMaterial();
             ApplyDefinitionToCollider();
             ApplyCharacterVisuals();
+            SyncCombatAnchors();
             ResetRuntimeState();
             RefreshCollisionState();
         }
@@ -184,11 +235,13 @@ namespace ProjectPVP.Gameplay
             {
                 ApplyDefinitionToCollider();
                 ApplyCharacterVisuals();
+                SyncCombatAnchors();
                 return;
             }
 
             ConfigureInput();
             ConfigureRuntimeBody();
+            SyncCombatAnchors();
         }
 
         private void FixedUpdate()
@@ -218,26 +271,23 @@ namespace ProjectPVP.Gameplay
 
             bool shootReleasedThisFrame = UpdateAimHoldState(_currentInputFrame);
             UpdateFacing(_currentInputFrame);
+            SyncCombatAnchors();
 
             Vector2 velocity = body.linearVelocity;
             Vector2 previousDashVelocity = _lastDashVelocity;
+            Vector2 previousUltimateDashVelocity = _lastUltimateDashVelocity;
             velocity -= previousDashVelocity;
+            velocity -= previousUltimateDashVelocity;
 
             HandleMovement(_currentInputFrame, deltaTime, ref velocity);
             HandleJumpAndGravity(_currentInputFrame, deltaTime, ref velocity);
             TryStartDash(_currentInputFrame);
 
             Vector2 dashVelocity = UpdateDashVelocity(deltaTime, ref velocity);
-            if (previousDashVelocity != Vector2.zero && dashVelocity == Vector2.zero)
-            {
-                velocity += previousDashVelocity;
-                _lastDashVelocity = Vector2.zero;
-            }
-            else
-            {
-                velocity += dashVelocity;
-                _lastDashVelocity = dashVelocity;
-            }
+            ApplyTransientVelocity(ref velocity, previousDashVelocity, dashVelocity, ref _lastDashVelocity);
+
+            Vector2 ultimateDashVelocity = UpdateUltimateDashVelocity(deltaTime);
+            ApplyTransientVelocity(ref velocity, previousUltimateDashVelocity, ultimateDashVelocity, ref _lastUltimateDashVelocity);
 
             MoveCharacter(ref velocity, deltaTime);
             body.linearVelocity = velocity;
@@ -252,6 +302,7 @@ namespace ProjectPVP.Gameplay
             HandleActiveMelee();
             TryUseUltimate(_currentInputFrame);
             HandleActiveUltimate(deltaTime);
+            UpdateUltimateReplay(deltaTime);
             TryCheckHeadStomp();
             ApplyRuntimeColliderOverride(CurrentVisualActionKey);
             UpdatePresentationState();
@@ -272,6 +323,7 @@ namespace ProjectPVP.Gameplay
 
             _isDead = false;
             ApplyCharacterVisuals();
+            SyncCombatAnchors();
             ResetRuntimeState();
             RefreshCollisionState();
             SnapToGroundAtSpawn(worldPosition);
@@ -314,6 +366,15 @@ namespace ProjectPVP.Gameplay
             _pendingDashSecondary = false;
             _ultimateCooldownLeft = 0f;
             _ultimateImpactApplied = false;
+            _ultimateDashTimeLeft = 0f;
+            _ultimateDashVelocity = Vector2.zero;
+            _lastUltimateDashVelocity = Vector2.zero;
+            _ultimateProjectileBlockTimer = 0f;
+            _ultimateReplayDelayLeft = 0f;
+            _ultimateReplayTimeLeft = 0f;
+            _ultimateReplayQueued = false;
+            _ultimateReplayImpactPending = false;
+            CleanupUltimateReplayGhost();
             _currentOverrideAction = string.Empty;
             _pendingOverrideAction = string.Empty;
             _activeColliderAction = string.Empty;
@@ -329,7 +390,10 @@ namespace ProjectPVP.Gameplay
 
             ApplyDefinitionToCollider();
             UpdatePresentationState();
-            Died?.Invoke(this);
+            float deathEventDelay = characterDefinition != null && characterDefinition.HasActionAnimation("death")
+                ? Mathf.Clamp(ResolveActionDuration("death", 0.35f), 0.2f, 0.6f)
+                : 0f;
+            StartCoroutine(NotifyDeathAfterDelay(deathEventDelay));
         }
 
         public bool HandleIncomingProjectile(ProjectileController projectile)
@@ -342,6 +406,17 @@ namespace ProjectPVP.Gameplay
             if (projectile.SourceObject == gameObject)
             {
                 return false;
+            }
+
+            if (CanSeverIncomingProjectile(projectile))
+            {
+                projectile.SeverByMelee();
+                return true;
+            }
+
+            if (CanBlockProjectileWithUltimate())
+            {
+                return true;
             }
 
             if (CanParryProjectile())
@@ -414,6 +489,30 @@ namespace ProjectPVP.Gameplay
             if (inputSource == null)
             {
                 inputSource = GetComponent<KeyboardPlayerInputSource>();
+            }
+
+            if (spawnAnchor == null)
+            {
+                spawnAnchor = FindChildAnchor("SpawnAnchor", PlayerCombatAnchorKind.Spawn);
+            }
+
+            if (projectileOrigin == null)
+            {
+                Transform existingProjectileOrigin = transform.Find("ProjectileOrigin");
+                if (existingProjectileOrigin != null)
+                {
+                    projectileOrigin = existingProjectileOrigin;
+                }
+            }
+
+            if (meleeHitboxAnchor == null)
+            {
+                meleeHitboxAnchor = FindChildAnchor("MeleeHitbox", PlayerCombatAnchorKind.MeleeHitbox);
+            }
+
+            if (ultimateHitboxAnchor == null)
+            {
+                ultimateHitboxAnchor = FindChildAnchor("UltimateHitbox", PlayerCombatAnchorKind.UltimateHitbox);
             }
         }
 
@@ -511,6 +610,16 @@ namespace ProjectPVP.Gameplay
             UpdateVisualFacing();
         }
 
+        private IEnumerator NotifyDeathAfterDelay(float delay)
+        {
+            if (delay > 0f)
+            {
+                yield return new WaitForSeconds(delay);
+            }
+
+            Died?.Invoke(this);
+        }
+
         private void ResetRuntimeState()
         {
             _currentInputFrame = default;
@@ -539,13 +648,22 @@ namespace ProjectPVP.Gameplay
             _coyoteTimeLeft = 0f;
             _dashParryTimer = 0f;
             _dashPressTimer = 0f;
+            _ultimateProjectileBlockTimer = 0f;
             _currentOverrideLockLeft = 0f;
             _needsGroundReset = false;
             _dashJumpUsed = false;
             _pendingDashPrimary = false;
             _pendingDashSecondary = false;
             _ultimateImpactApplied = false;
+            _ultimateDashTimeLeft = 0f;
+            _ultimateDashVelocity = Vector2.zero;
+            _lastUltimateDashVelocity = Vector2.zero;
+            _ultimateReplayDelayLeft = 0f;
+            _ultimateReplayTimeLeft = 0f;
+            _ultimateReplayQueued = false;
+            _ultimateReplayImpactPending = false;
             _meleeHitIds.Clear();
+            CleanupUltimateReplayGhost();
             _wallNormal = Vector2.zero;
             _currentOverrideAction = string.Empty;
             _pendingOverrideAction = string.Empty;
@@ -575,6 +693,7 @@ namespace ProjectPVP.Gameplay
             _coyoteTimeLeft = Mathf.Max(0f, _coyoteTimeLeft - deltaTime);
             _dashParryTimer = Mathf.Max(0f, _dashParryTimer - deltaTime);
             _dashPressTimer = Mathf.Max(0f, _dashPressTimer - deltaTime);
+            _ultimateProjectileBlockTimer = Mathf.Max(0f, _ultimateProjectileBlockTimer - deltaTime);
             _currentOverrideLockLeft = Mathf.Max(0f, _currentOverrideLockLeft - deltaTime);
             UpdateActionLockTimers(deltaTime);
             UpdateActionOverrideState();
@@ -641,6 +760,8 @@ namespace ProjectPVP.Gameplay
             {
                 spriteRenderer.flipX = _facing < 0;
             }
+
+            UpdateProjectileOriginSocket();
         }
 
         private void MoveCharacter(ref Vector2 velocity, float deltaTime)
@@ -796,14 +917,28 @@ namespace ProjectPVP.Gameplay
         private void HandleMovement(PlayerInputFrame frame, float deltaTime, ref Vector2 velocity)
         {
             float targetSpeed = frame.axis * ResolveMoveSpeed();
+            bool hasDirectionalInput = Mathf.Abs(frame.axis) > 0.01f;
+            float acceleration = ResolveAcceleration();
+            float friction = ResolveFriction();
 
-            if (Mathf.Abs(frame.axis) > 0.01f)
+            if (!_isGrounded)
             {
-                velocity.x = Mathf.MoveTowards(velocity.x, targetSpeed, ResolveAcceleration() * deltaTime);
+                acceleration *= AirAccelerationMultiplier;
+                friction *= AirFrictionMultiplier;
+            }
+
+            if (hasDirectionalInput)
+            {
+                if (Mathf.Abs(velocity.x) > 0.01f && Mathf.Sign(velocity.x) != Mathf.Sign(frame.axis))
+                {
+                    acceleration *= TurnAccelerationMultiplier;
+                }
+
+                velocity.x = Mathf.MoveTowards(velocity.x, targetSpeed, acceleration * deltaTime);
                 return;
             }
 
-            velocity.x = Mathf.MoveTowards(velocity.x, 0f, ResolveFriction() * deltaTime);
+            velocity.x = Mathf.MoveTowards(velocity.x, 0f, friction * deltaTime);
         }
 
         private void HandleJumpAndGravity(PlayerInputFrame frame, float deltaTime, ref Vector2 velocity)
@@ -836,8 +971,29 @@ namespace ProjectPVP.Gameplay
                 return;
             }
 
-            velocity.y -= ResolveGravity() * deltaTime;
+            float gravityMultiplier = ResolveAirGravityMultiplier(frame, velocity.y);
+            velocity.y -= ResolveGravity() * gravityMultiplier * deltaTime;
             velocity.y = Mathf.Max(velocity.y, -ResolveMaxFallSpeed());
+        }
+
+        private float ResolveAirGravityMultiplier(PlayerInputFrame frame, float verticalVelocity)
+        {
+            if (verticalVelocity > 0f && !frame.jumpHeld)
+            {
+                return JumpCutGravityMultiplier;
+            }
+
+            if (verticalVelocity < 0f)
+            {
+                return FallGravityMultiplier;
+            }
+
+            if (Mathf.Abs(verticalVelocity) <= ApexVerticalSpeedThreshold)
+            {
+                return ApexGravityMultiplier;
+            }
+
+            return 1f;
         }
 
         private void TryStartDash(PlayerInputFrame frame)
@@ -849,7 +1005,7 @@ namespace ProjectPVP.Gameplay
                 _dashPressTimer = DashPressParryWindow;
                 _pendingDashPrimary |= primaryPressed;
                 _pendingDashSecondary |= secondaryPressed;
-                _dashComboWindowLeft = DashComboWindow;
+                _dashComboWindowLeft = Mathf.Max(_dashComboWindowLeft, DashComboWindow);
             }
 
             if (!_pendingDashPrimary && !_pendingDashSecondary)
@@ -857,40 +1013,48 @@ namespace ProjectPVP.Gameplay
                 return;
             }
 
-            if (_dashComboWindowLeft > 0f)
+            if (IsDashing)
             {
                 return;
             }
 
-            if (_needsGroundReset || IsDashing)
+            if (_dashComboWindowLeft <= 0f && !primaryPressed && !secondaryPressed)
             {
                 _pendingDashPrimary = false;
                 _pendingDashSecondary = false;
-                _dashComboWindowLeft = 0f;
                 return;
             }
 
             int usedCount = 0;
-            if (_pendingDashPrimary && _dashPrimaryCooldownLeft <= 0f)
+            bool usePrimary = _pendingDashPrimary && _dashPrimaryCooldownLeft <= 0f;
+            bool useSecondary = _pendingDashSecondary && _dashSecondaryCooldownLeft <= 0f;
+
+            if (usePrimary)
             {
                 _dashPrimaryCooldownLeft = ResolveDashCooldown();
+                _pendingDashPrimary = false;
                 usedCount += 1;
             }
 
-            if (_pendingDashSecondary && _dashSecondaryCooldownLeft <= 0f)
+            if (useSecondary)
             {
                 _dashSecondaryCooldownLeft = ResolveDashCooldown();
+                _pendingDashSecondary = false;
                 usedCount += 1;
             }
-
-            _pendingDashPrimary = false;
-            _pendingDashSecondary = false;
-            _dashComboWindowLeft = 0f;
 
             if (usedCount <= 0)
             {
+                if (_dashComboWindowLeft <= 0f)
+                {
+                    _pendingDashPrimary = false;
+                    _pendingDashSecondary = false;
+                }
+
                 return;
             }
+
+            _dashComboWindowLeft = 0f;
 
             Vector2 direction = ResolveDashDirection();
             float dashSpeed = ResolveDashDistance() > 0f && ResolveDashDuration() > 0f
@@ -975,17 +1139,26 @@ namespace ProjectPVP.Gameplay
                 return;
             }
 
-            int hitCount = Physics2D.OverlapBox(
-                GetMeleeHitboxCenter(),
-                GetMeleeHitboxSize(),
-                0f,
-                GetMeleeContactFilter(),
-                _overlapHits);
+            HandleProjectileSeverDuringMelee();
+
+            int hitCount = TryOverlapAuthoredHitbox(meleeHitboxAnchor, GetMeleeContactFilter(), _overlapHits, out int authoredHitCount)
+                ? authoredHitCount
+                : Physics2D.OverlapBox(
+                    GetMeleeHitboxCenter(),
+                    GetMeleeHitboxSize(),
+                    0f,
+                    GetMeleeContactFilter(),
+                    _overlapHits);
 
             for (int index = 0; index < hitCount; index += 1)
             {
                 Collider2D hit = _overlapHits[index];
                 if (hit == null)
+                {
+                    continue;
+                }
+
+                if (TrySeverProjectileWithMelee(hit))
                 {
                     continue;
                 }
@@ -1007,6 +1180,29 @@ namespace ProjectPVP.Gameplay
             }
         }
 
+        private void HandleProjectileSeverDuringMelee()
+        {
+            int hitCount = TryOverlapAuthoredHitbox(meleeHitboxAnchor, GetProjectileSeverContactFilter(), _overlapHits, out int authoredHitCount)
+                ? authoredHitCount
+                : Physics2D.OverlapBox(
+                    GetMeleeHitboxCenter(),
+                    GetMeleeHitboxSize(),
+                    0f,
+                    GetProjectileSeverContactFilter(),
+                    _overlapHits);
+
+            for (int index = 0; index < hitCount; index += 1)
+            {
+                Collider2D hit = _overlapHits[index];
+                if (hit == null)
+                {
+                    continue;
+                }
+
+                TrySeverProjectileWithMelee(hit);
+            }
+        }
+
         private void TryUseUltimate(PlayerInputFrame frame)
         {
             if (!frame.ultimatePressed || _ultimateCooldownLeft > 0f || _ultimateTimeLeft > 0f || !HasUltimateConfigured())
@@ -1019,6 +1215,7 @@ namespace ProjectPVP.Gameplay
             _ultimateTimeLeft = _ultimateTotalDuration;
             _ultimateAnimationTimeLeft = _ultimateTotalDuration;
             _ultimateImpactApplied = false;
+            BeginUltimateDash();
             LockActionForDuration("ult", _ultimateTotalDuration, Mathf.Min(_ultimateTotalDuration, 0.2f), false);
             PlayActionSfx("ult");
         }
@@ -1031,10 +1228,25 @@ namespace ProjectPVP.Gameplay
             }
 
             _ultimateTimeLeft = Mathf.Max(0f, _ultimateTimeLeft - deltaTime);
+            if (_ultimateImpactApplied)
+            {
+                return;
+            }
+
+            if (ResolveUltimateDashDistance() > 0.01f)
+            {
+                if (_ultimateDashTimeLeft <= 0f)
+                {
+                    ApplyUltimateImpact();
+                    _ultimateImpactApplied = true;
+                }
+
+                return;
+            }
+
             float elapsed = _ultimateTotalDuration - _ultimateTimeLeft;
             float activeTime = _ultimateTotalDuration * ResolveUltimateWindupRatio();
-
-            if (!_ultimateImpactApplied && elapsed >= activeTime)
+            if (elapsed >= activeTime)
             {
                 ApplyUltimateImpact();
                 _ultimateImpactApplied = true;
@@ -1043,15 +1255,249 @@ namespace ProjectPVP.Gameplay
 
         private void ApplyUltimateImpact()
         {
-            int hitCount = Physics2D.OverlapCircle(
-                GetUltimateHitboxCenter(),
-                ResolveUltimateRadius(),
-                GetMeleeContactFilter(),
-                _overlapHits);
+            CaptureUltimateReplayData();
+            int hitCount = CollectCurrentUltimateHits(_overlapHits);
+            ApplyUltimateDamageHits(_overlapHits, hitCount);
+        }
 
+        private Vector2 UpdateUltimateDashVelocity(float deltaTime)
+        {
+            if (_ultimateDashTimeLeft <= 0f)
+            {
+                return Vector2.zero;
+            }
+
+            Vector2 dashVelocity = _ultimateDashVelocity;
+            _ultimateDashTimeLeft = Mathf.Max(0f, _ultimateDashTimeLeft - deltaTime);
+            if (_ultimateDashTimeLeft <= 0f)
+            {
+                _ultimateDashVelocity = Vector2.zero;
+            }
+
+            return dashVelocity;
+        }
+
+        private void BeginUltimateDash()
+        {
+            _ultimateDashTimeLeft = 0f;
+            _ultimateDashVelocity = Vector2.zero;
+            _lastUltimateDashVelocity = Vector2.zero;
+            _ultimateProjectileBlockTimer = 0f;
+            _ultimateReplayDelayLeft = 0f;
+            _ultimateReplayTimeLeft = 0f;
+            _ultimateReplayQueued = false;
+            _ultimateReplayImpactPending = false;
+            CleanupUltimateReplayGhost();
+
+            float dashDistance = ResolveUltimateDashDistance();
+            float dashDuration = ResolveUltimateDashDuration();
+            if (dashDistance <= 0.01f || dashDuration <= 0.01f)
+            {
+                return;
+            }
+
+            Vector2 dashDirection = ResolveDashDirection();
+            _ultimateDashVelocity = dashDirection * (dashDistance / dashDuration);
+            _ultimateDashTimeLeft = dashDuration;
+            _ultimateReplayRootStart = body != null ? body.position : (Vector2)transform.position;
+            if (ResolveUltimateBlocksProjectiles())
+            {
+                _ultimateProjectileBlockTimer = ResolveUltimateProjectileBlockDuration();
+            }
+        }
+
+        private void CaptureUltimateReplayData()
+        {
+            if (ResolveUltimateReplayDelay() <= 0f || ResolveUltimateDashDistance() <= 0.01f)
+            {
+                return;
+            }
+
+            _ultimateReplayRootEnd = body != null ? body.position : (Vector2)transform.position;
+            CaptureUltimateReplayShape();
+            CaptureUltimateReplayGhostVisual();
+            _ultimateReplayDelayLeft = ResolveUltimateReplayDelay();
+            _ultimateReplayTimeLeft = 0f;
+            _ultimateReplayQueued = true;
+            _ultimateReplayImpactPending = true;
+        }
+
+        private void UpdateUltimateReplay(float deltaTime)
+        {
+            if (!_ultimateReplayQueued)
+            {
+                return;
+            }
+
+            if (_ultimateReplayDelayLeft > 0f)
+            {
+                _ultimateReplayDelayLeft = Mathf.Max(0f, _ultimateReplayDelayLeft - deltaTime);
+                if (_ultimateReplayDelayLeft > 0f)
+                {
+                    return;
+                }
+
+                _ultimateReplayTimeLeft = ResolveUltimateDashDuration();
+                StartUltimateReplayGhost();
+            }
+
+            if (_ultimateReplayTimeLeft <= 0f)
+            {
+                if (_ultimateReplayImpactPending)
+                {
+                    ApplyUltimateReplayImpact();
+                    _ultimateReplayImpactPending = false;
+                }
+
+                _ultimateReplayQueued = false;
+                CleanupUltimateReplayGhost();
+                return;
+            }
+
+            _ultimateReplayTimeLeft = Mathf.Max(0f, _ultimateReplayTimeLeft - deltaTime);
+            float progress = 1f - (_ultimateReplayTimeLeft / Mathf.Max(0.01f, ResolveUltimateDashDuration()));
+            UpdateUltimateReplayGhost(progress);
+
+            if (_ultimateReplayImpactPending && progress >= 1f)
+            {
+                ApplyUltimateReplayImpact();
+                _ultimateReplayImpactPending = false;
+            }
+
+            if (_ultimateReplayTimeLeft <= 0f)
+            {
+                _ultimateReplayQueued = false;
+                CleanupUltimateReplayGhost();
+            }
+        }
+
+        private void StartUltimateReplayGhost()
+        {
+            if (_ultimateReplayGhostSprite == null)
+            {
+                return;
+            }
+
+            if (_ultimateReplayGhostObject == null)
+            {
+                _ultimateReplayGhostObject = new GameObject(name + "_UltimateReplayGhost");
+                _ultimateReplayGhostRenderer = _ultimateReplayGhostObject.AddComponent<SpriteRenderer>();
+            }
+
+            _ultimateReplayGhostObject.SetActive(true);
+            _ultimateReplayGhostRenderer.sprite = _ultimateReplayGhostSprite;
+            _ultimateReplayGhostRenderer.flipX = _ultimateReplayGhostFlipX;
+            _ultimateReplayGhostRenderer.sortingLayerID = _ultimateReplayGhostSortingLayerId;
+            _ultimateReplayGhostRenderer.sortingOrder = _ultimateReplayGhostSortingOrder;
+            _ultimateReplayGhostObject.transform.position = _ultimateReplayRootStart + _ultimateReplayGhostSpriteOffset;
+            _ultimateReplayGhostObject.transform.eulerAngles = _ultimateReplayGhostEulerAngles;
+            _ultimateReplayGhostObject.transform.localScale = _ultimateReplayGhostScale;
+            _ultimateReplayGhostRenderer.color = new Color(0.75f, 0.08f, 0.12f, 0.55f);
+        }
+
+        private void UpdateUltimateReplayGhost(float progress)
+        {
+            if (_ultimateReplayGhostObject == null || _ultimateReplayGhostRenderer == null)
+            {
+                return;
+            }
+
+            Vector2 rootPosition = Vector2.Lerp(_ultimateReplayRootStart, _ultimateReplayRootEnd, Mathf.Clamp01(progress));
+            _ultimateReplayGhostObject.transform.position = rootPosition + _ultimateReplayGhostSpriteOffset;
+            Color ghostColor = _ultimateReplayGhostRenderer.color;
+            ghostColor.a = Mathf.Lerp(0.55f, 0.18f, Mathf.Clamp01(progress));
+            _ultimateReplayGhostRenderer.color = ghostColor;
+        }
+
+        private void CaptureUltimateReplayGhostVisual()
+        {
+            if (spriteRenderer == null || spriteRenderer.sprite == null)
+            {
+                _ultimateReplayGhostSprite = null;
+                return;
+            }
+
+            Vector2 rootEnd = body != null ? body.position : (Vector2)transform.position;
+            _ultimateReplayGhostSprite = spriteRenderer.sprite;
+            _ultimateReplayGhostFlipX = spriteRenderer.flipX;
+            _ultimateReplayGhostSortingLayerId = spriteRenderer.sortingLayerID;
+            _ultimateReplayGhostSortingOrder = spriteRenderer.sortingOrder - 1;
+            _ultimateReplayGhostScale = spriteRenderer.transform.lossyScale;
+            _ultimateReplayGhostEulerAngles = spriteRenderer.transform.eulerAngles;
+            _ultimateReplayGhostSpriteOffset = (Vector2)spriteRenderer.transform.position - rootEnd;
+        }
+
+        private void CaptureUltimateReplayShape()
+        {
+            Collider2D authoredCollider = ultimateHitboxAnchor != null ? ultimateHitboxAnchor.AttachedCollider : null;
+            if (authoredCollider is BoxCollider2D box)
+            {
+                _ultimateReplayShapeKind = UltimateReplayShapeKind.Box;
+                _ultimateReplayImpactCenter = box.transform.TransformPoint(box.offset);
+                _ultimateReplayShapeSize = ScaleAbsolute(box.size, box.transform.lossyScale);
+                _ultimateReplayShapeAngle = box.transform.eulerAngles.z;
+                return;
+            }
+
+            if (authoredCollider is CapsuleCollider2D capsule)
+            {
+                _ultimateReplayShapeKind = UltimateReplayShapeKind.Capsule;
+                _ultimateReplayImpactCenter = capsule.transform.TransformPoint(capsule.offset);
+                _ultimateReplayShapeSize = ScaleAbsolute(capsule.size, capsule.transform.lossyScale);
+                _ultimateReplayShapeAngle = capsule.transform.eulerAngles.z;
+                _ultimateReplayCapsuleDirection = capsule.direction;
+                return;
+            }
+
+            if (authoredCollider is CircleCollider2D circle)
+            {
+                _ultimateReplayShapeKind = UltimateReplayShapeKind.Circle;
+                _ultimateReplayImpactCenter = circle.transform.TransformPoint(circle.offset);
+                _ultimateReplayShapeRadius = circle.radius * Mathf.Max(Mathf.Abs(circle.transform.lossyScale.x), Mathf.Abs(circle.transform.lossyScale.y));
+                return;
+            }
+
+            _ultimateReplayShapeKind = UltimateReplayShapeKind.Circle;
+            _ultimateReplayImpactCenter = GetUltimateHitboxCenter();
+            _ultimateReplayShapeRadius = ResolveUltimateRadius();
+        }
+
+        private int CollectCurrentUltimateHits(Collider2D[] results)
+        {
+            return TryOverlapAuthoredHitbox(ultimateHitboxAnchor, GetMeleeContactFilter(), results, out int authoredHitCount)
+                ? authoredHitCount
+                : Physics2D.OverlapCircle(
+                    GetUltimateHitboxCenter(),
+                    ResolveUltimateRadius(),
+                    GetMeleeContactFilter(),
+                    results);
+        }
+
+        private void ApplyUltimateReplayImpact()
+        {
+            int hitCount = CollectUltimateReplayHits(_overlapHits);
+            ApplyUltimateDamageHits(_overlapHits, hitCount);
+        }
+
+        private int CollectUltimateReplayHits(Collider2D[] results)
+        {
+            ContactFilter2D filter = GetMeleeContactFilter();
+            switch (_ultimateReplayShapeKind)
+            {
+                case UltimateReplayShapeKind.Box:
+                    return Physics2D.OverlapBox(_ultimateReplayImpactCenter, _ultimateReplayShapeSize, _ultimateReplayShapeAngle, filter, results);
+                case UltimateReplayShapeKind.Capsule:
+                    return Physics2D.OverlapCapsule(_ultimateReplayImpactCenter, _ultimateReplayShapeSize, _ultimateReplayCapsuleDirection, _ultimateReplayShapeAngle, filter, results);
+                default:
+                    return Physics2D.OverlapCircle(_ultimateReplayImpactCenter, _ultimateReplayShapeRadius, filter, results);
+            }
+        }
+
+        private void ApplyUltimateDamageHits(Collider2D[] hits, int hitCount)
+        {
             for (int index = 0; index < hitCount; index += 1)
             {
-                Collider2D hit = _overlapHits[index];
+                Collider2D hit = hits[index];
                 if (hit == null)
                 {
                     continue;
@@ -1065,6 +1511,37 @@ namespace ProjectPVP.Gameplay
 
                 target.Kill();
             }
+        }
+
+        private void ApplyTransientVelocity(ref Vector2 velocity, Vector2 previousVelocity, Vector2 currentVelocity, ref Vector2 lastVelocity)
+        {
+            if (previousVelocity != Vector2.zero && currentVelocity == Vector2.zero)
+            {
+                velocity += previousVelocity;
+                lastVelocity = Vector2.zero;
+                return;
+            }
+
+            velocity += currentVelocity;
+            lastVelocity = currentVelocity;
+        }
+
+        private bool CanBlockProjectileWithUltimate()
+        {
+            return _ultimateProjectileBlockTimer > 0f;
+        }
+
+        private void CleanupUltimateReplayGhost()
+        {
+            if (_ultimateReplayGhostObject != null)
+            {
+                _ultimateReplayGhostObject.SetActive(false);
+            }
+        }
+
+        private static Vector2 ScaleAbsolute(Vector2 value, Vector3 scale)
+        {
+            return new Vector2(Mathf.Abs(value.x * scale.x), Mathf.Abs(value.y * scale.y));
         }
 
         private void TryCheckHeadStomp()
@@ -1114,7 +1591,7 @@ namespace ProjectPVP.Gameplay
 
             if (_isDead)
             {
-                spriteRenderer.color = new Color(0.6f, 0.6f, 0.7f, 0.55f);
+                spriteRenderer.color = Color.white;
                 return;
             }
 
@@ -1141,28 +1618,7 @@ namespace ProjectPVP.Gameplay
 
         private Vector2 GetProjectileSpawnPoint(Vector2 aimDirection, int facingDirection)
         {
-            Vector2 basePosition = projectileOrigin != null
-                ? (Vector2)projectileOrigin.position
-                : (Vector2)transform.position;
-            Vector2 colliderSize = ResolveColliderSize();
-            Vector2 colliderOffset = ResolveColliderOffset();
-
-            switch (ResolveProjectileOriginMode())
-            {
-                case ProjectileOriginMode.ColliderCenter:
-                    basePosition = (Vector2)transform.position + colliderOffset;
-                    break;
-                case ProjectileOriginMode.ColliderTop:
-                    basePosition = (Vector2)transform.position + colliderOffset + new Vector2(0f, colliderSize.y * 0.5f);
-                    break;
-                case ProjectileOriginMode.Chest:
-                    basePosition = (Vector2)transform.position + colliderOffset + new Vector2(0f, colliderSize.y * 0.15f);
-                    break;
-            }
-
-            Vector2 originOffset = ResolveProjectileOriginOffset();
-            originOffset.x *= facingDirection;
-            basePosition += originOffset;
+            Vector2 basePosition = ResolveProjectileOriginWorldPosition(facingDirection);
             basePosition += aimDirection * ResolveProjectileForward();
             basePosition += new Vector2(facingDirection * ResolveProjectileForwardFacing(), ResolveProjectileVerticalOffset());
             return basePosition;
@@ -1170,6 +1626,11 @@ namespace ProjectPVP.Gameplay
 
         private Vector2 GetMeleeHitboxCenter()
         {
+            if (TryResolveAnchorWorldPosition(meleeHitboxAnchor, out Vector2 authoredCenter))
+            {
+                return authoredCenter;
+            }
+
             Vector2 colliderSize = ResolveColliderSize();
             Vector2 colliderOffset = ResolveColliderOffset();
             Vector2 chestOffset = new Vector2(colliderSize.x * 0.15f * _facing, colliderSize.y * 0.15f);
@@ -1179,6 +1640,11 @@ namespace ProjectPVP.Gameplay
 
         private Vector2 GetMeleeHitboxSize()
         {
+            if (meleeHitboxAnchor != null && meleeHitboxAnchor.boxSize.sqrMagnitude > 0.001f)
+            {
+                return meleeHitboxAnchor.boxSize;
+            }
+
             ActionColliderOverride overrideData = FindActionColliderOverride("melee");
             if (overrideData != null)
             {
@@ -1193,6 +1659,11 @@ namespace ProjectPVP.Gameplay
 
         private Vector2 GetUltimateHitboxCenter()
         {
+            if (TryResolveAnchorWorldPosition(ultimateHitboxAnchor, out Vector2 authoredCenter))
+            {
+                return authoredCenter;
+            }
+
             Vector2 colliderSize = ResolveColliderSize();
             Vector2 colliderOffset = ResolveColliderOffset();
             Vector2 chestOffset = new Vector2(colliderSize.x * 0.2f * _facing, colliderSize.y * 0.1f);
@@ -1243,6 +1714,59 @@ namespace ProjectPVP.Gameplay
         private bool CanParryProjectile()
         {
             return _dashParryTimer > 0f || _dashPressTimer > 0f;
+        }
+
+        private bool CanSeverIncomingProjectile(ProjectileController projectile)
+        {
+            if (!CanSeverProjectilesWithMelee() || !IsMeleeActive || projectile == null || projectile.IsStuck || projectile.IsDisarmed)
+            {
+                return false;
+            }
+
+            Collider2D projectileCollider = projectile.hitCollider;
+            if (projectileCollider == null)
+            {
+                return false;
+            }
+
+            Collider2D meleeCollider = meleeHitboxAnchor != null ? meleeHitboxAnchor.AttachedCollider : null;
+            if (meleeCollider != null)
+            {
+                return meleeCollider.bounds.Intersects(projectileCollider.bounds);
+            }
+
+            Bounds projectileBounds = projectileCollider.bounds;
+            Bounds meleeBounds = new Bounds(GetMeleeHitboxCenter(), GetMeleeHitboxSize());
+            return meleeBounds.Intersects(projectileBounds);
+        }
+
+        private bool TrySeverProjectileWithMelee(Collider2D hit)
+        {
+            if (!CanSeverProjectilesWithMelee() || hit == null)
+            {
+                return false;
+            }
+
+            ProjectileController projectile = hit.GetComponentInParent<ProjectileController>();
+            if (projectile == null || projectile.IsStuck || projectile.IsDisarmed)
+            {
+                return false;
+            }
+
+            int projectileId = projectile.GetInstanceID();
+            if (_meleeHitIds.Contains(projectileId))
+            {
+                return true;
+            }
+
+            _meleeHitIds.Add(projectileId);
+            projectile.SeverByMelee();
+            return true;
+        }
+
+        private bool CanSeverProjectilesWithMelee()
+        {
+            return characterDefinition != null && characterDefinition.meleeCanSeverProjectiles;
         }
 
         private bool QueryGround(out Vector2 hitNormal)
@@ -1387,6 +1911,15 @@ namespace ProjectPVP.Gameplay
             return new ContactFilter2D
             {
                 useTriggers = false,
+                useLayerMask = false
+            };
+        }
+
+        private ContactFilter2D GetProjectileSeverContactFilter()
+        {
+            return new ContactFilter2D
+            {
+                useTriggers = true,
                 useLayerMask = false
             };
         }
@@ -1682,6 +2215,11 @@ namespace ProjectPVP.Gameplay
 
         private string ResolveBaseVisualActionKey()
         {
+            if (_isDead)
+            {
+                return "death";
+            }
+
             if (IsDashAnimationActive)
             {
                 return "dash";
@@ -1896,15 +2434,97 @@ namespace ProjectPVP.Gameplay
         private ProjectileOriginMode ResolveProjectileOriginMode() => characterDefinition != null ? characterDefinition.projectileOriginMode : ProjectileOriginMode.BowNode;
         private Sprite ResolveProjectileSprite() => characterDefinition != null ? characterDefinition.projectileSprite : null;
 
+        private Vector2 ResolveConfiguredSpawnWorldPosition()
+        {
+            if (spawnAnchor != null)
+            {
+                return spawnAnchor.ResolveWorldPosition(transform, 1);
+            }
+
+            return body != null ? body.position : (Vector2)transform.position;
+        }
+
+        private void UpdateProjectileOriginSocket()
+        {
+            if (projectileOrigin == null)
+            {
+                return;
+            }
+
+            projectileOrigin.localPosition = ResolveProjectileOriginLocalPosition(_facing);
+            projectileOrigin.localRotation = Quaternion.identity;
+            projectileOrigin.localScale = Vector3.one;
+        }
+
+        private void SyncCombatAnchors()
+        {
+            ApplyAnchorRuntimePose(meleeHitboxAnchor);
+            ApplyAnchorRuntimePose(ultimateHitboxAnchor);
+            ApplyAnchorRuntimePose(spawnAnchor);
+        }
+
+        private Vector2 ResolveProjectileOriginWorldPosition(int facingDirection)
+        {
+            return transform.TransformPoint(ResolveProjectileOriginLocalPosition(facingDirection));
+        }
+
+        private Vector3 ResolveProjectileOriginLocalPosition(int facingDirection)
+        {
+            if (TryResolveProjectileOriginLocalAuthoring(facingDirection, out Vector3 authoredLocalPosition))
+            {
+                return authoredLocalPosition;
+            }
+
+            Vector2 localPosition = ResolveProjectileOriginBaseLocalPosition();
+            Vector2 originOffset = ResolveProjectileOriginOffset();
+            float horizontalDirection = facingDirection < 0 ? -1f : 1f;
+            localPosition += new Vector2(Mathf.Abs(originOffset.x) * horizontalDirection, originOffset.y);
+            return new Vector3(localPosition.x, localPosition.y, 0f);
+        }
+
+        private Vector2 ResolveProjectileOriginBaseLocalPosition()
+        {
+            Vector2 colliderSize = ResolveColliderSize();
+            Vector2 colliderOffset = ResolveColliderOffset();
+
+            switch (ResolveEffectiveProjectileOriginMode())
+            {
+                case ProjectileOriginMode.ColliderCenter:
+                    return colliderOffset;
+                case ProjectileOriginMode.ColliderTop:
+                    return colliderOffset + new Vector2(0f, colliderSize.y * 0.5f);
+                case ProjectileOriginMode.Chest:
+                    return colliderOffset + new Vector2(0f, colliderSize.y * 0.15f);
+                default:
+                    return Vector2.zero;
+            }
+        }
+
+        private ProjectileOriginMode ResolveEffectiveProjectileOriginMode()
+        {
+            if (characterDefinition != null && characterDefinition.projectileUseBowNode)
+            {
+                return ProjectileOriginMode.BowNode;
+            }
+
+            return ResolveProjectileOriginMode();
+        }
+
         private bool HasStatOverrides()
         {
             return characterDefinition != null && characterDefinition.overridesStats;
         }
 
-        private bool HasUltimateConfigured()
+                private bool HasUltimateConfigured()
         {
-            return characterDefinition != null
-                && characterDefinition.HasActionAnimation("ult");
+            if (characterDefinition == null)
+            {
+                return false;
+            }
+
+            return characterDefinition.HasActionAnimation("ult")
+                || ResolveUltimateDashDistance() > 0.01f
+                || ResolveUltimateReplayDelay() > 0.01f;
         }
 
         private float ResolveMoveSpeed()
@@ -1940,6 +2560,11 @@ namespace ProjectPVP.Gameplay
 
         private float ResolveUltimateRadius()
         {
+            if (ultimateHitboxAnchor != null && ultimateHitboxAnchor.radius > 0.01f)
+            {
+                return ultimateHitboxAnchor.radius;
+            }
+
             return characterDefinition != null
                 ? Mathf.Max(DefaultUltimateRadius * 0.7f, ResolveColliderSize().x * 1.4f)
                 : DefaultUltimateRadius;
@@ -1947,7 +2572,48 @@ namespace ProjectPVP.Gameplay
 
         private float ResolveUltimateWindupRatio()
         {
-            return DefaultUltimateWindupRatio;
+            return characterDefinition != null && characterDefinition.ultimateWindupRatio > 0f
+                ? Mathf.Clamp01(characterDefinition.ultimateWindupRatio)
+                : DefaultUltimateWindupRatio;
+        }
+
+        private float ResolveUltimateDashDistance()
+        {
+            return characterDefinition != null && characterDefinition.ultimateDashDistance > 0.01f
+                ? characterDefinition.ultimateDashDistance * ResolveDashScale()
+                : 0f;
+        }
+
+        private float ResolveUltimateDashDuration()
+        {
+            return characterDefinition != null && characterDefinition.ultimateDashDuration > 0.01f
+                ? characterDefinition.ultimateDashDuration
+                : DefaultUltimateDashDuration;
+        }
+
+        private bool ResolveUltimateBlocksProjectiles()
+        {
+            return characterDefinition != null && characterDefinition.ultimateBlocksProjectiles;
+        }
+
+        private float ResolveUltimateProjectileBlockDuration()
+        {
+            if (!ResolveUltimateBlocksProjectiles())
+            {
+                return 0f;
+            }
+
+            float configured = characterDefinition != null && characterDefinition.ultimateProjectileBlockDuration > 0.01f
+                ? characterDefinition.ultimateProjectileBlockDuration
+                : DefaultUltimateProjectileBlockDuration;
+            return Mathf.Max(configured, ResolveUltimateDashDuration());
+        }
+
+        private float ResolveUltimateReplayDelay()
+        {
+            return characterDefinition != null && characterDefinition.ultimateReplayDelay > 0.01f
+                ? characterDefinition.ultimateReplayDelay
+                : 0f;
         }
 
         private float ResolveActionDuration(string actionName, float fallback)
@@ -1957,11 +2623,89 @@ namespace ProjectPVP.Gameplay
                 : fallback;
         }
 
+        private bool TryResolveAnchorWorldPosition(PlayerCombatAnchor anchor, out Vector2 worldPosition)
+        {
+            if (anchor != null)
+            {
+                worldPosition = anchor.ResolveWorldPosition(transform, _facing);
+                return true;
+            }
+
+            worldPosition = Vector2.zero;
+            return false;
+        }
+
+        private bool TryResolveProjectileOriginLocalAuthoring(int facingDirection, out Vector3 localPosition)
+        {
+            if (projectileOrigin != null
+                && projectileOrigin.parent == transform
+                && ResolveEffectiveProjectileOriginMode() == ProjectileOriginMode.BowNode)
+            {
+                float horizontalDirection = facingDirection < 0 ? -1f : 1f;
+                localPosition = projectileOrigin.localPosition;
+                localPosition.x = Mathf.Abs(localPosition.x) * horizontalDirection;
+                localPosition.z = 0f;
+                return true;
+            }
+
+            localPosition = Vector3.zero;
+            return false;
+        }
+
+        private PlayerCombatAnchor FindChildAnchor(string childName, PlayerCombatAnchorKind expectedKind)
+        {
+            Transform child = transform.Find(childName);
+            if (child == null)
+            {
+                return null;
+            }
+
+            PlayerCombatAnchor anchor = child.GetComponent<PlayerCombatAnchor>();
+            if (anchor != null && anchor.anchorKind == expectedKind)
+            {
+                return anchor;
+            }
+
+            return anchor;
+        }
+
         private bool ResolveActionCancelable(string actionName, bool fallback)
         {
             return characterDefinition != null
                 ? characterDefinition.ResolveActionCancelable(actionName, fallback)
                 : fallback;
+        }
+
+        private void ApplyAnchorRuntimePose(PlayerCombatAnchor anchor)
+        {
+            if (anchor == null)
+            {
+                return;
+            }
+
+            anchor.ApplyRuntimePose(_facing);
+        }
+
+        private bool TryOverlapAuthoredHitbox(
+            PlayerCombatAnchor anchor,
+            ContactFilter2D filter,
+            Collider2D[] results,
+            out int hitCount)
+        {
+            hitCount = 0;
+            if (anchor == null)
+            {
+                return false;
+            }
+
+            Collider2D authoredCollider = anchor.AttachedCollider;
+            if (authoredCollider == null)
+            {
+                return false;
+            }
+
+            hitCount = authoredCollider.Overlap(filter, results);
+            return true;
         }
 
         private void OnDrawGizmosSelected()

@@ -30,3 +30,7 @@
 # OS
 Thumbs.db
 Desktop.ini
+
+# Unity recovery
+Assets/_Recovery/
+Assets/_Recovery.meta
