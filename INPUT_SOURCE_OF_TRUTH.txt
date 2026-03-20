@@ -1,0 +1,85 @@
+THE LAST ARROW - INPUT SOURCE OF TRUTH
+
+Purpose
+- This file is the canonical reference for input semantics.
+- Use Mizu as the clean baseline for expected behavior.
+- Storm Dragon must follow the exact same command contract.
+- No character-specific input rules are allowed.
+
+Single runtime path
+- Runtime input reader: Assets/ProjectPVP/Scripts/Runtime/Input/KeyboardPlayerInputSource.cs
+- Keyboard defaults: Assets/ProjectPVP/Scripts/Runtime/Input/PlayerActionMap.cs
+- Gamepad logical map: Assets/ProjectPVP/Scripts/Runtime/Input/GamepadActionMap.cs
+- Scene instances to keep in sync: Assets/ProjectPVP/Scenes/Bootstrap.unity
+- CharacterDefinition and animation files must never redefine controls.
+
+Global rules
+- Input behavior is global, not per character.
+- A fix that works only for Mizu or only for Storm Dragon is wrong.
+- A fix that depends on character assets or character definitions is wrong.
+- Keep input interpretation centralized in one runtime file.
+
+Observed hardware normalization
+- This project currently normalizes raw controller quirks inside Assets/ProjectPVP/Scripts/Runtime/Input/KeyboardPlayerInputSource.cs.
+- Xbox controllers on this Windows Legacy Input setup may report D-pad axes transposed relative to the canonical contract.
+- Fix controller-profile quirks centrally in the runtime input file, never in character data or character-specific scripts.
+- When investigating regressions, check the debug HUD FaceBtns line first: profile name, DpadMode, RawDpad, and Dpad.
+
+Canonical gameplay semantics
+- Horizontal move comes only from left/right intent.
+- Vertical intent comes only from up/down intent.
+- Up or down input must never create horizontal walking by itself.
+- Left or right input must never create fake vertical-only intent by itself.
+- D-pad and left stick must obey the same semantic contract.
+- Dash combo timing is global and character-agnostic.
+
+Canonical keyboard mapping
+- Player 1
+- Left: A
+- Right: D
+- Up: W
+- Down: S
+- Jump: Space
+- Shoot: Q
+- Melee: E
+- Ultimate: R
+- Dash primary: Left Shift
+- Dash secondary: Left Alt
+
+- Player 2
+- Left: Left Arrow
+- Right: Right Arrow
+- Up: Up Arrow
+- Down: Down Arrow
+- Jump: Enter
+- Shoot: Right Control
+- Melee: Right Shift
+- Ultimate: Keypad Enter
+- Dash primary: Keypad 0
+- Dash secondary: Keypad Period
+
+Canonical gamepad mapping
+- X: Jump
+- Square: Shoot
+- Circle: Melee
+- Triangle: Ultimate
+- L1 or R1: Dash primary
+- L2 or R2: Dash secondary
+
+Canonical D-pad semantics
+- Left: horizontal move left
+- Right: horizontal move right
+- Up: vertical aim or intent up
+- Down: vertical aim or intent down
+- Up and down must never trigger horizontal movement
+- Left and right must never trigger dash by themselves
+- Up and down must never trigger dash by themselves
+
+Testing contract
+- Always compare Storm Dragon behavior against Mizu behavior.
+- When a bug is reported on one character, validate the same input on the other.
+- If Mizu is clean and Storm Dragon is not, investigate scene wiring and runtime input first.
+- Do not patch around the issue by inventing per-character exceptions.
+
+Maintenance rule
+- Update this file before or together with any future input refactor.

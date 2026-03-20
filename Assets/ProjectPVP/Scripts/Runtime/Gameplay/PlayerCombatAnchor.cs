@@ -7,6 +7,7 @@ namespace ProjectPVP.Gameplay
         Spawn = 0,
         MeleeHitbox = 1,
         UltimateHitbox = 2,
+        UltimateReplayHitbox = 3,
     }
 
     [ExecuteAlways]
@@ -102,6 +103,7 @@ namespace ProjectPVP.Gameplay
                     Gizmos.DrawLine(worldPosition + Vector2.up * 20f, worldPosition + Vector2.down * 20f);
                     break;
                 case PlayerCombatAnchorKind.UltimateHitbox:
+                case PlayerCombatAnchorKind.UltimateReplayHitbox:
                     Gizmos.DrawWireSphere(worldPosition, Mathf.Max(1f, radius));
                     break;
                 default:
@@ -169,6 +171,8 @@ namespace ProjectPVP.Gameplay
                     return new Color(1f, 0.92f, 0.25f, 0.95f);
                 case PlayerCombatAnchorKind.UltimateHitbox:
                     return new Color(1f, 0.25f, 0.9f, 0.95f);
+                case PlayerCombatAnchorKind.UltimateReplayHitbox:
+                    return new Color(0.2f, 0.95f, 1f, 0.98f);
                 default:
                     return new Color(1f, 0.32f, 0.28f, 0.95f);
             }

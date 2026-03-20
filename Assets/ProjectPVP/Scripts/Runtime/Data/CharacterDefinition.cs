@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ProjectPVP.Gameplay;
 using UnityEngine;
 
 namespace ProjectPVP.Data
@@ -52,6 +53,17 @@ namespace ProjectPVP.Data
     }
 
     [Serializable]
+    public sealed class ActionAudioCue
+    {
+        public string actionName = string.Empty;
+        public AudioClip clip;
+        public string resourcesPath = string.Empty;
+        public float playbackSpeed = 1f;
+        public float volumeDb;
+        public float stopAfterSeconds;
+    }
+
+    [Serializable]
     public sealed class PixelLabActionAlias
     {
         public string pattern = string.Empty;
@@ -70,6 +82,7 @@ namespace ProjectPVP.Data
         public List<PixelLabActionAlias> pixelLabActionAliases = new List<PixelLabActionAlias>();
 
         [Header("Visual")]
+        public ActionCatalog actionCatalog;
         public Vector2 spriteScale = new Vector2(3.6f, 3.6f);
         public Vector2 spriteAnchorOffset = Vector2.zero;
         [Min(1)] public int nativeSpriteBakeScale = 1;
@@ -83,7 +96,7 @@ namespace ProjectPVP.Data
         public Sprite defaultSprite;
 
         [Header("Stats")]
-        public bool overridesStats;
+        [HideInInspector] public bool overridesStats;
         public float moveSpeed = 240f;
         public float acceleration = 1600f;
         public float friction = 2000f;
@@ -126,8 +139,11 @@ namespace ProjectPVP.Data
         public bool ultimateBlocksProjectiles;
         public float ultimateProjectileBlockDuration = 0.12f;
         public float ultimateReplayDelay;
+        public float ultimateReplayDuration;
+        public float ultimateReplayDashDistance;
+        public float ultimateReplayDashDuration;
 
-        [Header("Projectile")]
+        [Header("Projectile Spawn")]
         public float projectileForward = 80f;
         public float projectileForwardFacing;
         public float projectileVerticalOffset;
@@ -138,32 +154,110 @@ namespace ProjectPVP.Data
         public bool projectileUseBowNode = true;
         public Sprite projectileSprite;
 
-        [Header("Action Config")]
-        public CharacterActionConfig actionConfig;
+        [Header("Projectile Motion")]
+        public float projectileBaseSpeed = 1500f;
+        public float projectileMinSpeed = 720f;
+        public float projectileSpeedDecay = 360f;
+        public float projectileGravity = 750f;
+        public float projectileGravityDelayRatio;
+        public float projectileGravityRampRatio = 0.6f;
+        public float projectileGravityMinScale = 0.45f;
+        public float projectileGravityMaxScale = 1.2f;
+        public float projectileUpwardGravityMultiplier = 3.2f;
+        public float projectileUpwardSpeedDecayMultiplier = 2.2f;
+        public float projectileMaxLifetime = 2.5f;
+        public float projectileMaxRange = 1440f;
+        public bool projectileRotateWithVelocity = true;
+        public bool projectileCollectableWhenStuck = true;
 
-        [Header("Action Overrides")]
-        public List<NamedBoolValue> actionSkipLeft = new List<NamedBoolValue>();
-        public List<NamedFloatValue> actionTargetVisualHeight = new List<NamedFloatValue>();
-        public List<NamedFloatValue> actionGroundAnchorRatio = new List<NamedFloatValue>();
-        public List<NamedFloatValue> actionAnimationDurations = new List<NamedFloatValue>();
-        public List<NamedBoolValue> actionAnimationCancelable = new List<NamedBoolValue>();
-        public List<NamedFloatValue> actionAnimationSpeeds = new List<NamedFloatValue>();
-        public List<NamedFloatValue> actionSpriteScale = new List<NamedFloatValue>();
-        public List<NamedVector2Value> actionSpriteOffset = new List<NamedVector2Value>();
-        public List<ActionColliderOverride> actionColliderOverrides = new List<ActionColliderOverride>();
-        public List<ActionSpriteAnimation> actionSpriteAnimations = new List<ActionSpriteAnimation>();
+        [Header("Projectile Hitbox")]
+        public Vector2 projectileFlightHitboxSize = new Vector2(24f, 10f);
+        public Vector2 projectileFlightHitboxOffset = new Vector2(32f, 0f);
+        public Vector2 projectileCollectibleHitboxSize = new Vector2(96f, 24f);
+        public Vector2 projectileCollectibleHitboxOffset = Vector2.zero;
+
+        [Header("Action Config")]
+        public CharacterAnimationCatalog animationCatalog;
+        public CharacterAudioDefinition audioDefinition;
+        public CharacterMechanicsModule mechanicsModule;
+
+        [Header("Actions")]
+        public List<CharacterActionConfig> actions = new List<CharacterActionConfig>();
+
+        public ActionCatalog ResolveActionCatalog()
+        {
+            if (animationCatalog != null && animationCatalog.actionCatalog != null)
+            {
+                return animationCatalog.actionCatalog;
+            }
+
+            return actionCatalog != null ? actionCatalog : ActionCatalog.LoadDefault();
+        }
+
+        public IReadOnlyList<ActionSpriteAnimation> GetActionAnimations()
+        {
+            var flattenedAnimations = new List<ActionSpriteAnimation>();
+            if (actions == null)
+            {
+                if (animationCatalog != null && animationCatalog.actionSpriteAnimations != null && animationCatalog.actionSpriteAnimations.Count > 0)
+                {
+                    return animationCatalog.actionSpriteAnimations;
+                }
+
+                return flattenedAnimations;
+            }
+
+            for (int actionIndex = 0; actionIndex < actions.Count; actionIndex += 1)
+            {
+                CharacterActionConfig action = actions[actionIndex];
+                if (action == null || string.IsNullOrWhiteSpace(action.actionName) || action.animations == null)
+                {
+                    continue;
+                }
+
+                for (int animationIndex = 0; animationIndex < action.animations.Count; animationIndex += 1)
+                {
+                    DirectionalSpriteAnimation animation = action.animations[animationIndex];
+                    if (animation == null)
+                    {
+                        continue;
+                    }
+
+                    flattenedAnimations.Add(new ActionSpriteAnimation
+                    {
+                        actionName = action.actionName,
+                        directionKey = animation.directionKey,
+                        framesPerSecond = animation.framesPerSecond,
+                        loop = animation.loop,
+                        frames = animation.frames != null ? new List<Sprite>(animation.frames) : new List<Sprite>(),
+                    });
+                }
+            }
+
+            if (flattenedAnimations.Count > 0)
+            {
+                return flattenedAnimations;
+            }
+
+            if (animationCatalog != null && animationCatalog.actionSpriteAnimations != null && animationCatalog.actionSpriteAnimations.Count > 0)
+            {
+                return animationCatalog.actionSpriteAnimations;
+            }
+
+            return flattenedAnimations;
+        }
+
+        public IEnumerable<string> EnumerateActionKeys(string actionName)
+        {
+            return ResolveActionCatalog().EnumerateActionKeys(actionName);
+        }
 
         public float ResolveActionDuration(string actionName, float fallback)
         {
-            if (actionConfig != null && actionConfig.TryResolveActionDuration(actionName, out float configDuration) && configDuration > 0.01f)
+            CharacterActionConfig action = FindActionConfig(actionName);
+            if (action != null && action.duration > 0.01f)
             {
-                return configDuration;
-            }
-
-            float configuredDuration = ResolveNamedFloat(actionAnimationDurations, actionName, float.NaN);
-            if (!float.IsNaN(configuredDuration) && configuredDuration > 0.01f)
-            {
-                return configuredDuration;
+                return action.duration;
             }
 
             if (TryGetRepresentativeAnimation(actionName, out ActionSpriteAnimation animation))
@@ -180,15 +274,10 @@ namespace ProjectPVP.Data
 
         public float ResolveActionSpeed(string actionName, float fallback)
         {
-            if (actionConfig != null && actionConfig.TryResolveActionSpeed(actionName, out float configSpeed) && configSpeed > 0.01f)
+            CharacterActionConfig action = FindActionConfig(actionName);
+            if (action != null && action.speed > 0.01f)
             {
-                return configSpeed;
-            }
-
-            float configuredSpeed = ResolveNamedFloat(actionAnimationSpeeds, actionName, float.NaN);
-            if (!float.IsNaN(configuredSpeed) && configuredSpeed > 0.01f)
-            {
-                return configuredSpeed;
+                return action.speed;
             }
 
             return fallback;
@@ -196,12 +285,8 @@ namespace ProjectPVP.Data
 
         public bool ResolveActionCancelable(string actionName, bool fallback)
         {
-            if (actionConfig != null && actionConfig.TryResolveActionCancelable(actionName, out bool configCancelable))
-            {
-                return configCancelable;
-            }
-
-            return ResolveNamedBool(actionAnimationCancelable, actionName, fallback);
+            CharacterActionConfig action = FindActionConfig(actionName);
+            return action != null ? action.cancelable : fallback;
         }
 
         public bool HasActionAnimation(string actionName)
@@ -211,94 +296,26 @@ namespace ProjectPVP.Data
 
         public ActionColliderOverride FindActionColliderOverride(string actionName)
         {
-            if (actionConfig != null && actionConfig.TryFindActionColliderOverride(actionName, out ActionColliderOverride configOverride))
-            {
-                return configOverride;
-            }
-
-            if (actionColliderOverrides == null || string.IsNullOrWhiteSpace(actionName))
-            {
-                return null;
-            }
-
-            foreach (string candidateKey in EnumerateActionKeys(actionName))
-            {
-                for (int index = 0; index < actionColliderOverrides.Count; index += 1)
-                {
-                    ActionColliderOverride entry = actionColliderOverrides[index];
-                    if (entry == null || string.IsNullOrWhiteSpace(entry.actionName))
-                    {
-                        continue;
-                    }
-
-                    if (string.Equals(entry.actionName, candidateKey, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return entry;
-                    }
-                }
-            }
-
-            return null;
+            CharacterActionConfig action = FindActionConfig(actionName);
+            return action != null ? action.colliderOverride : null;
         }
 
-        private float ResolveNamedFloat(List<NamedFloatValue> values, string actionName, float fallback)
+        public bool TryResolveActionAudioCue(string actionName, out ActionAudioCue resolvedCue)
         {
-            if (values == null || string.IsNullOrWhiteSpace(actionName))
+            if (audioDefinition != null)
             {
-                return fallback;
+                return audioDefinition.TryResolveActionAudioCue(ResolveActionCatalog(), actionName, out resolvedCue);
             }
 
-            foreach (string candidateKey in EnumerateActionKeys(actionName))
-            {
-                for (int index = 0; index < values.Count; index += 1)
-                {
-                    NamedFloatValue entry = values[index];
-                    if (entry == null || string.IsNullOrWhiteSpace(entry.key))
-                    {
-                        continue;
-                    }
-
-                    if (string.Equals(entry.key, candidateKey, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return entry.value;
-                    }
-                }
-            }
-
-            return fallback;
-        }
-
-        private bool ResolveNamedBool(List<NamedBoolValue> values, string actionName, bool fallback)
-        {
-            if (values == null || string.IsNullOrWhiteSpace(actionName))
-            {
-                return fallback;
-            }
-
-            foreach (string candidateKey in EnumerateActionKeys(actionName))
-            {
-                for (int index = 0; index < values.Count; index += 1)
-                {
-                    NamedBoolValue entry = values[index];
-                    if (entry == null || string.IsNullOrWhiteSpace(entry.key))
-                    {
-                        continue;
-                    }
-
-                    if (string.Equals(entry.key, candidateKey, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return entry.value;
-                    }
-                }
-            }
-
-            return fallback;
+            resolvedCue = null;
+            return false;
         }
 
         private bool TryGetRepresentativeAnimation(string actionName, out ActionSpriteAnimation animation)
         {
             animation = null;
-            if (actionSpriteAnimations == null || string.IsNullOrWhiteSpace(actionName))
+            IReadOnlyList<ActionSpriteAnimation> animations = GetActionAnimations();
+            if (animations == null || string.IsNullOrWhiteSpace(actionName))
             {
                 return false;
             }
@@ -309,20 +326,19 @@ namespace ProjectPVP.Data
                 "left",
             };
 
-            foreach (string candidateKey in EnumerateActionKeys(actionName))
+            foreach (string candidateKey in ResolveActionCatalog().EnumerateActionKeys(actionName))
             {
                 for (int directionIndex = 0; directionIndex < preferredDirections.Length; directionIndex += 1)
                 {
                     string directionKey = preferredDirections[directionIndex];
-                    for (int animationIndex = 0; animationIndex < actionSpriteAnimations.Count; animationIndex += 1)
+                    for (int animationIndex = 0; animationIndex < animations.Count; animationIndex += 1)
                     {
-                        ActionSpriteAnimation candidate = actionSpriteAnimations[animationIndex];
+                        ActionSpriteAnimation candidate = animations[animationIndex];
                         if (candidate == null
                             || string.IsNullOrWhiteSpace(candidate.actionName)
                             || !string.Equals(candidate.actionName, candidateKey, StringComparison.OrdinalIgnoreCase)
                             || !string.Equals(candidate.directionKey, directionKey, StringComparison.OrdinalIgnoreCase)
-                            || candidate.frames == null
-                            || candidate.frames.Count <= 0)
+                            || !HasUsableFrames(candidate))
                         {
                             continue;
                         }
@@ -336,25 +352,49 @@ namespace ProjectPVP.Data
             return false;
         }
 
-        private static IEnumerable<string> EnumerateActionKeys(string actionName)
+        private CharacterActionConfig FindActionConfig(string actionName)
         {
-            if (string.IsNullOrWhiteSpace(actionName))
+            if (actions == null || string.IsNullOrWhiteSpace(actionName))
             {
-                yield break;
+                return null;
             }
 
-            yield return actionName;
-
-            if (string.Equals(actionName, "jump_start", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(actionName, "jump_air", StringComparison.OrdinalIgnoreCase))
+            foreach (string candidateKey in ResolveActionCatalog().EnumerateActionKeys(actionName))
             {
-                yield return "jump";
+                for (int index = 0; index < actions.Count; index += 1)
+                {
+                    CharacterActionConfig action = actions[index];
+                    if (action == null || string.IsNullOrWhiteSpace(action.actionName))
+                    {
+                        continue;
+                    }
+
+                    if (string.Equals(action.actionName, candidateKey, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return action;
+                    }
+                }
             }
 
-            if (string.Equals(actionName, "aim", StringComparison.OrdinalIgnoreCase))
+            return null;
+        }
+
+        private static bool HasUsableFrames(ActionSpriteAnimation animation)
+        {
+            if (animation == null || animation.frames == null || animation.frames.Count == 0)
             {
-                yield return "aiming";
+                return false;
             }
+
+            for (int index = 0; index < animation.frames.Count; index += 1)
+            {
+                if (animation.frames[index] != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

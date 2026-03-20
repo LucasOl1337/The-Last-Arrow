@@ -57,21 +57,16 @@ namespace ProjectPVP.Editor
         [MenuItem("ProjectPVP/Characters/Audit Non Lateral Direction Folders")]
         private static void AuditNonLateralDirectionFolders()
         {
-            string[] characterRoots = AssetDatabase.FindAssets("t:CharacterDefinition", new[] { "Assets/ProjectPVP/Characters" });
             var invalidFolders = new List<string>();
 
-            for (int index = 0; index < characterRoots.Length; index += 1)
+            foreach (CharacterDefinition definition in ProjectPvpCharacterAssetPaths.EnumerateDefinitions())
             {
-                string definitionPath = AssetDatabase.GUIDToAssetPath(characterRoots[index]);
-                string dataFolderPath = Path.GetDirectoryName(definitionPath)?.Replace("\\", "/");
-                string characterRoot = Path.GetDirectoryName(dataFolderPath ?? string.Empty)?.Replace("\\", "/");
-                if (string.IsNullOrWhiteSpace(characterRoot))
+                if (!ProjectPvpCharacterAssetPaths.TryGetAnimationsFolder(definition, out string animationsFolderPath))
                 {
                     continue;
                 }
 
-                string animationsFolderPath = characterRoot + "/Animations";
-                string animationsFullPath = ToFullPath(animationsFolderPath);
+                string animationsFullPath = ProjectPvpCharacterAssetPaths.ToFullPath(animationsFolderPath);
                 if (!Directory.Exists(animationsFullPath))
                 {
                     continue;
@@ -107,20 +102,11 @@ namespace ProjectPVP.Editor
 
         internal static void RebuildAllCharactersFromMenu()
         {
-            string[] definitionGuids = AssetDatabase.FindAssets("t:CharacterDefinition", new[] { "Assets/ProjectPVP/Characters" });
             int rebuiltCount = 0;
             int failedCount = 0;
 
-            for (int index = 0; index < definitionGuids.Length; index += 1)
+            foreach (CharacterDefinition definition in ProjectPvpCharacterAssetPaths.EnumerateDefinitions())
             {
-                string assetPath = AssetDatabase.GUIDToAssetPath(definitionGuids[index]);
-                CharacterDefinition definition = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(assetPath);
-                if (definition == null)
-                {
-                    failedCount += 1;
-                    continue;
-                }
-
                 if (RebuildFromFolders(definition, out string summary))
                 {
                     rebuiltCount += 1;
@@ -145,36 +131,26 @@ namespace ProjectPVP.Editor
                 return false;
             }
 
-            string definitionPath = AssetDatabase.GetAssetPath(definition);
-            if (string.IsNullOrWhiteSpace(definitionPath))
-            {
-                summary = "ProjectPVP: asset path do personagem nao encontrado.";
-                return false;
-            }
-
-            string dataFolderPath = Path.GetDirectoryName(definitionPath)?.Replace("\\", "/");
-            string characterRoot = Path.GetDirectoryName(dataFolderPath ?? string.Empty)?.Replace("\\", "/");
-            if (string.IsNullOrWhiteSpace(characterRoot))
+            if (!ProjectPvpCharacterAssetPaths.TryGetAnimationsFolder(definition, out string animationsFolderPath))
             {
                 summary = "ProjectPVP: nao foi possivel localizar a pasta raiz do personagem.";
                 return false;
             }
 
-            string animationsFolderPath = characterRoot + "/Animations";
             if (!AssetDatabase.IsValidFolder(animationsFolderPath))
             {
                 summary = "ProjectPVP: pasta Animations nao encontrada em " + animationsFolderPath;
                 return false;
             }
 
-            string animationsFullPath = ToFullPath(animationsFolderPath);
+            string animationsFullPath = ProjectPvpCharacterAssetPaths.ToFullPath(animationsFolderPath);
             if (!Directory.Exists(animationsFullPath))
             {
                 summary = "ProjectPVP: pasta fisica de animacoes nao encontrada.";
                 return false;
             }
 
-            Dictionary<string, ClipTemplate> existingTemplates = BuildExistingTemplates(definition.actionSpriteAnimations);
+            Dictionary<string, ClipTemplate> existingTemplates = BuildExistingTemplates(definition.GetActionAnimations());
             var rebuiltClips = new List<ActionSpriteAnimation>();
             string[] actionDirectories = Directory.GetDirectories(animationsFullPath);
             Array.Sort(actionDirectories, StringComparer.OrdinalIgnoreCase);
@@ -245,12 +221,27 @@ namespace ProjectPVP.Editor
             }
 
             Undo.RecordObject(definition, "Rebuild Character Animation Clips");
-            definition.actionSpriteAnimations = rebuiltClips;
+            definition.actions = BuildActionConfigs(rebuiltClips, existingTemplates, definition.actions);
             EditorUtility.SetDirty(definition);
+
+            if (definition.animationCatalog != null)
+            {
+                Undo.RecordObject(definition.animationCatalog, "Clear Legacy Animation Catalog");
+                definition.animationCatalog.actionSpriteAnimations = new List<ActionSpriteAnimation>();
+                EditorUtility.SetDirty(definition.animationCatalog);
+            }
+
+            string actionConfigSummary = string.Empty;
+            if (ProjectPvpCharacterActionConfigSync.Sync(definition, out string inlineActionSummary))
+            {
+                actionConfigSummary = inlineActionSummary;
+            }
+
             AssetDatabase.SaveAssets();
 
             summary = "ProjectPVP: " + definition.displayName + " reconstruido com " + rebuiltClips.Count + " clips. "
-                + "Somente left/right foram aceitos; pastas fora desse padrao ignoradas: " + ignoredDirectionFolders + ".";
+                + "Somente left/right foram aceitos; pastas fora desse padrao ignoradas: " + ignoredDirectionFolders + "."
+                + (string.IsNullOrWhiteSpace(actionConfigSummary) ? string.Empty : " " + actionConfigSummary);
             return true;
         }
 
@@ -296,7 +287,75 @@ namespace ProjectPVP.Editor
             return clipsByDirection.TryGetValue(SharedDirectionKey, out frames) && frames != null && frames.Count > 0;
         }
 
-        private static Dictionary<string, ClipTemplate> BuildExistingTemplates(List<ActionSpriteAnimation> clips)
+        private static List<CharacterActionConfig> BuildActionConfigs(
+            List<ActionSpriteAnimation> rebuiltClips,
+            Dictionary<string, ClipTemplate> existingTemplates,
+            List<CharacterActionConfig> existingActions)
+        {
+            var actionsByKey = new Dictionary<string, CharacterActionConfig>(StringComparer.OrdinalIgnoreCase);
+            if (existingActions != null)
+            {
+                for (int index = 0; index < existingActions.Count; index += 1)
+                {
+                    CharacterActionConfig action = existingActions[index];
+                    if (action == null || string.IsNullOrWhiteSpace(action.actionName))
+                    {
+                        continue;
+                    }
+
+                    actionsByKey[action.actionName] = action;
+                    action.animations = new List<DirectionalSpriteAnimation>();
+                }
+            }
+
+            for (int index = 0; index < rebuiltClips.Count; index += 1)
+            {
+                ActionSpriteAnimation clip = rebuiltClips[index];
+                if (clip == null || string.IsNullOrWhiteSpace(clip.actionName))
+                {
+                    continue;
+                }
+
+                if (!actionsByKey.TryGetValue(clip.actionName, out CharacterActionConfig action))
+                {
+                    action = new CharacterActionConfig
+                    {
+                        actionName = clip.actionName,
+                    };
+                    actionsByKey[clip.actionName] = action;
+                }
+
+                action.animations.Add(new DirectionalSpriteAnimation
+                {
+                    directionKey = clip.directionKey,
+                    framesPerSecond = clip.framesPerSecond,
+                    loop = clip.loop,
+                    frames = clip.frames != null ? new List<Sprite>(clip.frames) : new List<Sprite>(),
+                });
+
+                if (action.speed <= 0.01f)
+                {
+                    action.speed = clip.framesPerSecond > 0.01f ? clip.framesPerSecond : 12f;
+                }
+
+                if (action.duration <= 0.01f && clip.frames != null && clip.frames.Count > 0)
+                {
+                    float framesPerSecond = clip.framesPerSecond > 0.01f ? clip.framesPerSecond : 12f;
+                    action.duration = Mathf.Max(0.01f, clip.frames.Count / framesPerSecond);
+                }
+
+                if (action.colliderOverride != null && string.IsNullOrWhiteSpace(action.colliderOverride.actionName))
+                {
+                    action.colliderOverride.actionName = action.actionName;
+                }
+            }
+
+            var rebuiltActions = new List<CharacterActionConfig>(actionsByKey.Values);
+            rebuiltActions.Sort((left, right) => string.Compare(left.actionName, right.actionName, StringComparison.OrdinalIgnoreCase));
+            return rebuiltActions;
+        }
+
+        private static Dictionary<string, ClipTemplate> BuildExistingTemplates(IReadOnlyList<ActionSpriteAnimation> clips)
         {
             var templates = new Dictionary<string, ClipTemplate>(StringComparer.OrdinalIgnoreCase);
             if (clips == null)
@@ -355,40 +414,14 @@ namespace ProjectPVP.Editor
         private static bool TryMapFolderToDirection(string folderName, out string directionKey)
         {
             directionKey = string.Empty;
-            if (string.IsNullOrWhiteSpace(folderName))
-            {
-                return false;
-            }
-
-            switch (folderName.Trim().ToLowerInvariant())
-            {
-                case "left":
-                case "west":
-                    directionKey = "left";
-                    return true;
-                case "right":
-                case "east":
-                    directionKey = "right";
-                    return true;
-                default:
-                    return false;
-            }
+            return ActionCatalog.LoadDefault().TryMapAnimationFolderDirection(folderName, out directionKey, out bool sharedFallback)
+                && !sharedFallback;
         }
 
         private static bool LooksLikeDirectionFolder(string folderName)
         {
-            switch ((folderName ?? string.Empty).Trim().ToLowerInvariant())
-            {
-                case "up":
-                case "down":
-                case "north":
-                case "south":
-                case "default":
-                case "shared":
-                    return true;
-                default:
-                    return false;
-            }
+            return ActionCatalog.LoadDefault().TryMapAnimationFolderDirection(folderName, out _, out bool sharedFallback)
+                && sharedFallback;
         }
 
         private static int ResolveDirectionSourcePriority(string folderName)
@@ -455,14 +488,7 @@ namespace ProjectPVP.Editor
 
         private static string ToFullPath(string assetPath)
         {
-            string projectRoot = Path.GetDirectoryName(Application.dataPath);
-            if (string.IsNullOrWhiteSpace(projectRoot))
-            {
-                return string.Empty;
-            }
-
-            string relativePath = assetPath.Replace("Assets/", string.Empty).Replace("/", Path.DirectorySeparatorChar.ToString());
-            return Path.Combine(projectRoot, "Assets", relativePath);
+            return ProjectPvpCharacterAssetPaths.ToFullPath(assetPath);
         }
 
         private static string ToAssetPath(string fullPath)

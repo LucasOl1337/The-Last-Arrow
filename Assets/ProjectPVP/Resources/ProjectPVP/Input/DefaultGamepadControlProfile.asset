@@ -21,7 +21,7 @@ MonoBehaviour:
     lookVerticalAxis: ProjectPVP_GamepadLookY_A
     lookHorizontalAxisAlt: ProjectPVP_GamepadLookX_B
     lookVerticalAxisAlt: ProjectPVP_GamepadLookY_B
-    dashSecondaryAxis: ProjectPVP_GamepadTriggerR_A
+    dashSecondaryAxis: ''
     dashSecondaryAxisAlt: ProjectPVP_GamepadTriggerR_B
     dashSecondaryAxisThird: ProjectPVP_GamepadTriggerR_C
     jumpButton: 0
@@ -37,6 +37,7 @@ MonoBehaviour:
     dpadRightButton: -1
     dpadUpButton: -1
     dpadDownButton: -1
+    swapDpadAxesForXbox: 1
     deadzone: 0.18
     aimDeadzone: 0.22
     triggerPressThreshold: 0.45

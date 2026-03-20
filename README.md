@@ -1,7 +1,7 @@
 # The Last Arrow
 
 <p align="center">
-  <img src="Assets/ProjectPVP/Environment/Backgrounds/Maps/background1.png" alt="The Last Arrow map preview" width="100%">
+  <img src="Assets/backg.png" alt="The Last Arrow current arena preview" width="100%">
 </p>
 
 Um prototipo de combate 2D em Unity pensado para crescer com foco em partidas online e locais.
@@ -31,14 +31,14 @@ Patch notes do projeto: [PatchNotes.md](PatchNotes.md)
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="Assets/ProjectPVP/Characters/Mizu/Animations/shoot/right/frame_003.png" alt="Mizu" width="170">
+      <img src="Assets/ProjectPVP/Characters/Mizu/Animations/ult/east/frame_004.png" alt="Mizu" width="220">
       <br>
       <strong>Mizu</strong>
       <br>
       Samurai veloz que abusa de sua destreza e cortes rapidos no combate
     </td>
     <td align="center" width="50%">
-      <img src="Assets/ProjectPVP/Characters/StormDragon/Animations/aim/west/frame_000.png" alt="Storm Dragon" width="170">
+      <img src="Assets/ProjectPVP/Characters/StormDragon/Animations/ult/west/frame_003.png" alt="Storm Dragon" width="220">
       <br>
       <strong>Storm Dragon</strong>
       <br>

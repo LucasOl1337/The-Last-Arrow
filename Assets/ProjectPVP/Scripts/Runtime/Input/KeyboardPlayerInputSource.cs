@@ -1,43 +1,28 @@
 using System;
+using ProjectPVP.Match;
 using LegacyInput = UnityEngine.Input;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace ProjectPVP.Input
 {
-    public sealed class KeyboardPlayerInputSource : MonoBehaviour
+    // Canonical control semantics live in INPUT_SOURCE_OF_TRUTH.txt at the project root.
+    public class KeyboardPlayerInputSource : MonoBehaviour, ICombatantInputSource
     {
         private const int MaxSupportedGamepads = 4;
         private const string DefaultGamepadProfileResourcePath = "ProjectPVP/Input/DefaultGamepadControlProfile";
-        private static readonly GamepadBindingLabel[] AllBoundGamepadLabels =
-        {
-            GamepadBindingLabel.X,
-            GamepadBindingLabel.Square,
-            GamepadBindingLabel.Circle,
-            GamepadBindingLabel.Triangle,
-            GamepadBindingLabel.L1,
-            GamepadBindingLabel.R1,
-            GamepadBindingLabel.L2,
-            GamepadBindingLabel.R2,
-        };
+        private const string GamepadProfileDefault = "Default";
+        private const string GamepadProfileDualSense = "DualSense";
+        private const string GamepadProfileXbox = "Xbox";
 
-        private static readonly GamepadBindingLabel[] DashPrimaryLabels =
-        {
-            GamepadBindingLabel.L1,
-            GamepadBindingLabel.R1,
-        };
-
-        private static readonly GamepadBindingLabel[] DashSecondaryLabels =
-        {
-            GamepadBindingLabel.L2,
-            GamepadBindingLabel.R2,
-        };
-
-        [Min(1)] public int playerId = 1;
+        [FormerlySerializedAs("playerId")]
+        [Min(1)] public int slotId = 1;
         public bool usePlayerDefaults = true;
         public PlayerActionMap actionMap = PlayerActionMap.CreateDefaultPlayerOne();
         public GamepadControlProfileAsset gamepadProfile;
         public bool enableGamepad;
         [Min(0)] public int preferredGamepadIndex;
+        public PreferredGamepadFamily preferredGamepadFamily = PreferredGamepadFamily.Any;
         public GamepadActionMap gamepadActionMap = new GamepadActionMap();
         [Range(0.01f, 0.25f)] public float buttonBufferSeconds = 0.1f;
 
@@ -49,10 +34,16 @@ namespace ProjectPVP.Input
         private float _ultimateBufferLeft;
         private float _dashPrimaryBufferLeft;
         private float _dashSecondaryBufferLeft;
+        private bool _dashSecondaryAxisHeldLastFrame;
         private int _activeGamepadSlot = -1;
-        private EditableGamepadBindings _editableGamepadBindings;
         private readonly int[] _connectedGamepadSlots = new int[MaxSupportedGamepads];
         private static GamepadControlProfileAsset s_defaultGamepadProfile;
+
+        public int playerId
+        {
+            get => slotId;
+            set => slotId = value;
+        }
 
         public PlayerInputFrame CurrentFrame => _currentFrame;
         public int ActiveGamepadSlot => _activeGamepadSlot;
@@ -119,10 +110,43 @@ namespace ProjectPVP.Input
 
         public void ConfigureForPlayer(int configuredPlayerId)
         {
-            playerId = Mathf.Max(1, configuredPlayerId);
-            preferredGamepadIndex = Mathf.Max(0, playerId - 1);
+            slotId = Mathf.Max(1, configuredPlayerId);
+            if (usePlayerDefaults)
+            {
+                preferredGamepadIndex = Mathf.Max(0, slotId - 1);
+            }
+
             _activeGamepadSlot = -1;
+            _dashSecondaryAxisHeldLastFrame = false;
             ApplyDefaultsIfNeeded();
+        }
+
+        public void ConfigureForSlot(CombatantSlotId configuredSlotId)
+        {
+            ConfigureForPlayer(Mathf.Max(1, configuredSlotId.ToInt()));
+        }
+
+        public void ApplySlotProfile(CombatantSlotProfile profile, CombatantSlotId configuredSlotId)
+        {
+            slotId = Mathf.Max(1, configuredSlotId.ToInt());
+            _activeGamepadSlot = -1;
+            _dashSecondaryAxisHeldLastFrame = false;
+
+            if (profile == null)
+            {
+                usePlayerDefaults = true;
+                preferredGamepadFamily = PreferredGamepadFamily.Any;
+                ApplyDefaultsIfNeeded();
+                return;
+            }
+
+            usePlayerDefaults = false;
+            actionMap = profile.CreateKeyboardBindings(configuredSlotId);
+            gamepadProfile = profile.gamepadProfile;
+            gamepadActionMap = profile.CreateGamepadBindings();
+            enableGamepad = profile.enableGamepad;
+            preferredGamepadIndex = profile.ResolvePreferredGamepadIndex(configuredSlotId);
+            preferredGamepadFamily = profile.ResolvePreferredGamepadFamily();
         }
 
         private void PollBufferedButtons()
@@ -302,79 +326,65 @@ namespace ProjectPVP.Input
         private bool ReadJumpPressed()
         {
             return LegacyInput.GetKeyDown(actionMap.jump)
-                || ReadGamepadActionDown(GamepadBindingAction.Jump);
+                || ReadAnyGamepadButtonDown(gamepadActionMap.jumpButton, gamepadActionMap.jumpAlternateButton);
         }
 
         private bool IsJumpHeld()
         {
             return LegacyInput.GetKey(actionMap.jump)
-                || ReadGamepadActionHeld(GamepadBindingAction.Jump);
+                || ReadAnyGamepadButtonHeld(gamepadActionMap.jumpButton, gamepadActionMap.jumpAlternateButton);
         }
 
         private bool ReadShootPressed()
         {
             return LegacyInput.GetKeyDown(actionMap.shoot)
-                || ReadGamepadActionDown(GamepadBindingAction.ShootArrow);
+                || ReadAnyGamepadButtonDown(gamepadActionMap.shootButton);
         }
 
         private bool IsShootHeld()
         {
             return LegacyInput.GetKey(actionMap.shoot)
-                || ReadGamepadActionHeld(GamepadBindingAction.ShootArrow);
+                || ReadAnyGamepadButtonHeld(gamepadActionMap.shootButton);
         }
 
         private bool ReadMeleePressed()
         {
             return LegacyInput.GetKeyDown(actionMap.melee)
-                || ReadGamepadActionDown(GamepadBindingAction.MeleeAttack);
+                || ReadAnyGamepadButtonDown(gamepadActionMap.meleeButton);
         }
 
         private bool ReadUltimatePressed()
         {
             return LegacyInput.GetKeyDown(actionMap.ultimate)
-                || ReadGamepadActionDown(GamepadBindingAction.Ult);
+                || ReadAnyGamepadButtonDown(gamepadActionMap.ultimateButton);
         }
 
         private bool ReadDashPrimaryPressed()
         {
             return LegacyInput.GetKeyDown(actionMap.dashPrimary)
-                || ReadGamepadActionDown(GamepadBindingAction.Dash, DashPrimaryLabels);
+                || ReadAnyGamepadButtonDown(
+                    gamepadActionMap.dashPrimaryButton,
+                    gamepadActionMap.dashPrimaryAlternateButton,
+                    gamepadActionMap.dashPrimaryThirdButton);
         }
 
         private bool ReadDashSecondaryPressed()
         {
             return LegacyInput.GetKeyDown(actionMap.dashSecondary)
-                || ReadGamepadActionDown(GamepadBindingAction.Dash, DashSecondaryLabels);
+                || ReadAnyGamepadButtonDown(gamepadActionMap.dashSecondaryButton)
+                || ReadDashSecondaryAxisPressed();
         }
 
-        private bool ReadGamepadActionDown(GamepadBindingAction action, GamepadBindingLabel[] constrainedLabels = null)
+        private bool ReadAnyGamepadButtonDown(params int[] buttonIndices)
         {
-            return ReadGamepadAction(action, true, constrainedLabels);
-        }
-
-        private bool ReadGamepadActionHeld(GamepadBindingAction action, GamepadBindingLabel[] constrainedLabels = null)
-        {
-            return ReadGamepadAction(action, false, constrainedLabels);
-        }
-
-        private bool ReadGamepadAction(GamepadBindingAction action, bool justPressed, GamepadBindingLabel[] constrainedLabels)
-        {
-            if (!enableGamepad)
+            if (!enableGamepad || buttonIndices == null)
             {
                 return false;
             }
 
-            EditableGamepadBindings bindings = ResolveEditableBindings();
-            GamepadBindingLabel[] labels = constrainedLabels ?? AllBoundGamepadLabels;
-            for (int index = 0; index < labels.Length; index += 1)
+            for (int index = 0; index < buttonIndices.Length; index += 1)
             {
-                GamepadBindingLabel label = labels[index];
-                if (!bindings.MatchesAction(label, action))
-                {
-                    continue;
-                }
-
-                if (ReadGamepadLabel(label, bindings, justPressed))
+                if (ReadGamepadButtonDown(buttonIndices[index]))
                 {
                     return true;
                 }
@@ -383,21 +393,61 @@ namespace ProjectPVP.Input
             return false;
         }
 
-        private bool ReadGamepadLabel(GamepadBindingLabel label, EditableGamepadBindings bindings, bool justPressed)
+        private bool ReadAnyGamepadButtonHeld(params int[] buttonIndices)
         {
-            int slot = _activeGamepadSlot > 0 ? _activeGamepadSlot : ResolveActiveGamepadSlot();
-            string joystickName = GetJoystickName(slot);
-            var rawBindings = bindings.GetRawBindings(joystickName, label);
-            for (int index = 0; index < rawBindings.Count; index += 1)
+            if (!enableGamepad || buttonIndices == null)
             {
-                int buttonIndex = rawBindings[index].ButtonIndex;
-                if (justPressed ? ReadGamepadButtonDown(buttonIndex) : ReadGamepadButton(buttonIndex))
+                return false;
+            }
+
+            for (int index = 0; index < buttonIndices.Length; index += 1)
+            {
+                if (ReadGamepadButton(buttonIndices[index]))
                 {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        // Some Unity backends expose trigger presses only through axes, especially on
+        // secondary gamepad slots, so the dash combo cannot rely on button indices alone.
+        private bool ReadDashSecondaryAxisPressed()
+        {
+            if (!enableGamepad)
+            {
+                _dashSecondaryAxisHeldLastFrame = false;
+                return false;
+            }
+
+            int slot = _activeGamepadSlot > 0 ? _activeGamepadSlot : ResolveActiveGamepadSlot();
+            if (slot <= 0)
+            {
+                _dashSecondaryAxisHeldLastFrame = false;
+                return false;
+            }
+
+            if (ReadGamepadDpadVector(slot).sqrMagnitude > 0.01f)
+            {
+                _dashSecondaryAxisHeldLastFrame = false;
+                return false;
+            }
+
+            bool isHeld = ReadDashSecondaryAxisValue(slot) >= gamepadActionMap.triggerPressThreshold;
+            bool justPressed = isHeld && !_dashSecondaryAxisHeldLastFrame;
+            _dashSecondaryAxisHeldLastFrame = isHeld;
+            return justPressed;
+        }
+
+        private float ReadDashSecondaryAxisValue(int slot)
+        {
+            float strongestValue = 0f;
+            // The legacy TriggerR_A candidate shares a physical axis with other controls on
+            // some Windows/XInput backends, which causes ghost dash presses on D-pad/right-stick input.
+            strongestValue = Mathf.Max(strongestValue, ReadAxisForSlot(gamepadActionMap.dashSecondaryAxisAlt, slot));
+            strongestValue = Mathf.Max(strongestValue, ReadAxisForSlot(gamepadActionMap.dashSecondaryAxisThird, slot));
+            return strongestValue;
         }
 
         private bool ReadGamepadButtonDown(int buttonIndex)
@@ -413,7 +463,8 @@ namespace ProjectPVP.Input
                 return false;
             }
 
-            KeyCode preferredKey = ResolveJoystickButton(slot, buttonIndex);
+            int resolvedButtonIndex = ResolveRuntimeButtonIndex(slot, buttonIndex);
+            KeyCode preferredKey = ResolveJoystickButton(slot, resolvedButtonIndex);
             if (preferredKey != KeyCode.None && LegacyInput.GetKeyDown(preferredKey))
             {
                 return true;
@@ -421,7 +472,7 @@ namespace ProjectPVP.Input
 
             if (ShouldUseGenericJoystickFallback(slot))
             {
-                return LegacyInput.GetKeyDown(ResolveGenericJoystickButton(buttonIndex));
+                return LegacyInput.GetKeyDown(ResolveGenericJoystickButton(resolvedButtonIndex));
             }
 
             return false;
@@ -440,7 +491,8 @@ namespace ProjectPVP.Input
                 return false;
             }
 
-            KeyCode preferredKey = ResolveJoystickButton(slot, buttonIndex);
+            int resolvedButtonIndex = ResolveRuntimeButtonIndex(slot, buttonIndex);
+            KeyCode preferredKey = ResolveJoystickButton(slot, resolvedButtonIndex);
             if (preferredKey != KeyCode.None && LegacyInput.GetKey(preferredKey))
             {
                 return true;
@@ -448,10 +500,61 @@ namespace ProjectPVP.Input
 
             if (ShouldUseGenericJoystickFallback(slot))
             {
-                return LegacyInput.GetKey(ResolveGenericJoystickButton(buttonIndex));
+                return LegacyInput.GetKey(ResolveGenericJoystickButton(resolvedButtonIndex));
             }
 
             return false;
+        }
+
+        private int ResolveRuntimeButtonIndex(int slot, int configuredButtonIndex)
+        {
+            if (configuredButtonIndex < 0)
+            {
+                return configuredButtonIndex;
+            }
+
+            if (!string.Equals(ResolveGamepadProfileName(slot), GamepadProfileDualSense, StringComparison.OrdinalIgnoreCase))
+            {
+                return configuredButtonIndex;
+            }
+
+            switch (configuredButtonIndex)
+            {
+                case 0: return 1;
+                case 1: return 2;
+                case 2: return 0;
+                case 3: return 3;
+                default: return configuredButtonIndex;
+            }
+        }
+
+        private string ResolveGamepadProfileName(int slot)
+        {
+            string joystickName = GetJoystickName(slot);
+            if (string.IsNullOrWhiteSpace(joystickName))
+            {
+                return GamepadProfileDefault;
+            }
+
+            string normalized = joystickName.Trim().ToUpperInvariant();
+            if (normalized.Contains("DUALSENSE")
+                || normalized.Contains("WIRELESS CONTROLLER")
+                || normalized.Contains("PLAYSTATION"))
+            {
+                return GamepadProfileDualSense;
+            }
+
+            if (normalized.Contains("XBOX")
+                || normalized.Contains("XINPUT")
+                || normalized.Contains("X-INPUT")
+                || normalized.Contains("360 CONTROLLER")
+                || normalized.Contains("X-BOX")
+                || normalized.Contains("GAMESIR"))
+            {
+                return GamepadProfileXbox;
+            }
+
+            return GamepadProfileDefault;
         }
 
         private KeyCode ResolveGenericJoystickButton(int buttonIndex)
@@ -547,72 +650,58 @@ namespace ProjectPVP.Input
                 return -1;
             }
 
-            int preferredConnectedIndex = Mathf.Clamp(preferredGamepadIndex, 0, connectedCount - 1);
-            int preferredSlot = _connectedGamepadSlots[preferredConnectedIndex];
+            int familyMatchedSlot = ResolvePreferredGamepadSlotByFamily(connectedCount);
+            if (familyMatchedSlot > 0)
+            {
+                return familyMatchedSlot;
+            }
 
             if (connectedCount == 1)
             {
-                // Keep a single connected gamepad bound to its intended player so one pad
-                // does not start driving every enabled input source at once.
-                return preferredGamepadIndex == 0 ? preferredSlot : -1;
+                // Keep a single connected gamepad bound to player one only so the pad
+                // never starts driving every enabled input source at the same time.
+                return preferredGamepadIndex == 0 ? _connectedGamepadSlots[0] : -1;
             }
 
-            if (IsGamepadSlotActive(preferredSlot))
+            if (preferredGamepadIndex < 0 || preferredGamepadIndex >= connectedCount)
             {
-                return preferredSlot;
+                return -1;
             }
 
-            for (int index = 0; index < connectedCount; index += 1)
-            {
-                int slot = _connectedGamepadSlots[index];
-                if (IsGamepadSlotActive(slot))
-                {
-                    return slot;
-                }
-            }
-
-            return preferredSlot;
+            // With more than one controller connected, each player must stay locked to
+            // its assigned slot. Falling back to "any active slot" causes one pad to
+            // control both players whenever the other pad is idle for a frame.
+            return _connectedGamepadSlots[preferredGamepadIndex];
         }
 
-        private bool IsGamepadSlotActive(int slot)
+        private int ResolvePreferredGamepadSlotByFamily(int connectedCount)
         {
-            if (!IsJoystickConnected(slot))
+            if (preferredGamepadFamily == PreferredGamepadFamily.Any || connectedCount <= 0)
             {
-                return false;
+                return -1;
             }
 
-            float moveX = ReadAxisForSlot(gamepadActionMap.moveHorizontalAxis, slot);
-            float moveY = ReadAxisForSlot(gamepadActionMap.moveVerticalAxis, slot);
-            Vector2 dpad = ReadGamepadDpadVectorDirect(slot);
-            float lookX = ReadStrongestAxisForSlot(slot, gamepadActionMap.lookHorizontalAxis, gamepadActionMap.lookHorizontalAxisAlt);
-            float lookY = ReadStrongestAxisForSlot(slot, gamepadActionMap.lookVerticalAxis, gamepadActionMap.lookVerticalAxisAlt);
-            float trigger = ReadStrongestAxisForSlot(slot, gamepadActionMap.dashSecondaryAxis, gamepadActionMap.dashSecondaryAxisAlt, gamepadActionMap.dashSecondaryAxisThird);
-
-            if (Mathf.Abs(moveX) > gamepadActionMap.deadzone
-                || Mathf.Abs(moveY) > gamepadActionMap.deadzone
-                || dpad.sqrMagnitude > 0.01f
-                || Mathf.Abs(lookX) > gamepadActionMap.aimDeadzone
-                || Mathf.Abs(lookY) > gamepadActionMap.aimDeadzone
-                || trigger >= gamepadActionMap.triggerPressThreshold)
+            for (int index = 0; index < connectedCount && index < _connectedGamepadSlots.Length; index += 1)
             {
-                return true;
-            }
-
-            EditableGamepadBindings bindings = ResolveEditableBindings();
-            string joystickName = GetJoystickName(slot);
-            for (int index = 0; index < AllBoundGamepadLabels.Length; index += 1)
-            {
-                var rawBindings = bindings.GetRawBindings(joystickName, AllBoundGamepadLabels[index]);
-                for (int rawIndex = 0; rawIndex < rawBindings.Count; rawIndex += 1)
+                int slot = _connectedGamepadSlots[index];
+                switch (preferredGamepadFamily)
                 {
-                    if (IsJoystickButtonHeld(slot, rawBindings[rawIndex].ButtonIndex))
-                    {
-                        return true;
-                    }
+                    case PreferredGamepadFamily.XboxLike:
+                        if (IsXboxProfile(slot))
+                        {
+                            return slot;
+                        }
+                        break;
+                    case PreferredGamepadFamily.DualSense:
+                        if (string.Equals(ResolveGamepadProfileName(slot), GamepadProfileDualSense, StringComparison.OrdinalIgnoreCase))
+                        {
+                            return slot;
+                        }
+                        break;
                 }
             }
 
-            return false;
+            return -1;
         }
 
         private bool IsJoystickConnected(int slot)
@@ -654,9 +743,15 @@ namespace ProjectPVP.Input
                 return "NoPad";
             }
 
-            EditableGamepadBindings bindings = ResolveEditableBindings();
             string joystickName = GetJoystickName(slot);
-            return ResolveShortJoystickName(joystickName) + "/" + bindings.BuildDebugSummary(joystickName) +
+            Vector2 dpad = ReadGamepadDpadVector(slot);
+            Vector2 rawDpad = ReadConfiguredDpadAxesRaw(slot);
+            return ResolveShortJoystickName(joystickName) +
+                "/" + ResolveGamepadProfileName(slot) +
+                " | DpadMode:" + ResolveDpadModeDebugName(slot) +
+                " | Dpad:" + dpad.x.ToString("0") + "," + dpad.y.ToString("0") +
+                " | RawDpad:" + rawDpad.x.ToString("0.00") + "," + rawDpad.y.ToString("0.00") +
+                " | Trg:" + ReadDashSecondaryAxisValue(slot).ToString("0.00") +
                 " | Btn0:" + (IsJoystickButtonHeld(slot, 0) ? "1" : "0") +
                 " Btn1:" + (IsJoystickButtonHeld(slot, 1) ? "1" : "0") +
                 " Btn2:" + (IsJoystickButtonHeld(slot, 2) ? "1" : "0") +
@@ -735,18 +830,13 @@ namespace ProjectPVP.Input
             }
 
             bool preserveGamepad = enableGamepad;
-            actionMap = playerId == 2
-                ? PlayerActionMap.CreateDefaultPlayerTwo()
-                : PlayerActionMap.CreateDefaultPlayerOne();
-            _editableGamepadBindings = EditableGamepadBindings.Reload();
+            int preservedGamepadIndex = Mathf.Max(0, preferredGamepadIndex);
+            PreferredGamepadFamily preservedGamepadFamily = preferredGamepadFamily;
+            actionMap = PlayerActionMap.CreateDefaultForPlayer(slotId);
             gamepadActionMap = ResolveConfiguredGamepadActionMap();
-            enableGamepad = playerId == 1 || preserveGamepad;
-            preferredGamepadIndex = Mathf.Max(0, playerId - 1);
-        }
-
-        private EditableGamepadBindings ResolveEditableBindings()
-        {
-            return _editableGamepadBindings ?? (_editableGamepadBindings = EditableGamepadBindings.Load());
+            enableGamepad = preserveGamepad;
+            preferredGamepadIndex = preservedGamepadIndex;
+            preferredGamepadFamily = preservedGamepadFamily;
         }
 
         private GamepadActionMap ResolveConfiguredGamepadActionMap()
@@ -776,8 +866,9 @@ namespace ProjectPVP.Input
 
         private Vector2 ReadGamepadDpadVectorDirect(int slot)
         {
-            float horizontal = QuantizeDigitalAxis(ReadAxisForSlot(gamepadActionMap.dpadHorizontalAxis, slot));
-            float vertical = QuantizeDigitalAxis(ReadAxisForSlot(gamepadActionMap.dpadVerticalAxis, slot));
+            Vector2 normalizedDpadAxes = NormalizeDpadAxesForSlot(slot, QuantizeDpadAxes(ReadConfiguredDpadAxesRaw(slot)));
+            float horizontal = normalizedDpadAxes.x;
+            float vertical = normalizedDpadAxes.y;
 
             if (gamepadActionMap.dpadLeftButton >= 0 && IsJoystickButtonHeld(slot, gamepadActionMap.dpadLeftButton))
             {
@@ -799,7 +890,60 @@ namespace ProjectPVP.Input
                 vertical -= 1f;
             }
 
+            bool useGenericFallback = ShouldUseGenericJoystickFallback(slot);
+            Vector2 genericFallbackAxes = useGenericFallback
+                ? NormalizeDpadAxesForSlot(slot, QuantizeDpadAxes(ReadGenericDpadAxesRaw()))
+                : Vector2.zero;
+
+            if (Mathf.Abs(horizontal) < 0.5f && useGenericFallback)
+            {
+                horizontal = genericFallbackAxes.x;
+            }
+
+            if (Mathf.Abs(vertical) < 0.5f && useGenericFallback)
+            {
+                vertical = genericFallbackAxes.y;
+            }
+
             return ClampVector(new Vector2(horizontal, vertical));
+        }
+
+        private Vector2 ReadConfiguredDpadAxesRaw(int slot)
+        {
+            return new Vector2(
+                ReadAxisForSlot(gamepadActionMap.dpadHorizontalAxis, slot),
+                ReadAxisForSlot(gamepadActionMap.dpadVerticalAxis, slot));
+        }
+
+        private Vector2 ReadGenericDpadAxesRaw()
+        {
+            return new Vector2(
+                ReadAxisRaw(gamepadActionMap.dpadHorizontalAxis),
+                ReadAxisRaw(gamepadActionMap.dpadVerticalAxis));
+        }
+
+        private static Vector2 QuantizeDpadAxes(Vector2 rawAxes)
+        {
+            return new Vector2(
+                QuantizeDigitalAxis(rawAxes.x),
+                QuantizeDigitalAxis(rawAxes.y));
+        }
+
+        private Vector2 NormalizeDpadAxesForSlot(int slot, Vector2 dpadAxes)
+        {
+            return gamepadActionMap.swapDpadAxesForXbox && IsXboxProfile(slot)
+                ? new Vector2(-dpadAxes.y, -dpadAxes.x)
+                : dpadAxes;
+        }
+
+        private bool IsXboxProfile(int slot)
+        {
+            return string.Equals(ResolveGamepadProfileName(slot), GamepadProfileXbox, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string ResolveDpadModeDebugName(int slot)
+        {
+            return gamepadActionMap.swapDpadAxesForXbox && IsXboxProfile(slot) ? "SwapXY" : "Native";
         }
 
         private static float QuantizeDigitalAxis(float value)

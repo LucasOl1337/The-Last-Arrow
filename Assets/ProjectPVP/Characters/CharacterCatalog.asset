@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6f9c8d1b2e3470ea5c4d3f2198b7a61, type: 3}
+  m_Name: CharacterCatalog
+  m_EditorClassIdentifier: ProjectPVP.Runtime::ProjectPVP.Characters.CharacterCatalog
+  characters:
+  - {fileID: 11400000, guid: e1a2c3d4b5f6478899aabbccddeeff01, type: 2}
+  - {fileID: 11400000, guid: e1a2c3d4b5f6478899aabbccddeeff02, type: 2}

@@ -9,118 +9,7 @@ namespace ProjectPVP.Editor
     [CustomEditor(typeof(CharacterDefinition))]
     public sealed class CharacterDefinitionEditor : UnityEditor.Editor
     {
-        private SerializedProperty _idProperty;
-        private SerializedProperty _displayNameProperty;
-        private SerializedProperty _pixelLabCharacterIdProperty;
-        private SerializedProperty _pixelLabActionAliasesProperty;
-        private SerializedProperty _defaultSpriteProperty;
-        private SerializedProperty _spriteScaleProperty;
-        private SerializedProperty _spriteAnchorOffsetProperty;
-        private SerializedProperty _nativeSpriteBakeScaleProperty;
-        private SerializedProperty _overridesStatsProperty;
-        private SerializedProperty _moveSpeedProperty;
-        private SerializedProperty _accelerationProperty;
-        private SerializedProperty _frictionProperty;
-        private SerializedProperty _jumpVelocityProperty;
-        private SerializedProperty _gravityProperty;
-        private SerializedProperty _maxFallSpeedProperty;
-        private SerializedProperty _shootCooldownProperty;
-        private SerializedProperty _maxArrowsProperty;
-        private SerializedProperty _meleeCooldownProperty;
-        private SerializedProperty _meleeDurationProperty;
-        private SerializedProperty _meleeCanSeverProjectilesProperty;
-        private SerializedProperty _colliderSizeProperty;
-        private SerializedProperty _colliderOffsetProperty;
-        private SerializedProperty _wallJumpHorizontalForceProperty;
-        private SerializedProperty _wallJumpVerticalForceProperty;
-        private SerializedProperty _wallSlideSpeedProperty;
-        private SerializedProperty _wallGravityScaleProperty;
-        private SerializedProperty _runtimeMoveScaleProperty;
-        private SerializedProperty _runtimeJumpScaleProperty;
-        private SerializedProperty _runtimeGravityScaleProperty;
-        private SerializedProperty _runtimeDashScaleProperty;
-        private SerializedProperty _dashMultiplierProperty;
-        private SerializedProperty _dashDurationProperty;
-        private SerializedProperty _dashCooldownProperty;
-        private SerializedProperty _dashDistanceProperty;
-        private SerializedProperty _dashUpwardMultiplierProperty;
-        private SerializedProperty _projectileForwardProperty;
-        private SerializedProperty _projectileForwardFacingProperty;
-        private SerializedProperty _projectileVerticalOffsetProperty;
-        private SerializedProperty _projectileInheritVelocityFactorProperty;
-        private SerializedProperty _projectileScaleProperty;
-        private SerializedProperty _projectileOriginModeProperty;
-        private SerializedProperty _projectileOriginOffsetProperty;
-        private SerializedProperty _projectileUseBowNodeProperty;
-        private SerializedProperty _projectileSpriteProperty;
-        private SerializedProperty _actionConfigProperty;
-        private SerializedProperty _actionAnimationDurationsProperty;
-        private SerializedProperty _actionAnimationCancelableProperty;
-        private SerializedProperty _actionAnimationSpeedsProperty;
-        private SerializedProperty _actionColliderOverridesProperty;
-        private SerializedProperty _actionSpriteAnimationsProperty;
-
-        private bool _showGameplay = true;
-        private bool _showPixelLabSync = true;
-        private bool _showMovementTuning = true;
-        private bool _showProjectile = true;
-        private bool _showActionTuning = true;
-        private bool _showAnimationSummary = true;
-        private bool _showRawAnimations;
-
-        private void OnEnable()
-        {
-            _idProperty = serializedObject.FindProperty("id");
-            _displayNameProperty = serializedObject.FindProperty("displayName");
-            _pixelLabCharacterIdProperty = serializedObject.FindProperty("pixelLabCharacterId");
-            _pixelLabActionAliasesProperty = serializedObject.FindProperty("pixelLabActionAliases");
-            _defaultSpriteProperty = serializedObject.FindProperty("defaultSprite");
-            _spriteScaleProperty = serializedObject.FindProperty("spriteScale");
-            _spriteAnchorOffsetProperty = serializedObject.FindProperty("spriteAnchorOffset");
-            _nativeSpriteBakeScaleProperty = serializedObject.FindProperty("nativeSpriteBakeScale");
-            _overridesStatsProperty = serializedObject.FindProperty("overridesStats");
-            _moveSpeedProperty = serializedObject.FindProperty("moveSpeed");
-            _accelerationProperty = serializedObject.FindProperty("acceleration");
-            _frictionProperty = serializedObject.FindProperty("friction");
-            _jumpVelocityProperty = serializedObject.FindProperty("jumpVelocity");
-            _gravityProperty = serializedObject.FindProperty("gravity");
-            _maxFallSpeedProperty = serializedObject.FindProperty("maxFallSpeed");
-            _shootCooldownProperty = serializedObject.FindProperty("shootCooldown");
-            _maxArrowsProperty = serializedObject.FindProperty("maxArrows");
-            _meleeCooldownProperty = serializedObject.FindProperty("meleeCooldown");
-            _meleeDurationProperty = serializedObject.FindProperty("meleeDuration");
-            _meleeCanSeverProjectilesProperty = serializedObject.FindProperty("meleeCanSeverProjectiles");
-            _colliderSizeProperty = serializedObject.FindProperty("colliderSize");
-            _colliderOffsetProperty = serializedObject.FindProperty("colliderOffset");
-            _wallJumpHorizontalForceProperty = serializedObject.FindProperty("wallJumpHorizontalForce");
-            _wallJumpVerticalForceProperty = serializedObject.FindProperty("wallJumpVerticalForce");
-            _wallSlideSpeedProperty = serializedObject.FindProperty("wallSlideSpeed");
-            _wallGravityScaleProperty = serializedObject.FindProperty("wallGravityScale");
-            _runtimeMoveScaleProperty = serializedObject.FindProperty("runtimeMoveScale");
-            _runtimeJumpScaleProperty = serializedObject.FindProperty("runtimeJumpScale");
-            _runtimeGravityScaleProperty = serializedObject.FindProperty("runtimeGravityScale");
-            _runtimeDashScaleProperty = serializedObject.FindProperty("runtimeDashScale");
-            _dashMultiplierProperty = serializedObject.FindProperty("dashMultiplier");
-            _dashDurationProperty = serializedObject.FindProperty("dashDuration");
-            _dashCooldownProperty = serializedObject.FindProperty("dashCooldown");
-            _dashDistanceProperty = serializedObject.FindProperty("dashDistance");
-            _dashUpwardMultiplierProperty = serializedObject.FindProperty("dashUpwardMultiplier");
-            _projectileForwardProperty = serializedObject.FindProperty("projectileForward");
-            _projectileForwardFacingProperty = serializedObject.FindProperty("projectileForwardFacing");
-            _projectileVerticalOffsetProperty = serializedObject.FindProperty("projectileVerticalOffset");
-            _projectileInheritVelocityFactorProperty = serializedObject.FindProperty("projectileInheritVelocityFactor");
-            _projectileScaleProperty = serializedObject.FindProperty("projectileScale");
-            _projectileOriginModeProperty = serializedObject.FindProperty("projectileOriginMode");
-            _projectileOriginOffsetProperty = serializedObject.FindProperty("projectileOriginOffset");
-            _projectileUseBowNodeProperty = serializedObject.FindProperty("projectileUseBowNode");
-            _projectileSpriteProperty = serializedObject.FindProperty("projectileSprite");
-            _actionConfigProperty = serializedObject.FindProperty("actionConfig");
-            _actionAnimationDurationsProperty = serializedObject.FindProperty("actionAnimationDurations");
-            _actionAnimationCancelableProperty = serializedObject.FindProperty("actionAnimationCancelable");
-            _actionAnimationSpeedsProperty = serializedObject.FindProperty("actionAnimationSpeeds");
-            _actionColliderOverridesProperty = serializedObject.FindProperty("actionColliderOverrides");
-            _actionSpriteAnimationsProperty = serializedObject.FindProperty("actionSpriteAnimations");
-        }
+        private UnityEditor.Editor _mechanicsModuleInlineEditor;
 
         public override void OnInspectorGUI()
         {
@@ -129,199 +18,27 @@ namespace ProjectPVP.Editor
             CharacterDefinition definition = (CharacterDefinition)target;
 
             DrawHeader(definition);
-            DrawFolderToolbar();
+            DrawToolbar(definition);
             EditorGUILayout.Space(6f);
+            EditorGUILayout.HelpBox(
+                "Este asset agora e a fonte unica de verdade do personagem. Tuning de movimento, colisor, projeteis, acoes e audio devem ser editados aqui.",
+                MessageType.Info);
 
-            EditorGUILayout.PropertyField(_idProperty);
-            EditorGUILayout.PropertyField(_displayNameProperty);
+            DrawDefaultInspector();
 
-            _showPixelLabSync = EditorGUILayout.BeginFoldoutHeaderGroup(_showPixelLabSync, "PixelLab Sync");
-            if (_showPixelLabSync)
+            if (definition != null && definition.mechanicsModule != null)
             {
-                EditorGUILayout.PropertyField(_pixelLabCharacterIdProperty, new GUIContent("Character Id"));
-                EditorGUILayout.PropertyField(_pixelLabActionAliasesProperty, new GUIContent("Action Aliases"), true);
-                EditorGUILayout.HelpBox("O sync do PixelLab baixa o ZIP direto da API, normaliza nomes customizados para actions do runtime, usa somente direcoes laterais e preserva a escala visual configurada do personagem.", MessageType.Info);
-
-                EditorGUILayout.BeginHorizontal();
-                EditorGUI.BeginDisabledGroup(string.IsNullOrWhiteSpace(_pixelLabCharacterIdProperty.stringValue));
-                if (GUILayout.Button("Sync From PixelLab"))
-                {
-                    if (ProjectPvpPixelLabImportTools.SyncFromPixelLab(definition, out string summary))
-                    {
-                        Debug.Log(summary);
-                        serializedObject.Update();
-                    }
-                    else
-                    {
-                        Debug.LogWarning(summary);
-                    }
-                }
-
-                EditorGUI.EndDisabledGroup();
-
-                if (GUILayout.Button("Sync All From PixelLab"))
-                {
-                    ProjectPvpPixelLabImportTools.SyncAllConfiguredCharactersFromPixelLab();
-                    serializedObject.Update();
-                }
-                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.Space(8f);
+                DrawInlineMechanicsModuleInspector(definition.mechanicsModule);
             }
 
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-            EditorGUILayout.PropertyField(_defaultSpriteProperty);
-            EditorGUILayout.PropertyField(_spriteScaleProperty);
-            EditorGUILayout.PropertyField(_spriteAnchorOffsetProperty);
-            EditorGUILayout.PropertyField(_nativeSpriteBakeScaleProperty, new GUIContent("Native Sprite Bake Scale"));
-            EditorGUILayout.HelpBox("Esse valor e usado so no import/offline. O fluxo recomendado e bake nearest-neighbor dos PNGs e depois usar spriteScale = 1 no runtime.", MessageType.None);
-
-            EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("Bake Native Sprites"))
-            {
-                if (ProjectPvpCharacterSpriteImportTools.BakeCharacterSpritesToNativeScale(definition, out string summary))
-                {
-                    Debug.Log(summary);
-                    serializedObject.Update();
-                }
-                else
-                {
-                    Debug.LogWarning(summary);
-                }
-            }
-
-            if (GUILayout.Button("Use Native Scale (1,1)"))
-            {
-                Undo.RecordObject(definition, "Use Native Sprite Scale");
-                definition.spriteScale = Vector2.one;
-                EditorUtility.SetDirty(definition);
-                serializedObject.Update();
-            }
-            EditorGUILayout.EndHorizontal();
-
-            _showGameplay = EditorGUILayout.BeginFoldoutHeaderGroup(_showGameplay, "Gameplay Core");
-            if (_showGameplay)
-            {
-                EditorGUILayout.PropertyField(_overridesStatsProperty);
-                EditorGUILayout.PropertyField(_moveSpeedProperty);
-                EditorGUILayout.PropertyField(_accelerationProperty);
-                EditorGUILayout.PropertyField(_frictionProperty);
-                EditorGUILayout.PropertyField(_jumpVelocityProperty);
-                EditorGUILayout.PropertyField(_gravityProperty);
-                EditorGUILayout.PropertyField(_maxFallSpeedProperty);
-                EditorGUILayout.PropertyField(_shootCooldownProperty);
-                EditorGUILayout.PropertyField(_maxArrowsProperty);
-                EditorGUILayout.PropertyField(_meleeCooldownProperty);
-                EditorGUILayout.PropertyField(_meleeDurationProperty);
-                EditorGUILayout.PropertyField(_meleeCanSeverProjectilesProperty, new GUIContent("Melee Can Sever Projectiles"));
-                EditorGUILayout.PropertyField(_colliderSizeProperty);
-                EditorGUILayout.PropertyField(_colliderOffsetProperty);
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-            _showMovementTuning = EditorGUILayout.BeginFoldoutHeaderGroup(_showMovementTuning, "Movement Tuning");
-            if (_showMovementTuning)
-            {
-                EditorGUILayout.PropertyField(_wallJumpHorizontalForceProperty);
-                EditorGUILayout.PropertyField(_wallJumpVerticalForceProperty);
-                EditorGUILayout.PropertyField(_wallSlideSpeedProperty);
-                EditorGUILayout.PropertyField(_wallGravityScaleProperty);
-                EditorGUILayout.PropertyField(_runtimeMoveScaleProperty);
-                EditorGUILayout.PropertyField(_runtimeJumpScaleProperty);
-                EditorGUILayout.PropertyField(_runtimeGravityScaleProperty);
-                EditorGUILayout.PropertyField(_runtimeDashScaleProperty);
-                EditorGUILayout.PropertyField(_dashMultiplierProperty);
-                EditorGUILayout.PropertyField(_dashDurationProperty);
-                EditorGUILayout.PropertyField(_dashCooldownProperty);
-                EditorGUILayout.PropertyField(_dashDistanceProperty);
-                EditorGUILayout.PropertyField(_dashUpwardMultiplierProperty);
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-            _showProjectile = EditorGUILayout.BeginFoldoutHeaderGroup(_showProjectile, "Projectile");
-            if (_showProjectile)
-            {
-                EditorGUILayout.HelpBox("BowNode usa projectileOriginOffset como socket local do disparo. O X e espelhado automaticamente entre east/west e a bolinha de debug acompanha esse ponto.", MessageType.None);
-                EditorGUILayout.PropertyField(_projectileForwardProperty);
-                EditorGUILayout.PropertyField(_projectileForwardFacingProperty);
-                EditorGUILayout.PropertyField(_projectileVerticalOffsetProperty);
-                EditorGUILayout.PropertyField(_projectileInheritVelocityFactorProperty);
-                EditorGUILayout.PropertyField(_projectileScaleProperty);
-                EditorGUILayout.PropertyField(_projectileOriginModeProperty);
-                EditorGUILayout.PropertyField(_projectileOriginOffsetProperty);
-                EditorGUILayout.PropertyField(_projectileUseBowNodeProperty);
-                EditorGUILayout.PropertyField(_projectileSpriteProperty);
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-            _showActionTuning = EditorGUILayout.BeginFoldoutHeaderGroup(_showActionTuning, "Action Tuning");
-            if (_showActionTuning)
-            {
-                EditorGUILayout.PropertyField(_actionConfigProperty, new GUIContent("Action Config"));
-                EditorGUILayout.HelpBox("Use as mesmas action keys dos clips: dash, shoot, melee, ult, jump_start, jump_air, running, aim.", MessageType.None);
-
-                if (_actionConfigProperty.objectReferenceValue != null)
-                {
-                    EditorGUILayout.BeginHorizontal();
-                    if (GUILayout.Button("Ping Action Config Asset"))
-                    {
-                        EditorGUIUtility.PingObject(_actionConfigProperty.objectReferenceValue);
-                    }
-
-                    if (GUILayout.Button("Selecionar Action Config"))
-                    {
-                        Selection.activeObject = _actionConfigProperty.objectReferenceValue;
-                    }
-                    EditorGUILayout.EndHorizontal();
-                    EditorGUILayout.HelpBox("Os timings e cancel windows deste personagem agora devem ser editados no asset Action Config dentro da pasta Data.", MessageType.Info);
-                }
-                else
-                {
-                    EditorGUILayout.PropertyField(_actionAnimationDurationsProperty, new GUIContent("Animation Durations"), true);
-                    EditorGUILayout.PropertyField(_actionAnimationCancelableProperty, new GUIContent("Animation Cancelable"), true);
-                    EditorGUILayout.PropertyField(_actionAnimationSpeedsProperty, new GUIContent("Animation Speeds"), true);
-                    EditorGUILayout.PropertyField(_actionColliderOverridesProperty, new GUIContent("Collider Overrides"), true);
-                }
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-            _showAnimationSummary = EditorGUILayout.BeginFoldoutHeaderGroup(_showAnimationSummary, "Animation Summary");
-            if (_showAnimationSummary)
-            {
-                DrawAnimationSummary(definition);
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
-
-            _showRawAnimations = EditorGUILayout.BeginFoldoutHeaderGroup(_showRawAnimations, "Raw Animation Clips");
-            if (_showRawAnimations)
-            {
-                EditorGUILayout.HelpBox("Fluxo recomendado: coloque os PNGs em Animations/<acao>/<left|right|east|west>/ e clique em Sync Clips. O runtime usa somente left/right; qualquer outra pasta e ignorada.", MessageType.Info);
-                if (GUILayout.Button("Rebuild Clips From Folders"))
-                {
-                    if (ProjectPvpCharacterAnimationSync.RebuildFromFolders(definition, out string summary))
-                    {
-                        Debug.Log(summary);
-                        serializedObject.Update();
-                    }
-                    else
-                    {
-                        Debug.LogWarning(summary);
-                    }
-                }
-
-                EditorGUILayout.PropertyField(_actionSpriteAnimationsProperty, true);
-            }
-
-            EditorGUILayout.EndFoldoutHeaderGroup();
+            EditorGUILayout.Space(8f);
+            DrawAnimationSummary(definition);
 
             serializedObject.ApplyModifiedProperties();
         }
 
-        private void DrawHeader(CharacterDefinition definition)
+        private static void DrawHeader(CharacterDefinition definition)
         {
             string displayName = definition != null && !string.IsNullOrWhiteSpace(definition.displayName)
                 ? definition.displayName
@@ -332,9 +49,8 @@ namespace ProjectPVP.Editor
             EditorGUILayout.LabelField("Id: " + id, EditorStyles.miniLabel);
         }
 
-        private void DrawFolderToolbar()
+        private void DrawToolbar(CharacterDefinition definition)
         {
-            CharacterDefinition definition = (CharacterDefinition)target;
             EditorGUILayout.BeginHorizontal();
 
             if (GUILayout.Button("Ping Data"))
@@ -352,14 +68,30 @@ namespace ProjectPVP.Editor
                 PingSiblingFolder("Rotations");
             }
 
-            if (GUILayout.Button("Ping Action Config"))
+            if (GUILayout.Button("Ping Audio"))
             {
-                PingActionConfig();
+                if (definition != null && definition.audioDefinition != null)
+                {
+                    EditorGUIUtility.PingObject(definition.audioDefinition);
+                }
             }
 
             if (GUILayout.Button("Sync PixelLab"))
             {
                 if (ProjectPvpPixelLabImportTools.SyncFromPixelLab(definition, out string summary))
+                {
+                    Debug.Log(summary);
+                    serializedObject.Update();
+                }
+                else
+                {
+                    Debug.LogWarning(summary);
+                }
+            }
+
+            if (GUILayout.Button("Waifu2x"))
+            {
+                if (ProjectPvpWaifu2xSpriteUpgradeTools.TryUpscaleCharacterSprites(definition, out string summary))
                 {
                     Debug.Log(summary);
                     serializedObject.Update();
@@ -389,13 +121,7 @@ namespace ProjectPVP.Editor
                 serializedObject.Update();
             }
 
-            if (GUILayout.Button("Optimize Imports"))
-            {
-                EditorApplication.ExecuteMenuItem("ProjectPVP/Characters/Optimize Character Sprite Imports");
-                serializedObject.Update();
-            }
-
-            if (GUILayout.Button("Abrir Pasta"))
+            if (GUILayout.Button("Open Folder"))
             {
                 string assetPath = AssetDatabase.GetAssetPath(target);
                 if (!string.IsNullOrWhiteSpace(assetPath))
@@ -407,14 +133,19 @@ namespace ProjectPVP.Editor
             EditorGUILayout.EndHorizontal();
         }
 
-        private void PingActionConfig()
+        private void DrawInlineMechanicsModuleInspector(Object mechanicsModuleObject)
         {
-            if (_actionConfigProperty == null || _actionConfigProperty.objectReferenceValue == null)
+            if (mechanicsModuleObject == null)
             {
                 return;
             }
 
-            EditorGUIUtility.PingObject(_actionConfigProperty.objectReferenceValue);
+            EditorGUILayout.LabelField("Mechanics Module Settings", EditorStyles.boldLabel);
+            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                CreateCachedEditor(mechanicsModuleObject, null, ref _mechanicsModuleInlineEditor);
+                _mechanicsModuleInlineEditor?.OnInspectorGUI();
+            }
         }
 
         private void PingSiblingFolder(string folderName)
@@ -447,7 +178,8 @@ namespace ProjectPVP.Editor
 
         private static void DrawAnimationSummary(CharacterDefinition definition)
         {
-            if (definition == null || definition.actionSpriteAnimations == null || definition.actionSpriteAnimations.Count == 0)
+            IReadOnlyList<ActionSpriteAnimation> animations = definition != null ? definition.GetActionAnimations() : null;
+            if (animations == null || animations.Count == 0)
             {
                 EditorGUILayout.HelpBox("Nenhum clip configurado.", MessageType.Warning);
                 return;
@@ -457,9 +189,9 @@ namespace ProjectPVP.Editor
             var frameCounts = new Dictionary<string, int>();
             int totalFrames = 0;
 
-            for (int index = 0; index < definition.actionSpriteAnimations.Count; index += 1)
+            for (int index = 0; index < animations.Count; index += 1)
             {
-                ActionSpriteAnimation clip = definition.actionSpriteAnimations[index];
+                ActionSpriteAnimation clip = animations[index];
                 if (clip == null || string.IsNullOrWhiteSpace(clip.actionName))
                 {
                     continue;
@@ -477,8 +209,9 @@ namespace ProjectPVP.Editor
                 totalFrames += frameCount;
             }
 
+            EditorGUILayout.LabelField("Animation Summary", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "Clips: " + definition.actionSpriteAnimations.Count + " | Frames: " + totalFrames,
+                "Clips: " + animations.Count + " | Frames: " + totalFrames,
                 MessageType.None);
 
             foreach (KeyValuePair<string, int> pair in clipCounts)
@@ -495,11 +228,10 @@ namespace ProjectPVP.Editor
         [MenuItem("ProjectPVP/Characters/Reserialize Character Assets")]
         private static void ReserializeCharacterAssets()
         {
-            string[] guids = AssetDatabase.FindAssets("t:CharacterDefinition", new[] { "Assets/ProjectPVP/Characters" });
-            var assetPaths = new List<string>(guids.Length);
-            for (int index = 0; index < guids.Length; index += 1)
+            var assetPaths = new List<string>();
+            foreach (CharacterDefinition definition in ProjectPvpCharacterAssetPaths.EnumerateDefinitions())
             {
-                string assetPath = AssetDatabase.GUIDToAssetPath(guids[index]);
+                string assetPath = AssetDatabase.GetAssetPath(definition);
                 if (!string.IsNullOrWhiteSpace(assetPath))
                 {
                     assetPaths.Add(assetPath);

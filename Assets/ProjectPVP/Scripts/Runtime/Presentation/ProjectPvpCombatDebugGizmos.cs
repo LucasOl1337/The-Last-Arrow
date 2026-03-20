@@ -65,8 +65,26 @@ namespace ProjectPVP.Presentation
                 return;
             }
 
-            DrawPlayer(matchController != null ? matchController.playerOne : null);
-            DrawPlayer(matchController != null ? matchController.playerTwo : null);
+            if (matchController != null && matchController.Slots.Count > 0)
+            {
+                for (int index = 0; index < matchController.Slots.Count; index += 1)
+                {
+                    DrawPlayer(matchController.Slots[index]);
+                }
+            }
+            else
+            {
+                PlayerController[] players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+                for (int index = 0; index < players.Length; index += 1)
+                {
+                    if (players[index] == null)
+                    {
+                        continue;
+                    }
+
+                    DrawPlayer(players[index]);
+                }
+            }
 
             if (showProjectileHitboxes || showProjectileDirection)
             {
@@ -81,14 +99,27 @@ namespace ProjectPVP.Presentation
                 : visibleInEditMode;
         }
 
+        private void DrawPlayer(CombatantSlotConfig slot)
+        {
+            if (slot == null)
+            {
+                return;
+            }
+
+            DrawPlayer(slot.controller, slot.ResolveDebugTint());
+        }
+
         private void DrawPlayer(PlayerController player)
+        {
+            DrawPlayer(player, ResolvePlayerTint(player));
+        }
+
+        private void DrawPlayer(PlayerController player, Color tint)
         {
             if (player == null || !player.isActiveAndEnabled)
             {
                 return;
             }
-
-            Color tint = ResolvePlayerTint(player.playerId);
 
             if (showPlayerBodies && TryGetBodyCollider(player, out Vector2 bodyCenter, out Vector2 bodySize))
             {
@@ -233,7 +264,7 @@ namespace ProjectPVP.Presentation
                 PlayerController owner = projectile.SourceObject != null
                     ? projectile.SourceObject.GetComponentInParent<PlayerController>()
                     : null;
-                Color tint = owner != null ? ResolvePlayerTint(owner.playerId) : new Color(1f, 0.92f, 0.35f, 1f);
+                Color tint = owner != null ? ResolvePlayerTint(owner) : new Color(1f, 0.92f, 0.35f, 1f);
                 if (projectile.IsCollectible)
                 {
                     tint = Color.Lerp(tint, new Color(1f, 0.85f, 0.2f, 1f), 0.45f);
@@ -384,11 +415,15 @@ namespace ProjectPVP.Presentation
             return Vector2.zero;
         }
 
-        private static Color ResolvePlayerTint(int playerId)
+        private static Color ResolvePlayerTint(PlayerController player)
         {
-            return playerId == 2
-                ? new Color(1f, 0.62f, 0.36f, 1f)
-                : new Color(0.34f, 0.86f, 1f, 1f);
+            if (player != null && player.SlotProfile != null)
+            {
+                return player.SlotProfile.ResolveDebugTint(player.SlotId);
+            }
+
+            CombatantSlotId slotId = player != null ? player.SlotId : CombatantSlotId.None;
+            return CombatantSlotProfile.ResolveDefaultTint(slotId);
         }
 
         private static Color WithAlpha(Color color, float alpha)

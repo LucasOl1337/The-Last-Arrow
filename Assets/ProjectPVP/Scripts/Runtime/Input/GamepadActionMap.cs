@@ -13,7 +13,7 @@ namespace ProjectPVP.Input
         public string lookVerticalAxis = "ProjectPVP_GamepadLookY_A";
         public string lookHorizontalAxisAlt = "ProjectPVP_GamepadLookX_B";
         public string lookVerticalAxisAlt = "ProjectPVP_GamepadLookY_B";
-        public string dashSecondaryAxis = "ProjectPVP_GamepadTriggerR_A";
+        public string dashSecondaryAxis = "";
         public string dashSecondaryAxisAlt = "ProjectPVP_GamepadTriggerR_B";
         public string dashSecondaryAxisThird = "ProjectPVP_GamepadTriggerR_C";
         public int jumpButton = 0;
@@ -29,6 +29,7 @@ namespace ProjectPVP.Input
         public int dpadRightButton = -1;
         public int dpadUpButton = -1;
         public int dpadDownButton = -1;
+        public bool swapDpadAxesForXbox;
         public float deadzone = 0.18f;
         public float aimDeadzone = 0.22f;
         public float triggerPressThreshold = 0.45f;
@@ -62,6 +63,7 @@ namespace ProjectPVP.Input
                 dpadRightButton = dpadRightButton,
                 dpadUpButton = dpadUpButton,
                 dpadDownButton = dpadDownButton,
+                swapDpadAxesForXbox = swapDpadAxesForXbox,
                 deadzone = deadzone,
                 aimDeadzone = aimDeadzone,
                 triggerPressThreshold = triggerPressThreshold,
@@ -81,7 +83,7 @@ namespace ProjectPVP.Input
                 lookVerticalAxis = "ProjectPVP_GamepadLookY_A",
                 lookHorizontalAxisAlt = "ProjectPVP_GamepadLookX_B",
                 lookVerticalAxisAlt = "ProjectPVP_GamepadLookY_B",
-                dashSecondaryAxis = "ProjectPVP_GamepadTriggerR_A",
+                dashSecondaryAxis = "",
                 dashSecondaryAxisAlt = "ProjectPVP_GamepadTriggerR_B",
                 dashSecondaryAxisThird = "ProjectPVP_GamepadTriggerR_C",
                 jumpButton = 0,
@@ -97,6 +99,7 @@ namespace ProjectPVP.Input
                 dpadRightButton = -1,
                 dpadUpButton = -1,
                 dpadDownButton = -1,
+                swapDpadAxesForXbox = true,
                 deadzone = 0.18f,
                 aimDeadzone = 0.22f,
                 triggerPressThreshold = 0.45f,

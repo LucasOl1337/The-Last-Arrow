@@ -8,10 +8,7 @@ namespace ProjectPVP.Editor
 {
     internal static class ProjectPvpCharacterSpriteImportTools
     {
-        private static readonly string[] CharacterSearchRoots =
-        {
-            "Assets/ProjectPVP/Characters",
-        };
+        private static readonly string[] CharacterSearchRoots = ProjectPvpCharacterAssetPaths.CharacterSearchRoots;
 
         [MenuItem("ProjectPVP/Characters/Optimize Character Sprite Imports")]
         private static void OptimizeCharacterSpriteImports()
@@ -55,21 +52,13 @@ namespace ProjectPVP.Editor
             }
 
             int upscaleFactor = Mathf.Max(1, definition.nativeSpriteBakeScale);
-            string definitionPath = AssetDatabase.GetAssetPath(definition);
-            if (string.IsNullOrWhiteSpace(definitionPath))
-            {
-                summary = "ProjectPVP: nao foi possivel localizar o asset do personagem selecionado.";
-                return false;
-            }
-
-            string characterRoot = Path.GetDirectoryName(Path.GetDirectoryName(definitionPath) ?? string.Empty)?.Replace("\\", "/");
-            if (string.IsNullOrWhiteSpace(characterRoot))
+            if (!ProjectPvpCharacterAssetPaths.TryGetCharacterRoot(definition, out string characterRoot))
             {
                 summary = "ProjectPVP: nao foi possivel localizar a pasta raiz do personagem.";
                 return false;
             }
 
-            string characterRootFullPath = ToFullPath(characterRoot);
+            string characterRootFullPath = ProjectPvpCharacterAssetPaths.ToFullPath(characterRoot);
             if (string.IsNullOrWhiteSpace(characterRootFullPath) || !Directory.Exists(characterRootFullPath))
             {
                 summary = "ProjectPVP: pasta fisica do personagem nao encontrada.";
@@ -282,16 +271,5 @@ namespace ProjectPVP.Editor
             }
         }
 
-        private static string ToFullPath(string assetPath)
-        {
-            string projectRoot = Path.GetDirectoryName(Application.dataPath);
-            if (string.IsNullOrWhiteSpace(projectRoot))
-            {
-                return string.Empty;
-            }
-
-            string relativePath = assetPath.Replace("Assets/", string.Empty).Replace("/", Path.DirectorySeparatorChar.ToString());
-            return Path.Combine(projectRoot, "Assets", relativePath);
-        }
     }
 }

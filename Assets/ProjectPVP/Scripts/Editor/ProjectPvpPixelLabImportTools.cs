@@ -101,21 +101,12 @@ namespace ProjectPVP.Editor
         [MenuItem("ProjectPVP/Characters/Sync All Configured Characters From PixelLab")]
         internal static void SyncAllConfiguredCharactersFromPixelLab()
         {
-            string[] definitionGuids = AssetDatabase.FindAssets("t:CharacterDefinition", new[] { "Assets/ProjectPVP/Characters" });
             int syncedCount = 0;
             int skippedCount = 0;
             int failedCount = 0;
 
-            for (int index = 0; index < definitionGuids.Length; index += 1)
+            foreach (CharacterDefinition definition in ProjectPvpCharacterAssetPaths.EnumerateDefinitions())
             {
-                string assetPath = AssetDatabase.GUIDToAssetPath(definitionGuids[index]);
-                CharacterDefinition definition = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(assetPath);
-                if (definition == null)
-                {
-                    failedCount += 1;
-                    continue;
-                }
-
                 if (string.IsNullOrWhiteSpace(definition.pixelLabCharacterId))
                 {
                     skippedCount += 1;
@@ -207,21 +198,13 @@ namespace ProjectPVP.Editor
                 return false;
             }
 
-            string definitionPath = AssetDatabase.GetAssetPath(definition);
-            if (string.IsNullOrWhiteSpace(definitionPath))
-            {
-                summary = "ProjectPVP: nao foi possivel localizar o asset do personagem selecionado.";
-                return false;
-            }
-
-            string characterRoot = Path.GetDirectoryName(Path.GetDirectoryName(definitionPath) ?? string.Empty)?.Replace("\\", "/");
-            if (string.IsNullOrWhiteSpace(characterRoot))
+            if (!ProjectPvpCharacterAssetPaths.TryGetCharacterRoot(definition, out string characterRoot))
             {
                 summary = "ProjectPVP: nao foi possivel localizar a pasta raiz do personagem.";
                 return false;
             }
 
-            string characterRootFullPath = ToFullPath(characterRoot);
+            string characterRootFullPath = ProjectPvpCharacterAssetPaths.ToFullPath(characterRoot);
             if (string.IsNullOrWhiteSpace(characterRootFullPath) || !Directory.Exists(characterRootFullPath))
             {
                 summary = "ProjectPVP: pasta fisica do personagem nao encontrada.";
@@ -778,24 +761,19 @@ namespace ProjectPVP.Editor
         private static bool TryMapSupportedDirection(string directionName, out string targetDirectionFolderName)
         {
             targetDirectionFolderName = string.Empty;
-            if (string.IsNullOrWhiteSpace(directionName))
+            if (!ActionCatalog.LoadDefault().TryMapAnimationFolderDirection(directionName, out string directionKey, out bool sharedFallback)
+                || sharedFallback)
             {
                 return false;
             }
 
-            switch (directionName.Trim().ToLowerInvariant())
+            targetDirectionFolderName = directionKey switch
             {
-                case "east":
-                case "right":
-                    targetDirectionFolderName = "east";
-                    return true;
-                case "west":
-                case "left":
-                    targetDirectionFolderName = "west";
-                    return true;
-                default:
-                    return false;
-            }
+                "left" => "west",
+                "right" => "east",
+                _ => string.Empty,
+            };
+            return !string.IsNullOrWhiteSpace(targetDirectionFolderName);
         }
 
         private static string BuildImportedMappingsSummary(List<string> importedMappings)
@@ -970,18 +948,6 @@ namespace ProjectPVP.Editor
             }
 
             return normalizedValue.IndexOf(NormalizeActionName(phrase), StringComparison.Ordinal) >= 0;
-        }
-
-        private static string ToFullPath(string assetPath)
-        {
-            string projectRoot = Path.GetDirectoryName(Application.dataPath);
-            if (string.IsNullOrWhiteSpace(projectRoot))
-            {
-                return string.Empty;
-            }
-
-            string relativePath = assetPath.Replace("Assets/", string.Empty).Replace("/", Path.DirectorySeparatorChar.ToString());
-            return Path.Combine(projectRoot, "Assets", relativePath);
         }
 
         private static void TryDeleteDirectory(string path)

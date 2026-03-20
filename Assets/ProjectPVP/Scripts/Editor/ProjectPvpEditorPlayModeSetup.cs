@@ -1,13 +1,13 @@
 using System;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEngine.SceneManagement;
 
 namespace ProjectPVP.Editor
 {
     [InitializeOnLoad]
     public static class ProjectPvpEditorPlayModeSetup
     {
-        private const string ScenePath = "Assets/ProjectPVP/Scenes/Bootstrap.unity";
         private static int _gameViewRefocusFramesLeft;
 
         static ProjectPvpEditorPlayModeSetup()
@@ -19,9 +19,26 @@ namespace ProjectPVP.Editor
 
         private static void ConfigurePlayModeScene()
         {
-            SceneAsset bootstrapScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath);
+            string scenePath = ProjectPvpEditorSceneUtility.ResolvePrimaryPlayableScenePath();
+            if (string.IsNullOrWhiteSpace(scenePath))
+            {
+                return;
+            }
+
+            SceneAsset bootstrapScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath);
             if (bootstrapScene == null)
             {
+                return;
+            }
+
+            Scene activeScene = SceneManager.GetActiveScene();
+            if (activeScene.IsValid() && string.Equals(activeScene.path, scenePath, StringComparison.OrdinalIgnoreCase))
+            {
+                if (EditorSceneManager.playModeStartScene != null)
+                {
+                    EditorSceneManager.playModeStartScene = null;
+                }
+
                 return;
             }
 

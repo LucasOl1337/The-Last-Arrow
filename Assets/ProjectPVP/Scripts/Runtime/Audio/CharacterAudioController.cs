@@ -29,12 +29,12 @@ namespace ProjectPVP.Audio
 
         public void PlayAction(string actionName)
         {
-            if (player == null || player.characterDefinition == null || player.characterDefinition.actionConfig == null)
+            if (player == null || player.characterDefinition == null)
             {
                 return;
             }
 
-            if (!player.characterDefinition.actionConfig.TryResolveActionAudioCue(actionName, out CharacterActionConfig.ActionAudioCue cue) || cue == null)
+            if (!player.characterDefinition.TryResolveActionAudioCue(actionName, out ActionAudioCue cue) || cue == null)
             {
                 return;
             }
@@ -98,7 +98,7 @@ namespace ProjectPVP.Audio
             actionSource.volume = 1f;
         }
 
-        private static AudioClip ResolveClip(CharacterActionConfig.ActionAudioCue cue)
+        private static AudioClip ResolveClip(ActionAudioCue cue)
         {
             if (cue.clip != null)
             {

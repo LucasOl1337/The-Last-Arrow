@@ -34,3 +34,7 @@ Desktop.ini
 # Unity recovery
 Assets/_Recovery/
 Assets/_Recovery.meta
+
+# Local backups and side experiments
+Backups/
+webV/

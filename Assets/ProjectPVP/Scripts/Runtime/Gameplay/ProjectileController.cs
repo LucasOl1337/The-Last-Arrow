@@ -1,4 +1,5 @@
 using UnityEngine;
+using ProjectPVP.Data;
 
 namespace ProjectPVP.Gameplay
 {
@@ -236,6 +237,34 @@ namespace ProjectPVP.Gameplay
                 ApplyFlightHitbox();
                 hitCollider.enabled = true;
             }
+        }
+
+        public void ApplyDefinition(CharacterDefinition definition)
+        {
+            if (definition == null)
+            {
+                return;
+            }
+
+            baseSpeed = definition.projectileBaseSpeed;
+            minSpeed = definition.projectileMinSpeed;
+            speedDecay = definition.projectileSpeedDecay;
+            gravity = definition.projectileGravity;
+            gravityDelayRatio = definition.projectileGravityDelayRatio;
+            gravityRampRatio = definition.projectileGravityRampRatio;
+            gravityMinScale = definition.projectileGravityMinScale;
+            gravityMaxScale = definition.projectileGravityMaxScale;
+            upwardGravityMultiplier = definition.projectileUpwardGravityMultiplier;
+            upwardSpeedDecayMultiplier = definition.projectileUpwardSpeedDecayMultiplier;
+            maxLifetime = definition.projectileMaxLifetime;
+            maxRange = definition.projectileMaxRange;
+            rotateWithVelocity = definition.projectileRotateWithVelocity;
+            collectableWhenStuck = definition.projectileCollectableWhenStuck;
+            flightHitboxSize = definition.projectileFlightHitboxSize;
+            flightHitboxOffset = definition.projectileFlightHitboxOffset;
+            collectibleHitboxSize = definition.projectileCollectibleHitboxSize;
+            collectibleHitboxOffset = definition.projectileCollectibleHitboxOffset;
+            ApplyFlightHitbox();
         }
 
         public void Stick(bool collectable)

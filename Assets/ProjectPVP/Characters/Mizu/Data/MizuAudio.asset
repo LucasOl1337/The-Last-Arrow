@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject:
+    fileID: 0
+  m_PrefabInstance:
+    fileID: 0
+  m_PrefabAsset:
+    fileID: 0
+  m_GameObject:
+    fileID: 0
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script:
+    fileID: 11500000
+    guid: 5fc59d2f771e4d159503f1630d77f705
+    type: 3
+  m_Name: MizuAudio
+  m_EditorClassIdentifier: ProjectPVP.Runtime::ProjectPVP.Data.CharacterAudioDefinition
+  characterId: mizu
+  actionAudioCues:
+  - actionName: dash
+    clip:
+      fileID: 0
+    resourcesPath: ProjectPVP/Audio/Characters/Mizu/dash
+    playbackSpeed: 1.25
+    volumeDb: 0
+    stopAfterSeconds: 0.12
+  - actionName: melee
+    clip:
+      fileID: 0
+    resourcesPath: ProjectPVP/Audio/Characters/Mizu/melee
+    playbackSpeed: 1
+    volumeDb: 0
+    stopAfterSeconds: 0.18
+  - actionName: shoot
+    clip:
+      fileID: 0
+    resourcesPath: ProjectPVP/Audio/Characters/Mizu/shoot
+    playbackSpeed: 1
+    volumeDb: 0
+    stopAfterSeconds: 0.22
+  - actionName: aim
+    clip:
+      fileID: 0
+    resourcesPath: ''
+    playbackSpeed: 1
+    volumeDb: 0
+    stopAfterSeconds: 0.08888889
+  - actionName: death
+    clip:
+      fileID: 0
+    resourcesPath: ''
+    playbackSpeed: 1
+    volumeDb: 0
+    stopAfterSeconds: 0.33333334
+  - actionName: ult
+    clip:
+      fileID: 0
+    resourcesPath: ''
+    playbackSpeed: 1
+    volumeDb: 0
+    stopAfterSeconds: 0.33333334
+  - actionName: walk
+    clip:
+      fileID: 0
+    resourcesPath: ''
+    playbackSpeed: 1
+    volumeDb: 0
+    stopAfterSeconds: 0.5

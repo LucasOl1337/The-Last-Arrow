@@ -17,6 +17,23 @@ namespace ProjectPVP.Input
         public KeyCode dashPrimary = KeyCode.LeftShift;
         public KeyCode dashSecondary = KeyCode.LeftAlt;
 
+        public PlayerActionMap Clone()
+        {
+            return new PlayerActionMap
+            {
+                left = left,
+                right = right,
+                up = up,
+                down = down,
+                jump = jump,
+                shoot = shoot,
+                melee = melee,
+                ultimate = ultimate,
+                dashPrimary = dashPrimary,
+                dashSecondary = dashSecondary,
+            };
+        }
+
         public static PlayerActionMap CreateDefaultPlayerOne()
         {
             return new PlayerActionMap();
@@ -37,6 +54,13 @@ namespace ProjectPVP.Input
                 dashPrimary = KeyCode.Keypad0,
                 dashSecondary = KeyCode.KeypadPeriod,
             };
+        }
+
+        public static PlayerActionMap CreateDefaultForPlayer(int slotId)
+        {
+            return slotId == 2
+                ? CreateDefaultPlayerTwo()
+                : CreateDefaultPlayerOne();
         }
     }
 }

@@ -3,13 +3,20 @@
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_CorrespondingSourceObject:
+    fileID: 0
+  m_PrefabInstance:
+    fileID: 0
+  m_PrefabAsset:
+    fileID: 0
+  m_GameObject:
+    fileID: 0
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dc5548227c8ce4d42aac497315a9b2cf, type: 3}
+  m_Script:
+    fileID: 11500000
+    guid: dc5548227c8ce4d42aac497315a9b2cf
+    type: 3
   m_Name: MizuDefinition
   m_EditorClassIdentifier: ProjectPVP.Runtime::ProjectPVP.Data.CharacterDefinition
   id: mizu
@@ -26,8 +33,14 @@ MonoBehaviour:
     actionName: ult
   - pattern: katana lunge
     actionName: ult
-  spriteScale: {x: 1, y: 1}
-  spriteAnchorOffset: {x: 15, y: -0}
+  actionCatalog:
+    fileID: 0
+  spriteScale:
+    x: 1
+    y: 1
+  spriteAnchorOffset:
+    x: 15
+    y: 0
   nativeSpriteBakeScale: 3
   animationScaleMax: 1
   animationScaleMin: 0
@@ -36,7 +49,10 @@ MonoBehaviour:
   targetVisualHeight: 0
   groundAnchorRatio: 1
   aimSkipLeft: 0
-  defaultSprite: {fileID: 21300000, guid: 9c125381598af204b963b72220389898, type: 3}
+  defaultSprite:
+    fileID: 21300000
+    guid: 9c125381598af204b963b72220389898
+    type: 3
   overridesStats: 1
   moveSpeed: 415
   acceleration: 2200
@@ -47,10 +63,14 @@ MonoBehaviour:
   shootCooldown: 0.001
   maxArrows: 50
   meleeCooldown: 0.45
-  meleeDuration: 0.12
+  meleeDuration: 0.3
   meleeCanSeverProjectiles: 1
-  colliderSize: {x: 90, y: 240}
-  colliderOffset: {x: 0, y: -0}
+  colliderSize:
+    x: 90
+    y: 240
+  colliderOffset:
+    x: 0
+    y: 0
   wallJumpHorizontalForce: 500
   wallJumpVerticalForce: 720
   wallSlideSpeed: 60
@@ -64,159 +84,479 @@ MonoBehaviour:
   dashCooldown: 0.45
   dashDistance: 100
   dashUpwardMultiplier: 0.5
-  ultimateWindupRatio: 0.45
+  ultimateWindupRatio: 11
   ultimateDashDistance: 120
   ultimateDashDuration: 0.12
   ultimateBlocksProjectiles: 1
-  ultimateProjectileBlockDuration: 0.18
+  ultimateProjectileBlockDuration: 0.12
   ultimateReplayDelay: 1
+  ultimateReplayDuration: 0.5
+  ultimateReplayDashDistance: 220
+  ultimateReplayDashDuration: 0.22
   projectileForward: 0
   projectileForwardFacing: 0
-  projectileVerticalOffset: -0
+  projectileVerticalOffset: 0
   projectileInheritVelocityFactor: 1
   projectileScale: 1.5
   projectileOriginMode: 0
-  projectileOriginOffset: {x: 54, y: 80}
+  projectileOriginOffset:
+    x: 54
+    y: 80
   projectileUseBowNode: 1
-  projectileSprite: {fileID: 21300000, guid: e029b34344b58684e8f9f6afa346e20e, type: 3}
-  actionConfig: {fileID: 11400000, guid: 5b58d9063ecf4a74b1af2a8abec7b708, type: 2}
-  actionSkipLeft: []
-  actionTargetVisualHeight: []
-  actionGroundAnchorRatio: []
-  actionAnimationDurations: []
-  actionAnimationCancelable: []
-  actionAnimationSpeeds: []
-  actionSpriteScale: []
-  actionSpriteOffset: []
-  actionColliderOverrides: []
-  actionSpriteAnimations:
-  - actionName: aim
-    directionKey: left
-    framesPerSecond: 45
-    loop: 0
-    frames:
-    - {fileID: 21300000, guid: c9ada9bf2c354c64e85fb8c0c83140e5, type: 3}
-    - {fileID: 21300000, guid: 23efa9eb04077e7478f642d79cfa5844, type: 3}
-    - {fileID: 21300000, guid: d2d1c0fb15add4942b8084948ece4922, type: 3}
-    - {fileID: 21300000, guid: 13d457f59a8abc749be4947788a55594, type: 3}
-  - actionName: aim
-    directionKey: right
-    framesPerSecond: 45
-    loop: 0
-    frames:
-    - {fileID: 21300000, guid: f47806ea208ece0428adf8596c33ddd8, type: 3}
-    - {fileID: 21300000, guid: 1316d2efbdcc4324eb5d1c3367d08a9e, type: 3}
-    - {fileID: 21300000, guid: 9cbde1e40458b86428c3f8c2a713fcd7, type: 3}
-    - {fileID: 21300000, guid: 26cd0da7ac0674d418e9f0804e221781, type: 3}
+  projectileSprite:
+    fileID: 21300000
+    guid: e029b34344b58684e8f9f6afa346e20e
+    type: 3
+  projectileBaseSpeed: 1500
+  projectileMinSpeed: 720
+  projectileSpeedDecay: 360
+  projectileGravity: 750
+  projectileGravityDelayRatio: 0
+  projectileGravityRampRatio: 0.6
+  projectileGravityMinScale: 0.45
+  projectileGravityMaxScale: 1.2
+  projectileUpwardGravityMultiplier: 3.2
+  projectileUpwardSpeedDecayMultiplier: 2.2
+  projectileMaxLifetime: 2.5
+  projectileMaxRange: 1440
+  projectileRotateWithVelocity: 1
+  projectileCollectableWhenStuck: 1
+  projectileFlightHitboxSize:
+    x: 24
+    y: 10
+  projectileFlightHitboxOffset:
+    x: 32
+    y: 0
+  projectileCollectibleHitboxSize:
+    x: 96
+    y: 24
+  projectileCollectibleHitboxOffset:
+    x: 0
+    y: 0
+  animationCatalog:
+    fileID: 0
+  audioDefinition:
+    fileID: 11400000
+    guid: 8a84513d25604b44915c9399c9ce4fd0
+    type: 2
+  mechanicsModule:
+    fileID: 11400000
+    guid: 1c6f4c349d55448b9db0f1d2c81a1e35
+    type: 2
+  actions:
   - actionName: dash
-    directionKey: left
-    framesPerSecond: 12
-    loop: 0
-    frames:
-    - {fileID: 21300000, guid: 38076b17649f616458f6d9f5eb7ef234, type: 3}
-    - {fileID: 21300000, guid: 6774c5c7068b7834aa7f6736d6ecf6e2, type: 3}
-    - {fileID: 21300000, guid: 77368c8f26482b44ba593cdd813a0a88, type: 3}
-    - {fileID: 21300000, guid: 3fb11e71ee8c6c24f917a0c4dbe79394, type: 3}
-  - actionName: dash
-    directionKey: right
-    framesPerSecond: 12
-    loop: 0
-    frames:
-    - {fileID: 21300000, guid: 291cdc9582c13404580de4e1d45cb261, type: 3}
-    - {fileID: 21300000, guid: 4e12e0a473dced8428e9fb6b75f13c23, type: 3}
-    - {fileID: 21300000, guid: 60bd0ae53ee066b45a548338023f27fe, type: 3}
-    - {fileID: 21300000, guid: 550fc01e892a6bf4d9393035a9c94ca6, type: 3}
-  - actionName: death
-    directionKey: left
-    framesPerSecond: 12
-    loop: 0
-    frames:
-    - {fileID: 21300000, guid: 5ba9ec55374b103439087661d6bfefe3, type: 3}
-    - {fileID: 21300000, guid: 3da33e7d48eb1fc46b1a5bcabb171e07, type: 3}
-    - {fileID: 21300000, guid: c15a3c009cb41a24ba5043ce5e29e0fe, type: 3}
-    - {fileID: 21300000, guid: 4e208e6aa082e744ea027b42dc9f766e, type: 3}
-  - actionName: death
-    directionKey: right
-    framesPerSecond: 12
-    loop: 0
-    frames:
-    - {fileID: 21300000, guid: 767a78a7c84b6024eaed6542f9c0cfc4, type: 3}
-    - {fileID: 21300000, guid: b1428d8befca7164da11b0388af62860, type: 3}
-    - {fileID: 21300000, guid: dafd77bcecfe7dd40827bab7c167bfae, type: 3}
-    - {fileID: 21300000, guid: 586c7b7838e83ec498e7d13ab2baad90, type: 3}
-  - actionName: melee
-    directionKey: left
-    framesPerSecond: 12
-    loop: 0
-    frames:
-    - {fileID: 21300000, guid: 4ef7b8319f536f342afcf7c779b3291b, type: 3}
-    - {fileID: 21300000, guid: c14fe60adffadb840b7e8bfc4b0a773b, type: 3}
-    - {fileID: 21300000, guid: ddc52832afbb7c14a97641fb3a8aa34d, type: 3}
-    - {fileID: 21300000, guid: 342f9fb9965b64f44922a24f2f73272b, type: 3}
-  - actionName: melee
-    directionKey: right
-    framesPerSecond: 12
-    loop: 0
-    frames:
-    - {fileID: 21300000, guid: 0dcb97111a4641f44afd0b6c2398bd3f, type: 3}
-    - {fileID: 21300000, guid: 1d04959838258e94e902aa66bff4b0f5, type: 3}
-    - {fileID: 21300000, guid: fbe0741b4c74d504d83f441e26315b62, type: 3}
-    - {fileID: 21300000, guid: 15f4361faefcd0344b991e29000f9444, type: 3}
+    skipLeft: 0
+    targetVisualHeight: 0
+    groundAnchorRatio: 1
+    duration: 0.42
+    cancelable: 1
+    speed: 12
+    spriteScale: 1
+    spriteOffset:
+      x: 0
+      y: 0
+    colliderOverride:
+      actionName: dash
+      size:
+        x: 90
+        y: 210
+      offset:
+        x: 0
+        y: 0
+    animations:
+    - directionKey: left
+      framesPerSecond: 12
+      loop: 0
+      frames:
+      - fileID: 21300000
+        guid: 38076b17649f616458f6d9f5eb7ef234
+        type: 3
+      - fileID: 21300000
+        guid: 6774c5c7068b7834aa7f6736d6ecf6e2
+        type: 3
+      - fileID: 21300000
+        guid: 77368c8f26482b44ba593cdd813a0a88
+        type: 3
+      - fileID: 21300000
+        guid: 3fb11e71ee8c6c24f917a0c4dbe79394
+        type: 3
+    - directionKey: right
+      framesPerSecond: 12
+      loop: 0
+      frames:
+      - fileID: 21300000
+        guid: 291cdc9582c13404580de4e1d45cb261
+        type: 3
+      - fileID: 21300000
+        guid: 4e12e0a473dced8428e9fb6b75f13c23
+        type: 3
+      - fileID: 21300000
+        guid: 60bd0ae53ee066b45a548338023f27fe
+        type: 3
+      - fileID: 21300000
+        guid: 550fc01e892a6bf4d9393035a9c94ca6
+        type: 3
   - actionName: shoot
-    directionKey: left
-    framesPerSecond: 12
-    loop: 0
-    frames:
-    - {fileID: 21300000, guid: a66aa8066a3a38543968cd9c8cdbdad7, type: 3}
-    - {fileID: 21300000, guid: cf35844c6165475438274fd2fd77ada0, type: 3}
-    - {fileID: 21300000, guid: 1fd1feeeef5dbd947bf573b8cbe8f21e, type: 3}
-    - {fileID: 21300000, guid: b8a7151a202a63c4c80dba6a80dcd0b1, type: 3}
-  - actionName: shoot
-    directionKey: right
-    framesPerSecond: 12
-    loop: 0
-    frames:
-    - {fileID: 21300000, guid: 6981d10c5d87f1d4dad8100d16226023, type: 3}
-    - {fileID: 21300000, guid: bba6981342d17574f9b202e0934e5605, type: 3}
-    - {fileID: 21300000, guid: 9503a189761c2374cb24615b71e456c0, type: 3}
-    - {fileID: 21300000, guid: ec5cf1ab1e946074c860acae0edb209e, type: 3}
+    skipLeft: 0
+    targetVisualHeight: 0
+    groundAnchorRatio: 1
+    duration: 0.18
+    cancelable: 1
+    speed: 12
+    spriteScale: 1
+    spriteOffset:
+      x: 0
+      y: 0
+    colliderOverride:
+      actionName: shoot
+      size:
+        x: 90
+        y: 210
+      offset:
+        x: 0
+        y: 0
+    animations:
+    - directionKey: left
+      framesPerSecond: 12
+      loop: 0
+      frames:
+      - fileID: 21300000
+        guid: a66aa8066a3a38543968cd9c8cdbdad7
+        type: 3
+      - fileID: 21300000
+        guid: cf35844c6165475438274fd2fd77ada0
+        type: 3
+      - fileID: 21300000
+        guid: 1fd1feeeef5dbd947bf573b8cbe8f21e
+        type: 3
+      - fileID: 21300000
+        guid: b8a7151a202a63c4c80dba6a80dcd0b1
+        type: 3
+    - directionKey: right
+      framesPerSecond: 12
+      loop: 0
+      frames:
+      - fileID: 21300000
+        guid: 6981d10c5d87f1d4dad8100d16226023
+        type: 3
+      - fileID: 21300000
+        guid: bba6981342d17574f9b202e0934e5605
+        type: 3
+      - fileID: 21300000
+        guid: 9503a189761c2374cb24615b71e456c0
+        type: 3
+      - fileID: 21300000
+        guid: ec5cf1ab1e946074c860acae0edb209e
+        type: 3
+  - actionName: melee
+    skipLeft: 0
+    targetVisualHeight: 0
+    groundAnchorRatio: 1
+    duration: 0.3
+    cancelable: 0
+    speed: 12
+    spriteScale: 1
+    spriteOffset:
+      x: 0
+      y: 0
+    colliderOverride:
+      actionName: melee
+      size:
+        x: 90
+        y: 210
+      offset:
+        x: 0
+        y: 0
+    animations:
+    - directionKey: left
+      framesPerSecond: 12
+      loop: 0
+      frames:
+      - fileID: 21300000
+        guid: 4ef7b8319f536f342afcf7c779b3291b
+        type: 3
+      - fileID: 21300000
+        guid: c14fe60adffadb840b7e8bfc4b0a773b
+        type: 3
+      - fileID: 21300000
+        guid: ddc52832afbb7c14a97641fb3a8aa34d
+        type: 3
+      - fileID: 21300000
+        guid: 342f9fb9965b64f44922a24f2f73272b
+        type: 3
+    - directionKey: right
+      framesPerSecond: 12
+      loop: 0
+      frames:
+      - fileID: 21300000
+        guid: 0dcb97111a4641f44afd0b6c2398bd3f
+        type: 3
+      - fileID: 21300000
+        guid: 1d04959838258e94e902aa66bff4b0f5
+        type: 3
+      - fileID: 21300000
+        guid: fbe0741b4c74d504d83f441e26315b62
+        type: 3
+      - fileID: 21300000
+        guid: 15f4361faefcd0344b991e29000f9444
+        type: 3
+  - actionName: jump_start
+    skipLeft: 0
+    targetVisualHeight: 0
+    groundAnchorRatio: 1
+    duration: 0.12
+    cancelable: 1
+    speed: 12
+    spriteScale: 1
+    spriteOffset:
+      x: 0
+      y: 0
+    colliderOverride:
+      actionName: jump_start
+      size:
+        x: 90
+        y: 240
+      offset:
+        x: 0
+        y: 0
+    animations: []
+  - actionName: aim
+    skipLeft: 0
+    targetVisualHeight: 0
+    groundAnchorRatio: 1
+    duration: 0.08888889
+    cancelable: 0
+    speed: 45
+    spriteScale: 1
+    spriteOffset:
+      x: 0
+      y: 0
+    colliderOverride:
+      actionName: aim
+      size:
+        x: 90
+        y: 210
+      offset:
+        x: 0
+        y: 0
+    animations:
+    - directionKey: left
+      framesPerSecond: 45
+      loop: 0
+      frames:
+      - fileID: 21300000
+        guid: c9ada9bf2c354c64e85fb8c0c83140e5
+        type: 3
+      - fileID: 21300000
+        guid: 23efa9eb04077e7478f642d79cfa5844
+        type: 3
+      - fileID: 21300000
+        guid: d2d1c0fb15add4942b8084948ece4922
+        type: 3
+      - fileID: 21300000
+        guid: 13d457f59a8abc749be4947788a55594
+        type: 3
+    - directionKey: right
+      framesPerSecond: 45
+      loop: 0
+      frames:
+      - fileID: 21300000
+        guid: f47806ea208ece0428adf8596c33ddd8
+        type: 3
+      - fileID: 21300000
+        guid: 1316d2efbdcc4324eb5d1c3367d08a9e
+        type: 3
+      - fileID: 21300000
+        guid: 9cbde1e40458b86428c3f8c2a713fcd7
+        type: 3
+      - fileID: 21300000
+        guid: 26cd0da7ac0674d418e9f0804e221781
+        type: 3
+  - actionName: death
+    skipLeft: 0
+    targetVisualHeight: 0
+    groundAnchorRatio: 1
+    duration: 0.33333334
+    cancelable: 0
+    speed: 12
+    spriteScale: 1
+    spriteOffset:
+      x: 0
+      y: 0
+    colliderOverride:
+      actionName: death
+      size:
+        x: 90
+        y: 210
+      offset:
+        x: 0
+        y: 0
+    animations:
+    - directionKey: left
+      framesPerSecond: 12
+      loop: 0
+      frames:
+      - fileID: 21300000
+        guid: 5ba9ec55374b103439087661d6bfefe3
+        type: 3
+      - fileID: 21300000
+        guid: 3da33e7d48eb1fc46b1a5bcabb171e07
+        type: 3
+      - fileID: 21300000
+        guid: c15a3c009cb41a24ba5043ce5e29e0fe
+        type: 3
+      - fileID: 21300000
+        guid: 4e208e6aa082e744ea027b42dc9f766e
+        type: 3
+    - directionKey: right
+      framesPerSecond: 12
+      loop: 0
+      frames:
+      - fileID: 21300000
+        guid: 767a78a7c84b6024eaed6542f9c0cfc4
+        type: 3
+      - fileID: 21300000
+        guid: b1428d8befca7164da11b0388af62860
+        type: 3
+      - fileID: 21300000
+        guid: dafd77bcecfe7dd40827bab7c167bfae
+        type: 3
+      - fileID: 21300000
+        guid: 586c7b7838e83ec498e7d13ab2baad90
+        type: 3
   - actionName: ult
-    directionKey: left
-    framesPerSecond: 5
-    loop: 0
-    frames:
-    - {fileID: 21300000, guid: c60af56972236cc4d8916fa76051a481, type: 3}
-    - {fileID: 21300000, guid: ed5a3da1b796b5146be3b776e259b24a, type: 3}
-    - {fileID: 21300000, guid: 734aab4d8dfd60b4caa8a5165b0f6a63, type: 3}
-    - {fileID: 21300000, guid: 3269ad99fab6fa64295c0a0b91b4c507, type: 3}
-  - actionName: ult
-    directionKey: right
-    framesPerSecond: 5
-    loop: 0
-    frames:
-    - {fileID: 21300000, guid: 9398d7b682c471c42a42808f5dbe99d9, type: 3}
-    - {fileID: 21300000, guid: 1d94f8e7558712a4ab1651abfacc7bd8, type: 3}
-    - {fileID: 21300000, guid: 9bb7b9c97c794e645b8f066b76dec6d1, type: 3}
-    - {fileID: 21300000, guid: 6db476f81ddd9424d96a571db41cc35d, type: 3}
+    skipLeft: 0
+    targetVisualHeight: 0
+    groundAnchorRatio: 1
+    duration: 0.4
+    cancelable: 0
+    speed: 12
+    spriteScale: 1
+    spriteOffset:
+      x: 0
+      y: 0
+    colliderOverride:
+      actionName: ult
+      size:
+        x: 90
+        y: 210
+      offset:
+        x: 0
+        y: 0
+    animations:
+    - directionKey: left
+      framesPerSecond: 12
+      loop: 0
+      frames:
+      - fileID: 21300000
+        guid: c60af56972236cc4d8916fa76051a481
+        type: 3
+      - fileID: 21300000
+        guid: ed5a3da1b796b5146be3b776e259b24a
+        type: 3
+      - fileID: 21300000
+        guid: 734aab4d8dfd60b4caa8a5165b0f6a63
+        type: 3
+      - fileID: 21300000
+        guid: 3269ad99fab6fa64295c0a0b91b4c507
+        type: 3
+    - directionKey: right
+      framesPerSecond: 12
+      loop: 0
+      frames:
+      - fileID: 21300000
+        guid: 9398d7b682c471c42a42808f5dbe99d9
+        type: 3
+      - fileID: 21300000
+        guid: 1d94f8e7558712a4ab1651abfacc7bd8
+        type: 3
+      - fileID: 21300000
+        guid: 9bb7b9c97c794e645b8f066b76dec6d1
+        type: 3
+      - fileID: 21300000
+        guid: 6db476f81ddd9424d96a571db41cc35d
+        type: 3
+  - actionName: ult_replay
+    skipLeft: 0
+    targetVisualHeight: 0
+    groundAnchorRatio: 1
+    duration: 1
+    cancelable: 0
+    speed: 12
+    spriteScale: 1
+    spriteOffset:
+      x: 0
+      y: 0
+    colliderOverride:
+      actionName: ult_replay
+      size:
+        x: 90
+        y: 240
+      offset:
+        x: 0
+        y: 0
+    animations: []
   - actionName: walk
-    directionKey: left
-    framesPerSecond: 12
-    loop: 1
-    frames:
-    - {fileID: 21300000, guid: 4b59e2bbf533c08438affae450cc32a1, type: 3}
-    - {fileID: 21300000, guid: ff8abbe1b17265a4589bf72824fcd66e, type: 3}
-    - {fileID: 21300000, guid: 6d1413bc6f485de429f5ce30b0f3bb97, type: 3}
-    - {fileID: 21300000, guid: 86393b36beea7cb4bb9372d46748476c, type: 3}
-    - {fileID: 21300000, guid: ca87cddfbed34054cb75caf0341fb7dc, type: 3}
-    - {fileID: 21300000, guid: dc2b5752f5989e947b3cc94369e40cf1, type: 3}
-  - actionName: walk
-    directionKey: right
-    framesPerSecond: 12
-    loop: 1
-    frames:
-    - {fileID: 21300000, guid: b375372edf666f3459b1b812cdc5320d, type: 3}
-    - {fileID: 21300000, guid: 77ec4ee4f47cd3b42b1a000963a2c560, type: 3}
-    - {fileID: 21300000, guid: f0988dc0276320a4190ee1a4164485d7, type: 3}
-    - {fileID: 21300000, guid: 90b4d23951c91e74095de3ffff50d17f, type: 3}
-    - {fileID: 21300000, guid: cc8776c9671b7dd4993805d5976697b2, type: 3}
-    - {fileID: 21300000, guid: ee773f29411504f4fba0a60a97522b27, type: 3}
+    skipLeft: 0
+    targetVisualHeight: 0
+    groundAnchorRatio: 1
+    duration: 0.5
+    cancelable: 0
+    speed: 12
+    spriteScale: 1
+    spriteOffset:
+      x: 0
+      y: 0
+    colliderOverride:
+      actionName: walk
+      size:
+        x: 90
+        y: 210
+      offset:
+        x: 0
+        y: 0
+    animations:
+    - directionKey: left
+      framesPerSecond: 12
+      loop: 1
+      frames:
+      - fileID: 21300000
+        guid: 4b59e2bbf533c08438affae450cc32a1
+        type: 3
+      - fileID: 21300000
+        guid: ff8abbe1b17265a4589bf72824fcd66e
+        type: 3
+      - fileID: 21300000
+        guid: 6d1413bc6f485de429f5ce30b0f3bb97
+        type: 3
+      - fileID: 21300000
+        guid: 86393b36beea7cb4bb9372d46748476c
+        type: 3
+      - fileID: 21300000
+        guid: ca87cddfbed34054cb75caf0341fb7dc
+        type: 3
+      - fileID: 21300000
+        guid: dc2b5752f5989e947b3cc94369e40cf1
+        type: 3
+    - directionKey: right
+      framesPerSecond: 12
+      loop: 1
+      frames:
+      - fileID: 21300000
+        guid: b375372edf666f3459b1b812cdc5320d
+        type: 3
+      - fileID: 21300000
+        guid: 77ec4ee4f47cd3b42b1a000963a2c560
+        type: 3
+      - fileID: 21300000
+        guid: f0988dc0276320a4190ee1a4164485d7
+        type: 3
+      - fileID: 21300000
+        guid: 90b4d23951c91e74095de3ffff50d17f
+        type: 3
+      - fileID: 21300000
+        guid: cc8776c9671b7dd4993805d5976697b2
+        type: 3
+      - fileID: 21300000
+        guid: ee773f29411504f4fba0a60a97522b27
+        type: 3

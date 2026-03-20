@@ -1,0 +1,21 @@
+{
+  "name": "ProjectPVP.Runtime.EditorTests",
+  "rootNamespace": "ProjectPVP.Tests",
+  "references": [
+    "ProjectPVP.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

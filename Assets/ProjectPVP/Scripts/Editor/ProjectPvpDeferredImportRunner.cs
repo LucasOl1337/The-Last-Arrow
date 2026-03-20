@@ -133,15 +133,7 @@ namespace ProjectPVP.Editor
                 return false;
             }
 
-            string definitionPath = AssetDatabase.GetAssetPath(definition);
-            if (string.IsNullOrWhiteSpace(definitionPath))
-            {
-                summary = "CharacterDefinition asset path not found.";
-                return false;
-            }
-
-            string characterRoot = Path.GetDirectoryName(Path.GetDirectoryName(definitionPath) ?? string.Empty)?.Replace("\\", "/");
-            if (string.IsNullOrWhiteSpace(characterRoot))
+            if (!ProjectPvpCharacterAssetPaths.TryGetCharacterRoot(definition, out string characterRoot))
             {
                 summary = "Character root not found.";
                 return false;

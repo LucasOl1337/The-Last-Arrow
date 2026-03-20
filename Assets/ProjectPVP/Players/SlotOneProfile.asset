@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6928ab6551744655ac358aff0d822eef, type: 3}
+  m_Name: SlotOneProfile
+  m_EditorClassIdentifier: ProjectPVP.Runtime::ProjectPVP.Match.CombatantSlotProfile
+  displayName: Slot 1
+  useDefaultKeyboardBindings: 1
+  keyboardBindings:
+    left: 97
+    right: 100
+    up: 119
+    down: 115
+    jump: 32
+    shoot: 113
+    melee: 101
+    ultimate: 114
+    dashPrimary: 304
+    dashSecondary: 308
+  enableGamepad: 1
+  useSlotIndexAsPreferredGamepad: 1
+  preferredGamepadIndex: 0
+  preferredGamepadFamily: 1
+  useDefaultGamepadBindings: 1
+  gamepadBindings:
+    moveHorizontalAxis: ProjectPVP_GamepadMoveX
+    moveVerticalAxis: ProjectPVP_GamepadMoveY
+    dpadHorizontalAxis: ProjectPVP_GamepadDpadX
+    dpadVerticalAxis: ProjectPVP_GamepadDpadY
+    lookHorizontalAxis: ProjectPVP_GamepadLookX_A
+    lookVerticalAxis: ProjectPVP_GamepadLookY_A
+    lookHorizontalAxisAlt: ProjectPVP_GamepadLookX_B
+    lookVerticalAxisAlt: ProjectPVP_GamepadLookY_B
+    dashSecondaryAxis: ''
+    dashSecondaryAxisAlt: ProjectPVP_GamepadTriggerR_B
+    dashSecondaryAxisThird: ProjectPVP_GamepadTriggerR_C
+    jumpButton: 0
+    jumpAlternateButton: -1
+    shootButton: 2
+    meleeButton: 1
+    ultimateButton: 3
+    dashPrimaryButton: 4
+    dashPrimaryAlternateButton: 5
+    dashPrimaryThirdButton: 6
+    dashSecondaryButton: 7
+    dpadLeftButton: -1
+    dpadRightButton: -1
+    dpadUpButton: -1
+    dpadDownButton: -1
+    swapDpadAxesForXbox: 1
+    deadzone: 0.18
+    aimDeadzone: 0.22
+    triggerPressThreshold: 0.45
+    useMoveStickAsAimFallback: 1
+  gamepadProfile: {fileID: 11400000, guid: 5c4d26df0da44cb795f99d3456b76ae7, type: 2}
+  useDefaultDebugTint: 1
+  debugTint: {r: 1, g: 1, b: 1, a: 1}

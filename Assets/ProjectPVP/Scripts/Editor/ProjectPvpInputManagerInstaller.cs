@@ -41,7 +41,7 @@ namespace ProjectPVP.Editor
 
         private static AxisSpec[] BuildRequiredAxes()
         {
-            var axes = new List<AxisSpec>(MaxSupportedGamepads * 11);
+            var axes = new List<AxisSpec>(MaxSupportedGamepads * 10);
             for (int joystick = 1; joystick <= MaxSupportedGamepads; joystick += 1)
             {
                 axes.Add(new AxisSpec("ProjectPVP_GamepadMoveX_P" + joystick, 0, joystick, false));
@@ -52,7 +52,6 @@ namespace ProjectPVP.Editor
                 axes.Add(new AxisSpec("ProjectPVP_GamepadLookY_A_P" + joystick, 4, joystick, true));
                 axes.Add(new AxisSpec("ProjectPVP_GamepadLookX_B_P" + joystick, 2, joystick, false));
                 axes.Add(new AxisSpec("ProjectPVP_GamepadLookY_B_P" + joystick, 5, joystick, true));
-                axes.Add(new AxisSpec("ProjectPVP_GamepadTriggerR_A_P" + joystick, 5, joystick, false));
                 axes.Add(new AxisSpec("ProjectPVP_GamepadTriggerR_B_P" + joystick, 8, joystick, false));
                 axes.Add(new AxisSpec("ProjectPVP_GamepadTriggerR_C_P" + joystick, 9, joystick, false));
             }

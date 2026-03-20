@@ -29,8 +29,21 @@ namespace ProjectPVP.Presentation
             }
 
             Gizmos.color = spawnColor;
-            DrawSpawnMarker(matchController.PlayerOneSpawnPoint);
-            DrawSpawnMarker(matchController.PlayerTwoSpawnPoint);
+            if (matchController.Slots.Count > 0)
+            {
+                for (int index = 0; index < matchController.Slots.Count; index += 1)
+                {
+                    CombatantSlotConfig slot = matchController.Slots[index];
+                    if (slot == null)
+                    {
+                        continue;
+                    }
+
+                    DrawSpawnMarker(matchController.GetSpawnPoint(slot.slotId));
+                }
+
+                return;
+            }
         }
 
         private void DrawSpawnMarker(Vector2 spawnPoint)

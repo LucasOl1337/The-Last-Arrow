@@ -7,12 +7,6 @@ namespace ProjectPVP.Presentation
 {
     public sealed class CharacterSpriteAnimator : MonoBehaviour
     {
-        private static readonly string[] DirectionPriority =
-        {
-            "right",
-            "left",
-        };
-
         private struct AnimationSelection
         {
             public ActionSpriteAnimation animation;
@@ -46,13 +40,13 @@ namespace ProjectPVP.Presentation
         private void ApplyAnimationFrame()
         {
             string actionName = ResolveActionName();
-            string directionKey = ResolveDirectionKey();
-            AnimationSelection selection = FindBestAnimation(actionName, directionKey);
+            int facingDirection = player.ResolveFacingDirection();
+            AnimationSelection selection = FindBestAnimation(actionName, facingDirection);
             ActionSpriteAnimation animation = selection.animation;
 
             if (!HasUsableFrames(animation))
             {
-                ApplyDirectionalFallbackSprite(actionName, directionKey);
+                ApplyDirectionalFallbackSprite(actionName, facingDirection);
                 _currentClipKey = string.Empty;
                 _currentFrameIndex = 0;
                 _frameTimer = 0f;
@@ -87,7 +81,7 @@ namespace ProjectPVP.Presentation
             Sprite resolvedFrame = ResolveFrameSprite(animation, _currentFrameIndex);
             if (resolvedFrame == null)
             {
-                ApplyDirectionalFallbackSprite(actionName, directionKey, selection.flipX);
+                ApplyDirectionalFallbackSprite(actionName, facingDirection);
                 return;
             }
 
@@ -99,9 +93,9 @@ namespace ProjectPVP.Presentation
             return string.IsNullOrWhiteSpace(player.CurrentVisualActionKey) ? "idle" : player.CurrentVisualActionKey;
         }
 
-        private string ResolveDirectionKey()
+        private static string ResolveDirectionKey(int facingDirection)
         {
-            return player.Facing < 0 ? "left" : "right";
+            return facingDirection < 0 ? "left" : "right";
         }
 
         private float ResolvePlaybackFramesPerSecond(string actionName, ActionSpriteAnimation animation)
@@ -130,178 +124,75 @@ namespace ProjectPVP.Presentation
             return Mathf.Max(1f, configuredSpeed);
         }
 
-        private AnimationSelection FindBestAnimation(string actionName, string directionKey)
+        private AnimationSelection FindBestAnimation(string actionName, int facingDirection)
         {
-            foreach (string actionCandidate in EnumerateActionCandidates(actionName))
+            if (TryBuildSelection(actionName, facingDirection, out AnimationSelection selection))
             {
-                AnimationSelection selection = PickAnimationWithFlip(actionCandidate, directionKey);
-                if (selection.animation != null)
-                {
-                    return selection;
-                }
+                return selection;
             }
 
             if (actionName == "running")
             {
-                return FindBestAnimation("walk", directionKey);
+                return FindBestAnimation("walk", facingDirection);
             }
 
             if (actionName != "idle")
             {
-                return FindBestAnimation("idle", directionKey);
+                return FindBestAnimation("idle", facingDirection);
             }
 
             return default;
         }
 
-        private AnimationSelection PickAnimationWithFlip(string actionName, string directionKey)
+        private bool TryBuildSelection(string actionName, int facingDirection, out AnimationSelection selection)
         {
-            AnimationSelection exact = TryBuildSelection(actionName, directionKey, false);
-            if (exact.animation != null)
+            if (!CharacterAnimationResolver.TryResolveActionAnimationSelection(
+                    player.characterDefinition,
+                    actionName,
+                    facingDirection,
+                    out ActionSpriteAnimation animation,
+                    out bool flipX))
             {
-                return exact;
+                selection = default;
+                return false;
             }
 
-            string oppositeDirection = directionKey == "left" ? "right" : "left";
-            AnimationSelection mirrored = TryBuildSelection(actionName, oppositeDirection, true);
-            if (mirrored.animation != null)
-            {
-                return mirrored;
-            }
-
-            foreach (string candidateDirection in BuildDirectionPriority(directionKey))
-            {
-                bool flip = candidateDirection == "right" && directionKey == "left";
-                AnimationSelection directional = TryBuildSelection(actionName, candidateDirection, flip);
-                if (directional.animation != null)
-                {
-                    return directional;
-                }
-            }
-
-            return default;
-        }
-
-        private AnimationSelection TryBuildSelection(string actionName, string directionKey, bool flipX)
-        {
-            ActionSpriteAnimation animation = FindAnimation(actionName, directionKey);
-            if (animation == null)
-            {
-                return default;
-            }
-
-            string resolvedDirection = string.IsNullOrWhiteSpace(directionKey) ? "raw" : directionKey;
-            return new AnimationSelection
+            string resolvedDirection = string.IsNullOrWhiteSpace(animation.directionKey)
+                ? ResolveDirectionKey(facingDirection)
+                : animation.directionKey.Trim().ToLowerInvariant();
+            selection = new AnimationSelection
             {
                 animation = animation,
                 flipX = flipX,
                 clipKey = actionName + ":" + resolvedDirection + ":" + (flipX ? "flip" : "no_flip"),
             };
+            return true;
         }
 
-        private ActionSpriteAnimation FindAnimation(string actionName, string directionKey)
+        private void ApplyDirectionalFallbackSprite(string actionName, int facingDirection)
         {
-            if (player.characterDefinition.actionSpriteAnimations == null || string.IsNullOrWhiteSpace(directionKey))
-            {
-                return null;
-            }
-
-            for (int index = 0; index < player.characterDefinition.actionSpriteAnimations.Count; index += 1)
-            {
-                ActionSpriteAnimation animation = player.characterDefinition.actionSpriteAnimations[index];
-                if (animation == null
-                    || string.IsNullOrWhiteSpace(animation.actionName)
-                    || !string.Equals(animation.actionName, actionName, System.StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                if (string.Equals(animation.directionKey, directionKey, System.StringComparison.OrdinalIgnoreCase)
-                    && HasUsableFrames(animation))
-                {
-                    return animation;
-                }
-            }
-
-            return null;
-        }
-
-        private static IEnumerable<string> EnumerateActionCandidates(string actionName)
-        {
-            if (string.IsNullOrWhiteSpace(actionName))
-            {
-                yield break;
-            }
-
-            yield return actionName;
-
-            if (actionName == "jump_start" || actionName == "jump_air")
-            {
-                yield return "jump";
-            }
-
-            if (actionName == "aim")
-            {
-                yield return "aiming";
-            }
-        }
-
-        private static IEnumerable<string> BuildDirectionPriority(string requestedDirection)
-        {
-            yield return requestedDirection;
-
-            for (int index = 0; index < DirectionPriority.Length; index += 1)
-            {
-                string candidate = DirectionPriority[index];
-                if (candidate == requestedDirection)
-                {
-                    continue;
-                }
-
-                yield return candidate;
-            }
-        }
-
-        private void ApplyDirectionalFallbackSprite(string actionName, string directionKey, bool fallbackFlip = false)
-        {
-            if (TryResolveDirectionalFallbackFrame(actionName, directionKey, out Sprite directionalSprite, out bool resolvedFlip))
+            if (TryResolveDirectionalFallbackFrame(actionName, facingDirection, out Sprite directionalSprite, out bool resolvedFlip))
             {
                 ApplyResolvedSprite(directionalSprite, resolvedFlip);
                 return;
             }
 
-            ApplyFallbackSprite(fallbackFlip);
+            ApplyFallbackSprite(facingDirection < 0);
         }
 
-        private bool TryResolveDirectionalFallbackFrame(string actionName, string directionKey, out Sprite sprite, out bool flipX)
+        private bool TryResolveDirectionalFallbackFrame(string actionName, int facingDirection, out Sprite sprite, out bool flipX)
         {
             flipX = false;
-            string oppositeDirection = directionKey == "left" ? "right" : "left";
 
             foreach (string actionCandidate in EnumerateFallbackActions(actionName))
             {
-                foreach (string alias in EnumerateActionCandidates(actionCandidate))
+                if (TryBuildSelection(actionCandidate, facingDirection, out AnimationSelection selection))
                 {
-                    ActionSpriteAnimation exact = FindAnimation(alias, directionKey);
-                    Sprite exactFrame = ResolveFrameSprite(exact, 0);
-                    if (exactFrame != null)
+                    Sprite resolvedFrame = ResolveFrameSprite(selection.animation, 0);
+                    if (resolvedFrame != null)
                     {
-                        sprite = exactFrame;
-                        return true;
-                    }
-                }
-            }
-
-            foreach (string actionCandidate in EnumerateFallbackActions(actionName))
-            {
-                foreach (string alias in EnumerateActionCandidates(actionCandidate))
-                {
-                    ActionSpriteAnimation mirrored = FindAnimation(alias, oppositeDirection);
-                    Sprite mirroredFrame = ResolveFrameSprite(mirrored, 0);
-                    if (mirroredFrame != null)
-                    {
-                        sprite = mirroredFrame;
-                        flipX = true;
+                        sprite = resolvedFrame;
+                        flipX = selection.flipX;
                         return true;
                     }
                 }

@@ -2,7 +2,8 @@
   "name": "ProjectPVP.Runtime",
   "rootNamespace": "ProjectPVP",
   "references": [
-    "UnityEngine.AudioModule"
+    "UnityEngine.AudioModule",
+    "UnityEngine.VideoModule"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
