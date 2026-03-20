@@ -6,6 +6,15 @@ Regra do projeto:
 - a versao mais recente fica sempre no topo
 - as versoes antigas continuam abaixo, sem apagar historico
 - sempre que possivel, cada patch deve trazer imagens reais dos assets implementados naquela entrega
+- este arquivo na raiz e a fonte principal de historico do projeto
+- notas antigas que nasceram em `docs/` devem ser consolidadas aqui com o tempo
+
+---
+
+## Indice
+
+- [v0.2.0 - 2026-03-20](#v020---2026-03-20)
+- [v0.1.1 - 2026-03-15](#v011---2026-03-15)
 
 ---
 
@@ -63,29 +72,33 @@ Regra do projeto:
 
 ![Storm Dragon Ultimate Atual](Assets/ProjectPVP/Characters/StormDragon/Animations/ult/west/frame_003.png)
 
-#### Arena In-Game
+#### Arena Antiga
 
-![Arena In-Game](Assets/ProjectPVP/Environment/Backgrounds/Maps/background1.png)
+![Arena Antiga](Assets/ProjectPVP/Environment/Backgrounds/Maps/background1_old.png)
+
+#### Arena Nova
+
+![Arena Nova](Assets/backg.png)
 
 ## v0.1.1 - 2026-03-15
 
 ### Destaques
 
-- Movimentacao dos personagens refinada para deixar o combate mais consistente e responsivo.
-- Colisao da `arrow` revisada para evitar comportamentos injustos e melhorar a leitura do hit real.
-- Hitboxes de `melee` e `ultimate` dos dois personagens polidas com ajuste mais fino no gameplay.
-- `ProjectileOrigin` ajustado para alinhar melhor disparo, sprite e sensacao de combate.
+- Melhorias de movimentacao dos personagens para deixar o combate mais consistente e responsivo.
+- Ajustes de colisao da flecha, incluindo o tratamento das hitboxes para evitar mortes injustas fora do corpo real do personagem.
+- Polimento das hitboxes de ataque `melee` e `ultimate` dos dois personagens, com anchors editaveis diretamente na cena.
+- Polimento do `ProjectileOrigin` para alinhar melhor os disparos com o sprite e com o gameplay.
 - Nova `ultimate` da Storm Dragon implementada no jogo.
 - Nova `ultimate` da Mizu implementada no jogo com dash curto, bloqueio de flechas e repeticao da sombra.
 - O ataque `melee` da Mizu agora consegue cortar flechas e inutiliza-las no meio do combate.
-- Mapa e enquadramento melhorados com zoom mais coerente para a escala atual dos personagens.
+- Mapa ajustado com melhor enquadramento e zoom para combinar com a escala dos personagens e do combate.
 - Animacoes de morte criadas e implementadas para os personagens jogaveis.
 
-### Ferramentas e pipeline
+### Base tecnica desta versao
 
-- Pipeline com PixelLab MCP ampliado para importar e sincronizar animacoes novas com mais seguranca.
-- Novas ferramentas no Unity para ajustar `SpawnAnchor`, `MeleeHitbox` e `UltimateHitbox` direto na cena.
-- Fluxo de spawn melhorado para respeitar melhor a posicao configurada no mapa.
+- Pipeline de importacao via PixelLab MCP expandido para sincronizar animacoes novas com mais seguranca.
+- Sistema de spawn atualizado para respeitar melhor a posicao configurada na cena.
+- Ferramentas de debug e edicao no Unity melhoradas para facilitar o ajuste fino de hitboxes e pontos de combate.
 
 ### Imagens deste patch
 
@@ -101,6 +114,6 @@ Regra do projeto:
 
 ![Storm Dragon Death](Assets/ProjectPVP/Characters/StormDragon/Animations/death/east/frame_005.png)
 
-#### Arena Atual
+#### Arena da v0.1.1
 
 ![Arena Atual](Assets/ProjectPVP/Environment/Backgrounds/Maps/background1.png)

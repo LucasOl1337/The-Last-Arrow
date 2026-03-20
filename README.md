@@ -10,6 +10,17 @@ a base ja esta de pe, os personagens ja tem identidade visual forte e o combate 
 
 Patch notes do projeto: [PatchNotes.md](PatchNotes.md)
 
+## Ultimo patch notes
+
+`v0.2.0 - 2026-03-20`
+
+Resumo dele:
+
+- reorganizacao grande da base tecnica comparada ao que estava na nuvem
+- novo fluxo de personagens com catalogos, bootstrap profiles e roster de combate
+- polimento forte em colisao, rampas, wall jump, quinas e leitura de greybox
+- arena atualizada com imagens novas, suporte a video background e apresentacao melhor no repositorio
+
 ## O que ja temos de mais legal
 
 - 2 personagens jogaveis com vibes bem diferentes
