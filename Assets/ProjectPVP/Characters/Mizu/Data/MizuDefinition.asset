@@ -159,7 +159,7 @@ MonoBehaviour:
       actionName: dash
       size:
         x: 90
-        y: 210
+        y: 240
       offset:
         x: 0
         y: 0
@@ -211,7 +211,7 @@ MonoBehaviour:
       actionName: shoot
       size:
         x: 90
-        y: 210
+        y: 240
       offset:
         x: 0
         y: 0
@@ -263,7 +263,7 @@ MonoBehaviour:
       actionName: melee
       size:
         x: 90
-        y: 210
+        y: 240
       offset:
         x: 0
         y: 0
@@ -335,7 +335,7 @@ MonoBehaviour:
       actionName: aim
       size:
         x: 90
-        y: 210
+        y: 240
       offset:
         x: 0
         y: 0
@@ -387,7 +387,7 @@ MonoBehaviour:
       actionName: death
       size:
         x: 90
-        y: 210
+        y: 240
       offset:
         x: 0
         y: 0
@@ -439,7 +439,7 @@ MonoBehaviour:
       actionName: ult
       size:
         x: 90
-        y: 210
+        y: 240
       offset:
         x: 0
         y: 0
@@ -511,7 +511,7 @@ MonoBehaviour:
       actionName: walk
       size:
         x: 90
-        y: 210
+        y: 240
       offset:
         x: 0
         y: 0

@@ -136,9 +136,9 @@ MonoBehaviour:
     skipLeft: 0
     targetVisualHeight: 0
     groundAnchorRatio: 1
-    duration: 0.1
-    cancelable: 0
-    speed: 0.1
+    duration: 50
+    cancelable: 1
+    speed: 1
     spriteScale: 1
     spriteOffset:
       x: 0
@@ -522,9 +522,9 @@ MonoBehaviour:
     skipLeft: 0
     targetVisualHeight: 0
     groundAnchorRatio: 1
-    duration: 1.3333334
+    duration: 0.5
     cancelable: 1
-    speed: 12
+    speed: 20
     spriteScale: 1
     spriteOffset:
       x: 0
@@ -720,7 +720,7 @@ MonoBehaviour:
     skipLeft: 0
     targetVisualHeight: 0
     groundAnchorRatio: 1
-    duration: 1.3333334
+    duration: 0.1
     cancelable: 1
     speed: 12
     spriteScale: 1

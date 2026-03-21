@@ -5,6 +5,7 @@ using ProjectPVP.Data;
 using ProjectPVP.Gameplay;
 using ProjectPVP.Match;
 using ProjectPVP.Presentation;
+using ProjectPVP.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -94,7 +95,7 @@ namespace ProjectPVP.Editor
                 issues.Add("Main Camera ausente.");
             }
 
-            if (Object.FindFirstObjectByType<AudioListener>() == null)
+            if (!HasAudioListenerCoverage())
             {
                 issues.Add("AudioListener ausente na cena.");
             }
@@ -195,6 +196,17 @@ namespace ProjectPVP.Editor
                 && collider.enabled
                 && collider.GetComponentInParent<PlayerController>() == null
                 && collider.GetComponentInParent<ProjectileController>() == null);
+        }
+
+        private static bool HasAudioListenerCoverage()
+        {
+            if (Object.FindFirstObjectByType<AudioListener>() != null)
+            {
+                return true;
+            }
+
+            return Camera.main != null
+                && Object.FindFirstObjectByType<ProjectPvpRuntimeBootstrap>() != null;
         }
     }
 }

@@ -13,6 +13,7 @@ namespace ProjectPVP.Editor
         static ProjectPvpEditorPlayModeSetup()
         {
             EditorApplication.delayCall += ConfigurePlayModeScene;
+            EditorApplication.delayCall += EnsureAuthoringSceneVisible;
             EditorApplication.playModeStateChanged += HandlePlayModeStateChanged;
             EditorApplication.update += TickFocusAssist;
         }
@@ -46,6 +47,21 @@ namespace ProjectPVP.Editor
             {
                 EditorSceneManager.playModeStartScene = bootstrapScene;
             }
+        }
+
+        private static void EnsureAuthoringSceneVisible()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                return;
+            }
+
+            if (!ProjectPvpEditorSceneUtility.ShouldOpenPrimaryPlayableScene())
+            {
+                return;
+            }
+
+            ProjectPvpEditorSceneUtility.EnsurePrimaryPlayableSceneOpen(selectMatchController: true);
         }
 
         private static void HandlePlayModeStateChanged(PlayModeStateChange state)
