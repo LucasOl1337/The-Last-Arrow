@@ -109,6 +109,12 @@ namespace ProjectPVP.Data
         public float meleeDuration = 0.12f;
         public bool meleeCanSeverProjectiles;
 
+        [Header("Combat Feel")]
+        public float meleeHitstunDuration = 0.1f;
+        public float meleeKnockbackForce = 400f;
+        public float projectileKnockbackForce = 300f;
+        public float ultimateKnockbackForce = 600f;
+
         [Header("Collider")]
         public Vector2 colliderSize = new Vector2(90f, 210f);
         public Vector2 colliderOffset = Vector2.zero;

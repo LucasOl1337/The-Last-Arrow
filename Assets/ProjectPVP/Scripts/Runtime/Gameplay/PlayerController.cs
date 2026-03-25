@@ -161,6 +161,12 @@ namespace ProjectPVP.Gameplay
         private Vector2 _lastUltimateDashVelocity = Vector2.zero;
         private float _ultimateDashTimeLeft;
         private float _ultimateProjectileBlockTimer;
+
+        // Hitstun & Knockback System
+        private float _hitStunTimeLeft = 0f;
+        private Vector2 _knockbackVelocity = Vector2.zero;
+        private float _knockbackTimeLeft = 0f;
+
         public int playerId
         {
             get => slotId;
@@ -181,6 +187,8 @@ namespace ProjectPVP.Gameplay
         public bool IsShootAnimating => _shootAnimationTimeLeft > 0f;
         public bool IsJumpStartActive => _jumpStartTimeLeft > 0f;
         public bool IsUltimateActive => _ultimateTimeLeft > 0f;
+        public bool IsHitStunned => _hitStunTimeLeft > 0f;
+        public bool IsKnockedBack => _knockbackTimeLeft > 0f;
         public Vector2 AimHoldDirection => _aimHoldDirection;
         public Vector2 CurrentVelocity => body != null ? body.linearVelocity : Vector2.zero;
         public float HorizontalVelocity => body != null ? body.linearVelocity.x : 0f;
@@ -297,6 +305,38 @@ namespace ProjectPVP.Gameplay
             TickCooldowns(deltaTime);
             RefreshCollisionState();
 
+            // Update hitstun and knockback timers
+            if (_hitStunTimeLeft > 0f)
+            {
+                _hitStunTimeLeft -= deltaTime;
+            }
+
+            if (_knockbackTimeLeft > 0f)
+            {
+                _knockbackTimeLeft -= deltaTime;
+            }
+
+            // If in hitstun, handle physics only and skip input/actions
+            if (IsHitStunned)
+            {
+                Vector2 stunVelocity = body.linearVelocity;
+
+                // Still apply gravity
+                HandleJumpAndGravity(_currentInputFrame, deltaTime, ref stunVelocity);
+
+                // Apply knockback
+                if (IsKnockedBack)
+                {
+                    stunVelocity += _knockbackVelocity * (deltaTime / 0.2f);
+                }
+
+                MoveCharacter(ref stunVelocity, deltaTime);
+                body.linearVelocity = stunVelocity;
+                RefreshCollisionState();
+                UpdatePresentationState();
+                return;
+            }
+
             if (_isGrounded)
             {
                 _needsGroundReset = false;
@@ -328,6 +368,12 @@ namespace ProjectPVP.Gameplay
 
             Vector2 ultimateDashVelocity = UpdateUltimateDashVelocity(deltaTime);
             ApplyTransientVelocity(ref velocity, previousUltimateDashVelocity, ultimateDashVelocity, ref _lastUltimateDashVelocity);
+
+            // Apply knockback when not in hitstun (hitstun handles its own)
+            if (IsKnockedBack)
+            {
+                velocity += _knockbackVelocity * (deltaTime / 0.2f); // Decay over duration
+            }
 
             MoveCharacter(ref velocity, deltaTime);
             body.linearVelocity = velocity;
@@ -435,6 +481,33 @@ namespace ProjectPVP.Gameplay
             StartCoroutine(NotifyDeathAfterDelay(deathEventDelay));
         }
 
+        /// <summary>
+        /// Applies hitstun to this character, preventing input and actions for a duration.
+        /// </summary>
+        public void ApplyHitstun(float duration)
+        {
+            if (duration <= 0f)
+            {
+                return;
+            }
+
+            _hitStunTimeLeft = Mathf.Max(_hitStunTimeLeft, duration);
+        }
+
+        /// <summary>
+        /// Applies knockback to this character, pushing them in a direction with given force.
+        /// </summary>
+        public void ApplyKnockback(Vector2 direction, float force, float duration)
+        {
+            if (duration <= 0f || force <= 0f)
+            {
+                return;
+            }
+
+            _knockbackVelocity = direction.normalized * force;
+            _knockbackTimeLeft = duration;
+        }
+
         public bool HandleIncomingProjectile(ProjectileController projectile)
         {
             if (projectile == null || _isDead)
@@ -467,7 +540,16 @@ namespace ProjectPVP.Gameplay
                 return true;
             }
 
-            Kill();
+            // Apply hitstun and knockback for projectile hit
+            Vector2 hitDirection = (RootPosition - (Vector2)projectile.transform.position).normalized;
+            float hitstunDuration = 0.08f; // Projectiles have shorter stun
+            float knockbackForce = characterDefinition != null
+                ? characterDefinition.projectileKnockbackForce
+                : 300f;
+
+            ApplyHitstun(hitstunDuration);
+            ApplyKnockback(hitDirection, knockbackForce, 0.15f);
+
             return true;
         }
 
@@ -1519,7 +1601,18 @@ namespace ProjectPVP.Gameplay
                 }
 
                 _meleeHitIds.Add(targetId);
-                target.Kill();
+
+                // Apply hitstun and knockback instead of instant kill
+                Vector2 hitDirection = (target.RootPosition - RootPosition).normalized;
+                float hitstunDuration = characterDefinition != null
+                    ? characterDefinition.meleeHitstunDuration
+                    : 0.1f;
+                float knockbackForce = characterDefinition != null
+                    ? characterDefinition.meleeKnockbackForce
+                    : 400f;
+
+                target.ApplyHitstun(hitstunDuration);
+                target.ApplyKnockback(hitDirection, knockbackForce, 0.2f);
             }
         }
 
@@ -1673,7 +1766,17 @@ namespace ProjectPVP.Gameplay
                     continue;
                 }
 
-                target.Kill();
+                // Apply hitstun and knockback for ultimate hit
+                Vector2 hitDirection = (target.RootPosition - RootPosition).normalized;
+                float hitstunDuration = characterDefinition != null
+                    ? characterDefinition.meleeHitstunDuration * 1.5f // Ultimate stun is longer
+                    : 0.15f;
+                float knockbackForce = characterDefinition != null
+                    ? characterDefinition.ultimateKnockbackForce
+                    : 600f;
+
+                target.ApplyHitstun(hitstunDuration);
+                target.ApplyKnockback(hitDirection, knockbackForce, 0.25f);
             }
         }
 
