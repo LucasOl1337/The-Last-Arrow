@@ -1,0 +1,80 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": ["pressure", "zone", "retreat", "punish", "stabilize"]
+    },
+    "preferredRange": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "advanceBias": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "shootBias": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "meleeBias": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "dashBias": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "jumpBias": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "antiProjectile": {
+      "type": "string",
+      "enum": ["hold", "jump", "dash", "parry_prefer"]
+    },
+    "antiAir": {
+      "type": "boolean"
+    },
+    "punishRecovery": {
+      "type": "boolean"
+    },
+    "cornerEscapeBias": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "focusTargetSlot": {
+      "type": "integer"
+    },
+    "expiresInMs": {
+      "type": "integer",
+      "minimum": 100
+    },
+    "reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "mode",
+    "preferredRange",
+    "advanceBias",
+    "shootBias",
+    "meleeBias",
+    "dashBias",
+    "jumpBias",
+    "antiProjectile",
+    "antiAir",
+    "punishRecovery",
+    "cornerEscapeBias",
+    "focusTargetSlot",
+    "expiresInMs",
+    "reason"
+  ]
+}

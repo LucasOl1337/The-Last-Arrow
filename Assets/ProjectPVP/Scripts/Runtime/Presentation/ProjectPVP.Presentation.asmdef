@@ -1,0 +1,20 @@
+{
+  "name": "ProjectPVP.Presentation",
+  "rootNamespace": "ProjectPVP",
+  "references": [
+    "ProjectPVP.Data",
+    "ProjectPVP.Gameplay",
+    "ProjectPVP.Input",
+    "ProjectPVP.Match",
+    "UnityEngine.VideoModule"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

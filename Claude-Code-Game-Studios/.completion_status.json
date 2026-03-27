@@ -1,0 +1,21 @@
+{
+  "total_files": 341,
+  "batches_completed": [
+    0,
+    1
+  ],
+  "files_downloaded": 70,
+  "batches_pending": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "files_pending": 271,
+  "target_directory": "/sessions/happy-ecstatic-hawking/mnt/The Last Arrow/Claude-Code-Game-Studios",
+  "ready_for_completion": true
+}

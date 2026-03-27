@@ -43,16 +43,17 @@ namespace ProjectPVP.Input
         {
             return new PlayerActionMap
             {
-                left = KeyCode.LeftArrow,
-                right = KeyCode.RightArrow,
-                up = KeyCode.UpArrow,
-                down = KeyCode.DownArrow,
+                // 60% keyboard layout (IJKL + Ctrl/Shift/Alt/Enter cluster).
+                left = KeyCode.J,
+                right = KeyCode.L,
+                up = KeyCode.I,
+                down = KeyCode.K,
                 jump = KeyCode.Return,
                 shoot = KeyCode.RightControl,
-                melee = KeyCode.RightShift,
-                ultimate = KeyCode.KeypadEnter,
-                dashPrimary = KeyCode.Keypad0,
-                dashSecondary = KeyCode.KeypadPeriod,
+                melee = KeyCode.RightAlt,
+                ultimate = KeyCode.P,
+                dashPrimary = KeyCode.RightShift,
+                dashSecondary = KeyCode.M,
             };
         }
 

@@ -225,7 +225,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!1 &124414130
+--- !u!1 &85337547
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -233,22 +233,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 124414131}
-  - component: {fileID: 124414132}
+  - component: {fileID: 85337548}
+  - component: {fileID: 85337549}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Right Mid Platform Left Wall'
+  m_Name: '[AUTO_COLLISION] Left Upper Platform Underside'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &124414131
+--- !u!4 &85337548
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 124414130}
+  m_GameObject: {fileID: 85337547}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -257,13 +257,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &124414132
+--- !u!68 &85337549
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 124414130}
+  m_GameObject: {fileID: 85337547}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -294,14 +294,19 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: 613.7009, y: -21.854696}
-  - {x: 699.44415, y: -38.821495}
-  - {x: 693.39215, y: -49.412514}
+  - {x: -1323.8442, y: 244.46408}
+  - {x: -1101.5142, y: 247.8895}
+  - {x: -996.434, y: 277.2487}
+  - {x: -909.4053, y: 285.7857}
+  - {x: -877.8784, y: 312.4883}
+  - {x: -852.7954, y: 349.8806}
+  - {x: -879.096, y: 366.822}
+  - {x: -856.3887, y: 350.1966}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
   m_UseAdjacentEndPoint: 0
---- !u!1 &124730811
+--- !u!1 &141375147
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -309,83 +314,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 124730812}
-  - component: {fileID: 124730813}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Main Ramp Bridge Front Lip'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &124730812
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 124730811}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &124730813
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 124730811}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: -127.39595, y: -320.66956}
-  - {x: -137.46126, y: -218.45844}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
---- !u!1 &151625857
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 151625858}
-  - component: {fileID: 151625859}
+  - component: {fileID: 141375148}
+  - component: {fileID: 141375149}
   m_Layer: 0
   m_Name: '[AUTO_COLLISION] Upper Right Ledge Underside'
   m_TagString: Untagged
@@ -393,13 +323,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &151625858
+--- !u!4 &141375148
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 151625857}
+  m_GameObject: {fileID: 141375147}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -408,13 +338,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &151625859
+--- !u!68 &141375149
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 151625857}
+  m_GameObject: {fileID: 141375147}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -445,21 +375,21 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: 1252.5775, y: 91.97957}
-  - {x: 1271.345, y: -0.6324463}
-  - {x: 1160.7823, y: 2.423874}
-  - {x: 1099.7422, y: 2.1604385}
-  - {x: 1052.51, y: 56.927277}
-  - {x: 1008.04193, y: 235.45004}
-  - {x: 981.8886, y: 260.50354}
-  - {x: 945.91675, y: 276.9602}
-  - {x: 888.88104, y: 344.91968}
-  - {x: 900.00964, y: 379.87967}
+  - {x: 1281.1105, y: 118.31762}
+  - {x: 1341.5596, y: 5.5437}
+  - {x: 1160.7823, y: 2.4239}
+  - {x: 1105.8411, y: 20.329706}
+  - {x: 1056.5758, y: 127.58571}
+  - {x: 1008.0419, y: 235.45}
+  - {x: 981.8886, y: 260.5035}
+  - {x: 945.9167, y: 276.9602}
+  - {x: 888.881, y: 344.9197}
+  - {x: 900.767, y: 380.63718}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
   m_UseAdjacentEndPoint: 0
---- !u!1 &173008102
+--- !u!1 &177349275
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -467,22 +397,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 173008103}
-  - component: {fileID: 173008104}
+  - component: {fileID: 177349276}
+  - component: {fileID: 177349277}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Lower Left Ground'
+  m_Name: '[AUTO_COLLISION] Right Mid Platform Underside'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &173008103
+--- !u!4 &177349276
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 173008102}
+  m_GameObject: {fileID: 177349275}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -491,13 +421,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &173008104
+--- !u!68 &177349277
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 173008102}
+  m_GameObject: {fileID: 177349275}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -528,14 +458,17 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -1264.7925, y: -435.10315}
-  - {x: -667.74384, y: -442.65216}
-  - {x: -604.8356, y: -498.01144}
+  - {x: 684.3141, y: -46.3865}
+  - {x: 743.1092, y: -61.6202}
+  - {x: 793.3439, y: -71.95493}
+  - {x: 888.4631, y: -45.193947}
+  - {x: 921.133, y: -10.593808}
+  - {x: 920.86664, y: 6.71579}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
   m_UseAdjacentEndPoint: 0
---- !u!1 &179478737
+--- !u!1 &219978241
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -543,22 +476,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 179478738}
-  - component: {fileID: 179478739}
+  - component: {fileID: 219978242}
+  - component: {fileID: 219978243}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Right Lower Ledge'
+  m_Name: '[AUTO_COLLISION] Upper Right Ledge'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &179478738
+--- !u!4 &219978242
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 179478737}
+  m_GameObject: {fileID: 219978241}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -567,13 +500,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &179478739
+--- !u!68 &219978243
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 179478737}
+  m_GameObject: {fileID: 219978241}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -604,84 +537,9 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: 1022.58185, y: -406.0453}
-  - {x: 1281.4905, y: -396.6788}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
---- !u!1 &194721243
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 194721244}
-  - component: {fileID: 194721245}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Left Mid Platform Underside'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &194721244
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 194721243}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &194721245
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 194721243}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: -572.25696, y: 18.707907}
-  - {x: -466.76895, y: 23.439306}
-  - {x: -344.02637, y: 27.60328}
+  - {x: 900.0133, y: 381.3927}
+  - {x: 1324.8344, y: 382.6038}
+  - {x: 1339.6354, y: 8.20694}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
@@ -1269,83 +1127,6 @@ CapsuleCollider2D:
   m_Offset: {x: 0, y: 0}
   m_Size: {x: 200, y: 200}
   m_Direction: 1
---- !u!1 &318972081
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 318972082}
-  - component: {fileID: 318972083}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Center Bridge Underside'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &318972082
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 318972081}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &318972083
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 318972081}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: -127.39595, y: -320.66956}
-  - {x: 77.04451, y: -334.89886}
-  - {x: 255.93008, y: -334.89886}
-  - {x: 394.55417, y: -303.05524}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
 --- !u!1 &322352803
 GameObject:
   m_ObjectHideFlags: 0
@@ -1380,7 +1161,7 @@ Transform:
   - {fileID: 795793270}
   m_Father: {fileID: 1468104121}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &328044765
+--- !u!1 &374611162
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1388,22 +1169,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 328044766}
-  - component: {fileID: 328044767}
+  - component: {fileID: 374611163}
+  - component: {fileID: 374611164}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Right Lower Ledge Outer Wall'
+  m_Name: '[AUTO_COLLISION] Far Left Wall'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &328044766
+--- !u!4 &374611163
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 328044765}
+  m_GameObject: {fileID: 374611162}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -1412,13 +1193,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &328044767
+--- !u!68 &374611164
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 328044765}
+  m_GameObject: {fileID: 374611162}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -1449,14 +1230,14 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: 1227.0225, y: -434.50385}
-  - {x: 1280.185, y: -397.2882}
-  - {x: 1281.4905, y: -716.28143}
+  - {x: -1321.2363, y: 247.89288}
+  - {x: -990.2047, y: 294.7062}
+  - {x: -870.1959, y: 359.9821}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
   m_UseAdjacentEndPoint: 0
---- !u!1 &339512611
+--- !u!1 &393390999
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1464,22 +1245,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 339512612}
-  - component: {fileID: 339512613}
+  - component: {fileID: 393391000}
+  - component: {fileID: 393391001}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Center Bridge'
+  m_Name: '[AUTO_COLLISION] Center Bridge Right Wall'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &339512612
+--- !u!4 &393391000
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 339512611}
+  m_GameObject: {fileID: 393390999}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -1488,13 +1269,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &339512613
+--- !u!68 &393391001
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 339512611}
+  m_GameObject: {fileID: 393390999}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -1525,10 +1306,9 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -204.06114, y: -263.75244}
-  - {x: -153.11685, y: -213.42578}
-  - {x: 182.17288, y: -213.4258}
-  - {x: 406.3524, y: -220.97481}
+  - {x: 385.34317, y: -316.87177}
+  - {x: 433.6439, y: -250.77223}
+  - {x: 418.07974, y: -222.78697}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
@@ -1566,7 +1346,7 @@ Transform:
   - {fileID: 2041669354}
   m_Father: {fileID: 1468104121}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &415364947
+--- !u!1 &418553612
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1574,22 +1354,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 415364948}
-  - component: {fileID: 415364949}
+  - component: {fileID: 418553613}
+  - component: {fileID: 418553614}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Right Mid Platform Underside'
+  m_Name: '[AUTO_COLLISION] Left Mid Platform'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &415364948
+--- !u!4 &418553613
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 415364947}
+  m_GameObject: {fileID: 418553612}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -1598,13 +1378,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &415364949
+--- !u!68 &418553614
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 415364947}
+  m_GameObject: {fileID: 418553612}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -1635,17 +1415,14 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: 684.3141, y: -46.38651}
-  - {x: 743.10925, y: -61.620224}
-  - {x: 792.58636, y: -78.771805}
-  - {x: 893.76514, y: -27.015564}
-  - {x: 911.2864, y: -8.321508}
-  - {x: 918.8489, y: 20.797913}
+  - {x: -618.3665, y: 105.43}
+  - {x: -266.5867, y: 109.1841}
+  - {x: -257.5376, y: 91.7969}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
   m_UseAdjacentEndPoint: 0
---- !u!1 &457284411
+--- !u!1 &434380229
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1653,22 +1430,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 457284412}
-  - component: {fileID: 457284413}
+  - component: {fileID: 434380230}
+  - component: {fileID: 434380231}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Far Left Wall'
+  m_Name: '[AUTO_COLLISION] Upper Center Island'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &457284412
+--- !u!4 &434380230
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 457284411}
+  m_GameObject: {fileID: 434380229}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -1677,13 +1454,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &457284413
+--- !u!68 &434380231
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 457284411}
+  m_GameObject: {fileID: 434380229}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -1714,9 +1491,84 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -1277.3738, y: 319.6481}
-  - {x: -990.2047, y: 294.70624}
-  - {x: -870.19586, y: 359.98206}
+  - {x: 52.83009, y: 269.35324}
+  - {x: 404.46213, y: 280.90604}
+  m_AdjacentStartPoint: {x: 0, y: 0}
+  m_AdjacentEndPoint: {x: 0, y: 0}
+  m_UseAdjacentStartPoint: 0
+  m_UseAdjacentEndPoint: 0
+--- !u!1 &464529281
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 464529282}
+  - component: {fileID: 464529283}
+  m_Layer: 0
+  m_Name: '[AUTO_COLLISION] Left Mid Platform Left Wall'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &464529282
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 464529281}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.000056443532, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 701542536}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!68 &464529283
+EdgeCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 464529281}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_EdgeRadius: 0
+  m_Points:
+  - {x: -619.8795, y: 103.949}
+  - {x: -599.0181, y: 42.5287}
+  - {x: -566.237, y: 14.6786}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
@@ -1770,7 +1622,7 @@ MonoBehaviour:
   legacySlotTwoController: {fileID: 1989861819}
   showControls: 1
   showProjectNotes: 1
---- !u!1 &509978012
+--- !u!1 &534098156
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1778,22 +1630,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 509978013}
-  - component: {fileID: 509978014}
+  - component: {fileID: 534098157}
+  - component: {fileID: 534098158}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Upper Right Ledge Inner Wall'
+  m_Name: '[AUTO_COLLISION] Upper Center Island Left Wall'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &509978013
+--- !u!4 &534098157
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 509978012}
+  m_GameObject: {fileID: 534098156}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -1802,13 +1654,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &509978014
+--- !u!68 &534098158
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 509978012}
+  m_GameObject: {fileID: 534098156}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -1839,9 +1691,9 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: 1275.2726, y: 402.57474}
-  - {x: 1267.5005, y: 85.192024}
-  - {x: 1270.7338, y: -36.625687}
+  - {x: 44.991028, y: 275.65677}
+  - {x: 62.136406, y: 215.39761}
+  - {x: 138.62782, y: 177.14249}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
@@ -1929,7 +1781,7 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!1 &722930429
+--- !u!1 &563925433
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1937,22 +1789,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 722930430}
-  - component: {fileID: 722930431}
+  - component: {fileID: 563925434}
+  - component: {fileID: 563925435}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Left Mid Platform'
+  m_Name: '[AUTO_COLLISION] Center Bridge Underside'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &722930430
+--- !u!4 &563925434
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 722930429}
+  m_GameObject: {fileID: 563925433}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -1961,13 +1813,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &722930431
+--- !u!68 &563925435
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 722930429}
+  m_GameObject: {fileID: 563925433}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -1998,9 +1850,314 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -618.3665, y: 105.42998}
-  - {x: -266.58673, y: 109.18406}
-  - {x: -257.5376, y: 91.79691}
+  - {x: -127.3959, y: -320.6696}
+  - {x: 77.0445, y: -334.8989}
+  - {x: 255.9301, y: -334.8989}
+  - {x: 388.65204, y: -316.87177}
+  m_AdjacentStartPoint: {x: 0, y: 0}
+  m_AdjacentEndPoint: {x: 0, y: 0}
+  m_UseAdjacentStartPoint: 0
+  m_UseAdjacentEndPoint: 0
+--- !u!1 &665155720
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 665155721}
+  - component: {fileID: 665155722}
+  m_Layer: 0
+  m_Name: '[AUTO_COLLISION] Lower Left Ground'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &665155721
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 665155720}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
+  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
+  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 795793270}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!68 &665155722
+EdgeCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 665155720}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_EdgeRadius: 0
+  m_Points:
+  - {x: -1291.4435, y: -751.84924}
+  - {x: -1293.2401, y: -458.71875}
+  - {x: -630.3283, y: -474.37625}
+  m_AdjacentStartPoint: {x: 0, y: 0}
+  m_AdjacentEndPoint: {x: 0, y: 0}
+  m_UseAdjacentStartPoint: 0
+  m_UseAdjacentEndPoint: 0
+--- !u!1 &701542535
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 701542536}
+  - component: {fileID: 701542537}
+  m_Layer: 0
+  m_Name: '[AUTO_COLLISION] Left Mid Platform Right Wall'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &701542536
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 701542535}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
+  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
+  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 464529282}
+  m_Father: {fileID: 795793270}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!68 &701542537
+EdgeCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 701542535}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_EdgeRadius: 0
+  m_Points:
+  - {x: -359.1244, y: 25.0869}
+  - {x: -320.93887, y: 32.930416}
+  - {x: -259.5443, y: 91.3673}
+  m_AdjacentStartPoint: {x: 0, y: 0}
+  m_AdjacentEndPoint: {x: 0, y: 0}
+  m_UseAdjacentStartPoint: 0
+  m_UseAdjacentEndPoint: 0
+--- !u!1 &792490305
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 792490306}
+  - component: {fileID: 792490307}
+  m_Layer: 0
+  m_Name: '[AUTO_COLLISION] Left Mid Platform Underside'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &792490306
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 792490305}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
+  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
+  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 795793270}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!68 &792490307
+EdgeCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 792490305}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_EdgeRadius: 0
+  m_Points:
+  - {x: -566.1582, y: 10.632656}
+  - {x: -466.769, y: 23.4393}
+  - {x: -335.24704, y: 27.603283}
+  m_AdjacentStartPoint: {x: 0, y: 0}
+  m_AdjacentEndPoint: {x: 0, y: 0}
+  m_UseAdjacentStartPoint: 0
+  m_UseAdjacentEndPoint: 0
+--- !u!1 &794845423
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 794845424}
+  - component: {fileID: 794845425}
+  m_Layer: 0
+  m_Name: '[AUTO_COLLISION] Left Upper Platform'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &794845424
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 794845423}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
+  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
+  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 795793270}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!68 &794845425
+EdgeCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 794845423}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_EdgeRadius: 0
+  m_Points:
+  - {x: -1346.1886, y: 367.4105}
+  - {x: -875.4173, y: 364.29486}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
@@ -2031,42 +2188,33 @@ Transform:
   m_GameObject: {fileID: 795793269}
   serializedVersion: 2
   m_LocalRotation: {x: -0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 5, y: 52, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 5, y: 58.0811, z: -0.1757}
+  m_LocalScale: {x: 1, y: 1.007, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 173008103}
-  - {fileID: 1138061604}
-  - {fileID: 1698561806}
-  - {fileID: 457284412}
-  - {fileID: 1801737954}
-  - {fileID: 1634268374}
-  - {fileID: 124730812}
-  - {fileID: 339512612}
-  - {fileID: 318972082}
-  - {fileID: 1105518780}
-  - {fileID: 722930430}
-  - {fileID: 1044856806}
-  - {fileID: 194721244}
-  - {fileID: 824931907}
-  - {fileID: 1404624824}
-  - {fileID: 1974999600}
-  - {fileID: 808540020}
-  - {fileID: 2086912577}
-  - {fileID: 1162640707}
-  - {fileID: 1991671630}
-  - {fileID: 847236140}
-  - {fileID: 1243504923}
-  - {fileID: 509978013}
-  - {fileID: 151625858}
-  - {fileID: 1119311328}
-  - {fileID: 124414131}
-  - {fileID: 415364948}
-  - {fileID: 1731565585}
-  - {fileID: 1836387750}
-  - {fileID: 179478738}
-  - {fileID: 328044766}
-  - {fileID: 1243093578}
+  - {fileID: 665155721}
+  - {fileID: 1747549399}
+  - {fileID: 1680840097}
+  - {fileID: 1214575452}
+  - {fileID: 418553613}
+  - {fileID: 794845424}
+  - {fileID: 434380230}
+  - {fileID: 219978242}
+  - {fileID: 1843093457}
+  - {fileID: 374611163}
+  - {fileID: 1425543838}
+  - {fileID: 1843796659}
+  - {fileID: 563925434}
+  - {fileID: 990541175}
+  - {fileID: 393391000}
+  - {fileID: 792490306}
+  - {fileID: 701542536}
+  - {fileID: 1798990233}
+  - {fileID: 85337548}
+  - {fileID: 534098157}
+  - {fileID: 1701934720}
+  - {fileID: 177349276}
+  - {fileID: 141375148}
   m_Father: {fileID: 322352804}
   m_LocalEulerAnglesHint: {x: -1.877, y: 0, z: 0}
 --- !u!114 &795793271
@@ -2118,7 +2266,7 @@ Transform:
   - {fileID: 484271442}
   m_Father: {fileID: 1468104121}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &808540019
+--- !u!1 &990541174
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2126,22 +2274,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 808540020}
-  - component: {fileID: 808540021}
+  - component: {fileID: 990541175}
+  - component: {fileID: 990541176}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Left Upper Platform Underside'
+  m_Name: '[AUTO_COLLISION] Main Ramp Bridge Front Lip'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &808540020
+--- !u!4 &990541175
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 808540019}
+  m_GameObject: {fileID: 990541174}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -2150,13 +2298,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &808540021
+--- !u!68 &990541176
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 808540019}
+  m_GameObject: {fileID: 990541174}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -2187,240 +2335,8 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -1226.2637, y: 248.50168}
-  - {x: -1101.5142, y: 247.88945}
-  - {x: -996.434, y: 277.24872}
-  - {x: -909.4053, y: 285.7857}
-  - {x: -877.8784, y: 312.4883}
-  - {x: -852.7954, y: 349.8806}
-  - {x: -879.096, y: 366.82205}
-  - {x: -856.38873, y: 350.1966}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
---- !u!1 &824931906
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 824931907}
-  - component: {fileID: 824931908}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Left Mid Platform Right Wall'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &824931907
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 824931906}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &824931908
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 824931906}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: -359.12436, y: 25.08694}
-  - {x: -259.5443, y: 91.36733}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
---- !u!1 &847236139
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 847236140}
-  - component: {fileID: 847236141}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Upper Center Island Right Wall'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &847236140
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 847236139}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &847236141
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 847236139}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: 410.4356, y: 287.20514}
-  - {x: 432.29916, y: 229.23973}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
---- !u!1 &1044856805
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1044856806}
-  - component: {fileID: 1044856807}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Left Mid Platform Left Wall'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1044856806
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1044856805}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1044856807
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1044856805}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: -619.8795, y: 103.94898}
-  - {x: -599.01807, y: 42.528675}
-  - {x: -566.237, y: 14.678579}
+  - {x: -127.3959, y: -320.6696}
+  - {x: -137.4613, y: -218.4584}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
@@ -2531,7 +2447,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!1 &1105518779
+--- !u!1 &1214575451
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2539,22 +2455,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1105518780}
-  - component: {fileID: 1105518781}
+  - component: {fileID: 1214575452}
+  - component: {fileID: 1214575453}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Center Bridge Right Wall'
+  m_Name: '[AUTO_COLLISION] Right Lower Slope'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1105518780
+--- !u!4 &1214575452
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1105518779}
+  m_GameObject: {fileID: 1214575451}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -2563,13 +2479,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1105518781
+--- !u!68 &1214575453
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1105518779}
+  m_GameObject: {fileID: 1214575451}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -2600,13 +2516,19 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: 399.58688, y: -300.5389}
-  - {x: 413.9012, y: -223.49113}
+  - {x: 1347.643, y: -395.5216}
+  - {x: 1331.0255, y: -715.84644}
+  - {x: 928.7102, y: -724.7843}
+  - {x: 912.8982, y: -537.7314}
+  - {x: 903.611, y: -477.80453}
+  - {x: 887.3487, y: -417.7446}
+  - {x: 891.2361, y: -400.36224}
+  - {x: 1344.8602, y: -399.12396}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
   m_UseAdjacentEndPoint: 0
---- !u!1 &1119311327
+--- !u!1 &1425543837
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2614,85 +2536,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1119311328}
-  - component: {fileID: 1119311329}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Right Mid Platform'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1119311328
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1119311327}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1119311329
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1119311327}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: 784.67017, y: -79.348816}
-  - {x: 602.1859, y: -25.495224}
-  - {x: 583.8926, y: 11.431366}
-  - {x: 922.20667, y: 15.970381}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
---- !u!1 &1138061603
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1138061604}
-  - component: {fileID: 1138061605}
+  - component: {fileID: 1425543838}
+  - component: {fileID: 1425543839}
   m_Layer: 0
   m_Name: '[AUTO_COLLISION] Lower Left Ground Front Wall'
   m_TagString: Untagged
@@ -2700,13 +2545,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1138061604
+--- !u!4 &1425543838
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1138061603}
+  m_GameObject: {fileID: 1425543837}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -2715,13 +2560,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1138061605
+--- !u!68 &1425543839
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1138061603}
+  m_GameObject: {fileID: 1425543837}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -2752,309 +2597,9 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -655.1622, y: -450.20114}
-  - {x: -740.71747, y: -605.2552}
-  - {x: -740.71747, y: -681.4343}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
---- !u!1 &1162640706
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1162640707}
-  - component: {fileID: 1162640708}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Upper Center Island Left Wall'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1162640707
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1162640706}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1162640708
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1162640706}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: 39.691498, y: 272.01733}
-  - {x: 133.97081, y: 184.90424}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
---- !u!1 &1243093577
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1243093578}
-  - component: {fileID: 1243093579}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Right Lower Ledge Bottom Closure'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1243093578
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1243093577}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1243093579
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1243093577}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: 1227.0225, y: -548.3381}
-  - {x: 1273.7402, y: -398.55078}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
---- !u!1 &1243504922
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1243504923}
-  - component: {fileID: 1243504924}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Upper Right Ledge'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1243504923
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1243504922}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1243504924
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1243504922}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: 896.98364, y: 381.39273}
-  - {x: 1281.3246, y: 396.52277}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
---- !u!1 &1404624823
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1404624824}
-  - component: {fileID: 1404624825}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Left Upper Platform'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1404624824
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1404624823}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1404624825
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1404624823}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: -1268.6279, y: 372.6032}
-  - {x: -874.3787, y: 372.6032}
+  - {x: -624.57684, y: -476.75162}
+  - {x: -742.162, y: -750.26495}
+  - {x: -1296.0735, y: -749.6563}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
@@ -3314,84 +2859,8 @@ MonoBehaviour:
     triggerPressThreshold: 0.45
     useMoveStickAsAimFallback: 1
   buttonBufferSeconds: 0.1
---- !u!1 &1634268373
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1634268374}
-  - component: {fileID: 1634268375}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Main Ramp Underside'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1634268374
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1634268373}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1634268375
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1634268373}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: -740.71747, y: -605.2552}
-  - {x: -587.387, y: -562.5674}
-  - {x: -434.05664, y: -477.19168}
-  - {x: -280.72635, y: -391.81598}
-  - {x: -127.39595, y: -320.66956}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
+  enableMouseAim: 0
+  mouseAimOrigin: {fileID: 0}
 --- !u!1 &1664843680
 GameObject:
   m_ObjectHideFlags: 0
@@ -3454,7 +2923,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1989861820}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1698561805
+--- !u!1 &1680840096
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3462,22 +2931,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1698561806}
-  - component: {fileID: 1698561807}
+  - component: {fileID: 1680840097}
+  - component: {fileID: 1680840098}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Lower Left Ground Bottom Closure'
+  m_Name: '[AUTO_COLLISION] Center Bridge'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1698561806
+--- !u!4 &1680840097
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1698561805}
+  m_GameObject: {fileID: 1680840096}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -3486,13 +2955,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1698561807
+--- !u!68 &1680840098
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1698561805}
+  m_GameObject: {fileID: 1680840096}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -3523,13 +2992,13 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -743.2338, y: -694.0159}
-  - {x: -1279.8901, y: -708.24524}
+  - {x: -144.83736, y: -221.23285}
+  - {x: 419.3791, y: -222.53712}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
   m_UseAdjacentEndPoint: 0
---- !u!1 &1731565584
+--- !u!1 &1701934719
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3537,22 +3006,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1731565585}
-  - component: {fileID: 1731565586}
+  - component: {fileID: 1701934720}
+  - component: {fileID: 1701934721}
   m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Right Lower Slope'
+  m_Name: '[AUTO_COLLISION] Upper Center Island Underside'
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1731565585
+--- !u!4 &1701934720
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1731565584}
+  m_GameObject: {fileID: 1701934719}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -3561,13 +3030,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1731565586
+--- !u!68 &1701934721
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1731565584}
+  m_GameObject: {fileID: 1701934719}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -3598,16 +3067,19 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: 899.6585, y: -400.31702}
-  - {x: 923.0845, y: -718.62286}
-  - {x: 920.01056, y: -715.5986}
-  - {x: 893.4595, y: -395.70752}
-  - {x: 1282.9844, y: -394.44775}
+  - {x: 124.7966, y: 192.4853}
+  - {x: 200.59271, y: 173.79002}
+  - {x: 229.78435, y: 160.73804}
+  - {x: 263.87662, y: 151.7665}
+  - {x: 286.14212, y: 111.31463}
+  - {x: 351.62085, y: 116.36672}
+  - {x: 431.5157, y: 226.9031}
+  - {x: 405.4029, y: 279.6562}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
   m_UseAdjacentEndPoint: 0
---- !u!1 &1801737953
+--- !u!1 &1747549398
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3615,8 +3087,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1801737954}
-  - component: {fileID: 1801737955}
+  - component: {fileID: 1747549399}
+  - component: {fileID: 1747549400}
   m_Layer: 0
   m_Name: '[AUTO_COLLISION] Main Ramp'
   m_TagString: Untagged
@@ -3624,13 +3096,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1801737954
+--- !u!4 &1747549399
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1801737953}
+  m_GameObject: {fileID: 1747549398}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -3639,13 +3111,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1801737955
+--- !u!68 &1747549400
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1801737953}
+  m_GameObject: {fileID: 1747549398}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -3676,20 +3148,18 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -793.5604, y: -565.9524}
-  - {x: -612.94214, y: -491.42096}
-  - {x: -668.54376, y: -444.74728}
+  - {x: -806.5798, y: -570.45154}
+  - {x: -790.3581, y: -558.30615}
+  - {x: -626.6091, y: -473.1983}
+  - {x: -622.5914, y: -473.24286}
   - {x: -575.8332, y: -448.3095}
-  - {x: -510.33014, y: -390.07852}
-  - {x: -464.4917, y: -380.19672}
-  - {x: -377.83755, y: -335.6317}
-  - {x: -326.80377, y: -322.31723}
-  - {x: -153.73448, y: -215.94212}
+  - {x: -305.59534, y: -321.52518}
+  - {x: -139.80223, y: -220.00009}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
   m_UseAdjacentEndPoint: 0
---- !u!1 &1836387749
+--- !u!1 &1798990232
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3697,83 +3167,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1836387750}
-  - component: {fileID: 1836387751}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Right Lower Slope Base Wall'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1836387750
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1836387749}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1836387751
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1836387749}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: 1290.5493, y: -725.7954}
-  - {x: 916.83777, y: -725.5774}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
---- !u!1 &1974999599
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1974999600}
-  - component: {fileID: 1974999601}
+  - component: {fileID: 1798990233}
+  - component: {fileID: 1798990234}
   m_Layer: 0
   m_Name: '[AUTO_COLLISION] Left Upper Platform Left Wall'
   m_TagString: Untagged
@@ -3781,13 +3176,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1974999600
+--- !u!4 &1798990233
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1974999599}
+  m_GameObject: {fileID: 1798990232}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
   m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
@@ -3796,13 +3191,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 795793270}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1974999601
+--- !u!68 &1798990234
 EdgeCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1974999599}
+  m_GameObject: {fileID: 1798990232}
   m_Enabled: 1
   serializedVersion: 3
   m_Density: 1
@@ -3833,8 +3228,167 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -1270.1409, y: 256.102}
-  - {x: -1226.2637, y: 248.50168}
+  - {x: -1325.0298, y: 246.0079}
+  - {x: -1346.885, y: 370.7779}
+  - {x: -1325.8773, y: 244.46408}
+  m_AdjacentStartPoint: {x: 0, y: 0}
+  m_AdjacentEndPoint: {x: 0, y: 0}
+  m_UseAdjacentStartPoint: 0
+  m_UseAdjacentEndPoint: 0
+--- !u!1 &1843093456
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1843093457}
+  - component: {fileID: 1843093458}
+  m_Layer: 0
+  m_Name: '[AUTO_COLLISION] Right Mid Platform'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1843093457
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1843093456}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
+  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
+  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 795793270}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!68 &1843093458
+EdgeCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1843093456}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_EdgeRadius: 0
+  m_Points:
+  - {x: 683.9319, y: -45.26442}
+  - {x: 599.91364, y: -26.25263}
+  - {x: 591.14233, y: -11.565617}
+  - {x: 591.46686, y: 1.584795}
+  - {x: 691.7839, y: 7.918475}
+  - {x: 918.68616, y: 7.420555}
+  m_AdjacentStartPoint: {x: 0, y: 0}
+  m_AdjacentEndPoint: {x: 0, y: 0}
+  m_UseAdjacentStartPoint: 0
+  m_UseAdjacentEndPoint: 0
+--- !u!1 &1843796658
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1843796659}
+  - component: {fileID: 1843796660}
+  m_Layer: 0
+  m_Name: '[AUTO_COLLISION] Main Ramp Underside'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1843796659
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1843796658}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
+  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
+  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 795793270}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!68 &1843796660
+EdgeCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1843796658}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_EdgeRadius: 0
+  m_Points:
+  - {x: -905.3848, y: -544.69086}
+  - {x: -797.2866, y: -734.44946}
+  - {x: -421.3506, y: -505.14496}
+  - {x: -234.98468, y: -409.60446}
+  - {x: -113.76153, y: -342.1162}
+  - {x: 12.368111, y: -323.42303}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0
@@ -4001,16 +3555,16 @@ MonoBehaviour:
   slotId: 2
   usePlayerDefaults: 1
   actionMap:
-    left: 276
-    right: 275
-    up: 273
-    down: 274
+    left: 106
+    right: 108
+    up: 105
+    down: 107
     jump: 13
     shoot: 305
-    melee: 303
-    ultimate: 271
-    dashPrimary: 256
-    dashSecondary: 266
+    melee: 307
+    ultimate: 112
+    dashPrimary: 303
+    dashSecondary: 109
   gamepadProfile: {fileID: 11400000, guid: 5c4d26df0da44cb795f99d3456b76ae7, type: 2}
   enableGamepad: 1
   preferredGamepadIndex: 1
@@ -4046,85 +3600,8 @@ MonoBehaviour:
     triggerPressThreshold: 0.45
     useMoveStickAsAimFallback: 1
   buttonBufferSeconds: 0.1
---- !u!1 &1991671629
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1991671630}
-  - component: {fileID: 1991671631}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Upper Center Island Underside'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1991671630
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1991671629}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &1991671631
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1991671629}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: 124.796616, y: 192.48529}
-  - {x: 224.48483, y: 170.05211}
-  - {x: 281.48514, y: 123.733406}
-  - {x: 364.03958, y: 133.44247}
-  - {x: 431.51566, y: 226.90306}
-  - {x: 405.40295, y: 279.6562}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
+  enableMouseAim: 0
+  mouseAimOrigin: {fileID: 0}
 --- !u!1 &2010222602
 GameObject:
   m_ObjectHideFlags: 0
@@ -4152,8 +3629,8 @@ Transform:
   m_GameObject: {fileID: 2010222602}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 117.1733, y: -337.852, z: 0}
-  m_LocalScale: {x: 67.687614, y: 67.773796, z: 0.5931111}
+  m_LocalPosition: {x: 117.1733, y: -336.8542, z: -0.097}
+  m_LocalScale: {x: 62.98013, y: 63.396297, z: 0.5931111}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 322352804}
@@ -4224,30 +3701,32 @@ VideoPlayer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2010222602}
-  m_Enabled: 1
-  m_VideoClip: {fileID: 32900000, guid: c67ddc2db4a796f45af18f70d3e17ed1, type: 3}
+  m_Enabled: 0
+  m_VideoClip: {fileID: 32900000, guid: 492a6bf158dc4ea458d2ad5931637a14, type: 3}
   m_TargetCameraAlpha: 1
   m_TargetCamera3DLayout: 0
   m_TargetCamera: {fileID: 0}
   m_TargetTexture: {fileID: 0}
   m_TimeReference: 0
-  m_TargetMaterialRenderer: {fileID: 0}
+  m_TargetMaterialRenderer: {fileID: 2010222604}
   m_TargetMaterialProperty: <noninit>
   m_RenderMode: 3
   m_AspectRatio: 2
   m_DataSource: 0
-  m_TimeUpdateMode: 2
+  m_TimeUpdateMode: 1
   m_PlaybackSpeed: 1
   m_AudioOutputMode: 2
-  m_TargetAudioSources: []
-  m_DirectAudioVolumes: []
+  m_TargetAudioSources:
+  - {fileID: 0}
+  m_DirectAudioVolumes:
+  - 1
   m_Url: 
-  m_EnabledAudioTracks: 
-  m_DirectAudioMutes: 
-  m_ControlledAudioTrackCount: 0
+  m_EnabledAudioTracks: 01
+  m_DirectAudioMutes: 00
+  m_ControlledAudioTrackCount: 1
   m_PlayOnAwake: 1
   m_SkipOnDrop: 1
-  m_Looping: 0
+  m_Looping: 1
   m_WaitForFirstFrame: 1
   m_FrameReadyEventEnabled: 0
   m_VideoShaders: []
@@ -4315,6 +3794,8 @@ MonoBehaviour:
     width: 2560
     height: 1440
   defaultWrapPadding: {x: 40, y: 40}
+  enableDebugShortcuts: 1
+  slotTwoDebugAiBrain: 1
   slotWins: 0000000000000000
 --- !u!114 &2041669353
 MonoBehaviour:
@@ -4330,7 +3811,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: ProjectPVP.Runtime::ProjectPVP.Presentation.ProjectPvpArenaGizmos
   matchController: {fileID: 2041669352}
   boundsColor: {r: 0.2, g: 0.85, b: 1, a: 0.9}
-  spawnColor: {r: 1, g: 0.9, b: 0.25, a: 0.95}
+  spawnColor: {r: 1, g: 0.9142386, b: 0.25098038, a: 0.95}
   spawnMarkerRadius: 24
 --- !u!4 &2041669354
 Transform:
@@ -4374,81 +3855,6 @@ MonoBehaviour:
   showInactiveActionForecasts: 1
   showProjectileDirection: 1
   originMarkerRadius: 12
---- !u!1 &2086912576
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2086912577}
-  - component: {fileID: 2086912578}
-  m_Layer: 0
-  m_Name: '[AUTO_COLLISION] Upper Center Island'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2086912577
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2086912576}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.01637693, y: -0, z: -0, w: 0.9998659}
-  m_LocalPosition: {x: 110.662025, y: -390.46307, z: -12.79432}
-  m_LocalScale: {x: 0.6758432, y: 0.6726053, z: 0.59311104}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 795793270}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!68 &2086912578
-EdgeCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2086912576}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_EdgeRadius: 0
-  m_Points:
-  - {x: 40.67868, y: 280.06006}
-  - {x: 410.67154, y: 287.11542}
-  m_AdjacentStartPoint: {x: 0, y: 0}
-  m_AdjacentEndPoint: {x: 0, y: 0}
-  m_UseAdjacentStartPoint: 0
-  m_UseAdjacentEndPoint: 0
 --- !u!1 &2088800100
 GameObject:
   m_ObjectHideFlags: 0

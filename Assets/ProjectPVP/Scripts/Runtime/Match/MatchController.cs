@@ -4,6 +4,8 @@ using ProjectPVP.Audio;
 using ProjectPVP.Characters;
 using ProjectPVP.Data;
 using ProjectPVP.Gameplay;
+using ProjectPVP.Input;
+using RuntimeInput = global::UnityEngine.Input;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -26,10 +28,16 @@ namespace ProjectPVP.Match
         public Vector2 defaultPlayerTwoSpawn = new Vector2(420f, -540f);
         public Rect defaultWrapBounds = new Rect(-1280f, -720f, 2560f, 1440f);
         public Vector2 defaultWrapPadding = new Vector2(40f, 40f);
+        [Header("Debug Shortcuts")]
+        public bool enableDebugShortcuts = true;
+        public AiBrainKind slotTwoDebugAiBrain = AiBrainKind.LocalHeuristic;
 
         private AudioSource _musicSource;
         [SerializeField] private int[] slotWins = new int[2];
         private Coroutine _roundResetRoutine;
+        private CombatantSlotProfile _slotTwoOriginalProfile;
+        private CombatantSlotProfile _slotTwoRuntimeBotProfile;
+        private bool _slotTwoBotShortcutEnabled;
 
         public IReadOnlyList<CombatantSlotConfig> Slots => roster != null ? roster.Slots : System.Array.Empty<CombatantSlotConfig>();
         public IReadOnlyList<CharacterBootstrapProfile> AvailableCharacters => characterCatalog != null ? characterCatalog.Characters : System.Array.Empty<CharacterBootstrapProfile>();
@@ -76,6 +84,22 @@ namespace ProjectPVP.Match
             EnsureMusicSource();
             PlayArenaMusic();
             RespawnPlayers();
+            PrewarmCodexSessions();
+        }
+
+        private void Update()
+        {
+            if (!Application.isPlaying || !enableDebugShortcuts)
+            {
+                return;
+            }
+
+            bool shiftHeld = RuntimeInput.GetKey(global::UnityEngine.KeyCode.LeftShift)
+                || RuntimeInput.GetKey(global::UnityEngine.KeyCode.RightShift);
+            if (shiftHeld && RuntimeInput.GetKeyDown(global::UnityEngine.KeyCode.B))
+            {
+                TogglePlayerTwoBotShortcut();
+            }
         }
 
         private void LateUpdate()
@@ -263,6 +287,54 @@ namespace ProjectPVP.Match
             }
         }
 
+        private void TogglePlayerTwoBotShortcut()
+        {
+            CombatantSlotConfig slot = GetSlot(CombatantSlotId.SlotTwo);
+            if (slot == null)
+            {
+                return;
+            }
+
+            if (!_slotTwoBotShortcutEnabled)
+            {
+                _slotTwoOriginalProfile = slot.playerProfile;
+                _slotTwoRuntimeBotProfile = CreateRuntimeControlOverrideProfile(slot.ResolvePlayerProfile(), CombatantControlMode.AI, slotTwoDebugAiBrain);
+                slot.playerProfile = _slotTwoRuntimeBotProfile;
+                _slotTwoBotShortcutEnabled = true;
+            }
+            else
+            {
+                slot.playerProfile = _slotTwoOriginalProfile;
+                _slotTwoBotShortcutEnabled = false;
+            }
+
+            slot.ApplySelectionToController();
+            PrewarmCodexSessionForController(slot.controller);
+        }
+
+        private static CombatantSlotProfile CreateRuntimeControlOverrideProfile(
+            CombatantSlotProfile sourceProfile,
+            CombatantControlMode controlMode,
+            AiBrainKind aiBrain)
+        {
+            CombatantSlotProfile templateProfile = sourceProfile != null
+                ? sourceProfile
+                : CombatantSlotProfile.ResolveRuntimeFallback(CombatantSlotId.SlotTwo);
+            CombatantSlotProfile runtimeProfile = templateProfile != null
+                ? Instantiate(templateProfile)
+                : null;
+
+            if (runtimeProfile == null)
+            {
+                return null;
+            }
+
+            runtimeProfile.hideFlags = HideFlags.HideAndDontSave;
+            runtimeProfile.controlMode = controlMode;
+            runtimeProfile.aiBrain = aiBrain;
+            return runtimeProfile;
+        }
+
         private void HandlePlayerDeath(PlayerController deadPlayer)
         {
             if (_roundResetRoutine != null || deadPlayer == null)
@@ -323,6 +395,35 @@ namespace ProjectPVP.Match
 
                 slot.ApplySelectionToController();
                 slot.controller.SetSpawnPosition(GetSpawnPoint(slot.slotId));
+                PrewarmCodexSessionForController(slot.controller);
+            }
+        }
+
+        private void PrewarmCodexSessions()
+        {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            for (int index = 0; index < Slots.Count; index += 1)
+            {
+                CombatantSlotConfig slot = Slots[index];
+                PrewarmCodexSessionForController(slot != null ? slot.controller : null);
+            }
+        }
+
+        private static void PrewarmCodexSessionForController(PlayerController controller)
+        {
+            if (controller == null)
+            {
+                return;
+            }
+
+            CodexBrokerCombatantInputSource codexInput = controller.GetComponent<CodexBrokerCombatantInputSource>();
+            if (codexInput != null)
+            {
+                codexInput.PrewarmSession();
             }
         }
 

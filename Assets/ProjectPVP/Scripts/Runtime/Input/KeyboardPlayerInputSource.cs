@@ -14,7 +14,6 @@ namespace ProjectPVP.Input
         private const string GamepadProfileDefault = "Default";
         private const string GamepadProfileDualSense = "DualSense";
         private const string GamepadProfileXbox = "Xbox";
-
         [FormerlySerializedAs("playerId")]
         [Min(1)] public int slotId = 1;
         public bool usePlayerDefaults = true;
@@ -26,6 +25,13 @@ namespace ProjectPVP.Input
         public GamepadActionMap gamepadActionMap = new GamepadActionMap();
         [Range(0.01f, 0.25f)] public float buttonBufferSeconds = 0.1f;
 
+        [Header("Mouse Aim")]
+        [Tooltip("Enable only for keyboard+mouse setups. Keep disabled for 2 players on one keyboard.")]
+        public bool enableMouseAim;
+        [Tooltip("Transform used as the world-space origin for mouse aim direction (e.g. the player's body centre). " +
+                 "Leave empty to fall back to this component's own transform position.")]
+        public Transform mouseAimOrigin;
+
         private int _frameIndex;
         private PlayerInputFrame _currentFrame;
         private float _jumpBufferLeft;
@@ -36,6 +42,15 @@ namespace ProjectPVP.Input
         private float _dashSecondaryBufferLeft;
         private bool _dashSecondaryAxisHeldLastFrame;
         private int _activeGamepadSlot = -1;
+        private bool _latchedAimLeft;
+        private bool _latchedAimRight;
+        private bool _latchedAimUp;
+        private bool _latchedAimDown;
+        private bool _shootHeldLastUpdate;
+        private Vector2 _latestMove = Vector2.zero;
+        private Vector2 _latestAim = Vector2.zero;
+        private bool _latestJumpHeld;
+        private bool _latestShootHeld;
         private readonly int[] _connectedGamepadSlots = new int[MaxSupportedGamepads];
         private static GamepadControlProfileAsset s_defaultGamepadProfile;
 
@@ -52,16 +67,22 @@ namespace ProjectPVP.Input
         private void Awake()
         {
             ApplyDefaultsIfNeeded();
+            ResetAimLatch();
+            RefreshContinuousState();
         }
 
         private void OnEnable()
         {
             ApplyDefaultsIfNeeded();
+            ResetAimLatch();
+            RefreshContinuousState();
         }
 
         private void Reset()
         {
             ApplyDefaultsIfNeeded();
+            ResetAimLatch();
+            RefreshContinuousState();
         }
 
         private void OnValidate()
@@ -73,39 +94,60 @@ namespace ProjectPVP.Input
         {
             TickBuffers(Time.unscaledDeltaTime);
             PollBufferedButtons();
+            UpdateLatchedKeyboardAim();
+            RefreshContinuousState();
+            SyncCurrentFramePreview();
         }
 
         public void CaptureFrame()
         {
-            _activeGamepadSlot = ResolveActiveGamepadSlot();
-            Vector2 keyboardMove = ReadKeyboardMove();
-            Vector2 keyboardAim = ReadKeyboardAim();
-            Vector2 gamepadMove = enableGamepad ? ReadGamepadMove() : Vector2.zero;
-            bool allowMovementAimFallback = IsShootHeld() || _shootBufferLeft > 0f;
-            Vector2 gamepadAim = enableGamepad ? ReadGamepadAim(gamepadMove, allowMovementAimFallback) : Vector2.zero;
-            Vector2 combinedMove = CombineAxis(keyboardMove, gamepadMove);
-            Vector2 combinedAim = CombineAim(keyboardAim, gamepadAim, allowMovementAimFallback ? combinedMove : Vector2.zero);
-
+            RefreshContinuousState();
             _currentFrame = new PlayerInputFrame
             {
-                frame = _frameIndex,
-                axis = combinedMove.x,
-                aim = combinedAim,
-                left = combinedMove.x < -0.1f,
-                right = combinedMove.x > 0.1f,
-                up = combinedMove.y > 0.1f,
-                down = combinedMove.y < -0.1f,
-                jumpPressed = ConsumeBufferedPress(ref _jumpBufferLeft),
-                jumpHeld = IsJumpHeld(),
-                shootPressed = ConsumeBufferedPress(ref _shootBufferLeft),
-                shootHeld = IsShootHeld(),
-                meleePressed = ConsumeBufferedPress(ref _meleeBufferLeft),
-                ultimatePressed = ConsumeBufferedPress(ref _ultimateBufferLeft),
-                dashPrimaryPressed = ConsumeBufferedPress(ref _dashPrimaryBufferLeft),
+                frame                = _frameIndex,
+                axis                 = _latestMove.x,
+                aim                  = _latestAim,
+                left                 = _latestMove.x < -0.1f,
+                right                = _latestMove.x > 0.1f,
+                up                   = _latestMove.y > 0.1f,
+                down                 = _latestMove.y < -0.1f,
+                jumpPressed          = ConsumeBufferedPress(ref _jumpBufferLeft),
+                jumpHeld             = _latestJumpHeld,
+                shootPressed         = ConsumeBufferedPress(ref _shootBufferLeft),
+                shootHeld            = _latestShootHeld,
+                meleePressed         = ConsumeBufferedPress(ref _meleeBufferLeft),
+                ultimatePressed      = ConsumeBufferedPress(ref _ultimateBufferLeft),
+                dashPrimaryPressed   = ConsumeBufferedPress(ref _dashPrimaryBufferLeft),
                 dashSecondaryPressed = ConsumeBufferedPress(ref _dashSecondaryBufferLeft),
             };
 
             _frameIndex += 1;
+        }
+
+        private void SyncCurrentFramePreview()
+        {
+            _currentFrame.axis = _latestMove.x;
+            _currentFrame.aim = _latestAim;
+            _currentFrame.left = _latestMove.x < -0.1f;
+            _currentFrame.right = _latestMove.x > 0.1f;
+            _currentFrame.up = _latestMove.y > 0.1f;
+            _currentFrame.down = _latestMove.y < -0.1f;
+            _currentFrame.jumpHeld = _latestJumpHeld;
+            _currentFrame.shootHeld = _latestShootHeld;
+        }
+
+        private void RefreshContinuousState()
+        {
+            _activeGamepadSlot = ResolveActiveGamepadSlot();
+            Vector2 keyboardMove = ReadKeyboardMove();
+            Vector2 keyboardAim  = ReadKeyboardAim();
+            Vector2 gamepadMove  = enableGamepad ? ReadGamepadMove() : Vector2.zero;
+            Vector2 gamepadAim   = enableGamepad ? ReadGamepadAim(gamepadMove) : Vector2.zero;
+
+            _latestMove = CombineAxis(keyboardMove, gamepadMove);
+            _latestAim = ClampVector(CombineAim(keyboardAim, gamepadAim));
+            _latestJumpHeld = IsJumpHeld();
+            _latestShootHeld = IsShootHeld();
         }
 
         public void ConfigureForPlayer(int configuredPlayerId)
@@ -192,6 +234,80 @@ namespace ProjectPVP.Input
             _dashSecondaryBufferLeft = Mathf.Max(0f, _dashSecondaryBufferLeft - deltaTime);
         }
 
+        private void ResetAimLatch()
+        {
+            _latchedAimLeft = false;
+            _latchedAimRight = false;
+            _latchedAimUp = false;
+            _latchedAimDown = false;
+            _shootHeldLastUpdate = false;
+        }
+
+        private void UpdateLatchedKeyboardAim()
+        {
+            bool shootHeld = IsShootHeld();
+            bool leftHeld = LegacyInput.GetKey(actionMap.left);
+            bool rightHeld = LegacyInput.GetKey(actionMap.right);
+            bool upHeld = LegacyInput.GetKey(actionMap.up);
+            bool downHeld = LegacyInput.GetKey(actionMap.down);
+
+            if (!shootHeld)
+            {
+                ResetAimLatch();
+                return;
+            }
+
+            if (!_shootHeldLastUpdate)
+            {
+                _latchedAimLeft = leftHeld;
+                _latchedAimRight = rightHeld;
+                _latchedAimUp = upHeld;
+                _latchedAimDown = downHeld;
+            }
+
+            if (LegacyInput.GetKeyDown(actionMap.left) || leftHeld)
+            {
+                _latchedAimLeft = true;
+            }
+
+            if (LegacyInput.GetKeyDown(actionMap.right) || rightHeld)
+            {
+                _latchedAimRight = true;
+            }
+
+            if (LegacyInput.GetKeyDown(actionMap.up) || upHeld)
+            {
+                _latchedAimUp = true;
+            }
+
+            if (LegacyInput.GetKeyDown(actionMap.down) || downHeld)
+            {
+                _latchedAimDown = true;
+            }
+
+            if (LegacyInput.GetKeyUp(actionMap.left))
+            {
+                _latchedAimLeft = false;
+            }
+
+            if (LegacyInput.GetKeyUp(actionMap.right))
+            {
+                _latchedAimRight = false;
+            }
+
+            if (LegacyInput.GetKeyUp(actionMap.up))
+            {
+                _latchedAimUp = false;
+            }
+
+            if (LegacyInput.GetKeyUp(actionMap.down))
+            {
+                _latchedAimDown = false;
+            }
+
+            _shootHeldLastUpdate = true;
+        }
+
         private Vector2 ReadKeyboardMove()
         {
             float horizontal = 0f;
@@ -221,7 +337,76 @@ namespace ProjectPVP.Input
 
         private Vector2 ReadKeyboardAim()
         {
-            return ReadKeyboardMove();
+            // When a gamepad is active for this slot, yield to gamepad aim entirely.
+            if (enableGamepad && _activeGamepadSlot > 0)
+            {
+                return Vector2.zero;
+            }
+
+            // Last Arrow now treats 8-direction aim as the default rule.
+            // Mouse aim only engages when explicitly enabled on this input source.
+            bool tryMouseAim = enableMouseAim;
+            if (tryMouseAim && Camera.main != null)
+            {
+                Vector3 mouseScreen = LegacyInput.mousePosition;
+                mouseScreen.z = Mathf.Abs(Camera.main.transform.position.z);
+                Vector3 mouseWorld = Camera.main.ScreenToWorldPoint(mouseScreen);
+
+                Transform origin = mouseAimOrigin != null ? mouseAimOrigin : transform;
+                Vector2 aimDirection = new Vector2(
+                    mouseWorld.x - origin.position.x,
+                    mouseWorld.y - origin.position.y);
+
+                // Only use mouse aim if the cursor is at least 1 unit from the character
+                // to avoid jitter when the cursor sits exactly on the character.
+                if (aimDirection.sqrMagnitude >= 1f)
+                {
+                    return aimDirection.normalized;
+                }
+            }
+
+            // Fallback: 8-directional WASD aim (used for player-2-on-keyboard or no camera).
+            return ReadKeyboardAimUsingLiveState();
+        }
+
+        private Vector2 ReadKeyboardAimUsingLiveState()
+        {
+            bool leftHeld = LegacyInput.GetKey(actionMap.left);
+            bool rightHeld = LegacyInput.GetKey(actionMap.right);
+            bool upHeld = LegacyInput.GetKey(actionMap.up);
+            bool downHeld = LegacyInput.GetKey(actionMap.down);
+
+            if (IsShootHeld())
+            {
+                leftHeld |= _latchedAimLeft;
+                rightHeld |= _latchedAimRight;
+                upHeld |= _latchedAimUp;
+                downHeld |= _latchedAimDown;
+            }
+
+            float horizontal = 0f;
+            if (leftHeld)
+            {
+                horizontal -= 1f;
+            }
+
+            if (rightHeld)
+            {
+                horizontal += 1f;
+            }
+
+            float vertical = 0f;
+            if (upHeld)
+            {
+                vertical += 1f;
+            }
+
+            if (downHeld)
+            {
+                vertical -= 1f;
+            }
+
+            return ClampVector(new Vector2(horizontal, vertical));
         }
 
         private Vector2 ReadGamepadMove()
@@ -239,39 +424,25 @@ namespace ProjectPVP.Input
             return legacyMove.magnitude < gamepadActionMap.deadzone ? Vector2.zero : ClampVector(legacyMove);
         }
 
-        private Vector2 ReadGamepadAim(Vector2 gamepadMove, bool allowMovementAimFallback)
+        private Vector2 ReadGamepadAim(Vector2 gamepadMove)
         {
             int slot = _activeGamepadSlot > 0 ? _activeGamepadSlot : ResolveActiveGamepadSlot();
-            if (slot <= 0)
-            {
-                return Vector2.zero;
-            }
+            if (slot <= 0) return Vector2.zero;
 
+            // D-pad → crisp 8-directional aim (highest priority).
             Vector2 dpadAim = ReadGamepadDpadVector(slot);
-            if (dpadAim.sqrMagnitude > 0.01f)
-            {
-                return dpadAim;
-            }
+            if (dpadAim.sqrMagnitude > 0.01f) return dpadAim;
 
-            // Match the documented controls: hold shoot and aim with D-pad/left stick.
-            bool movementCanDriveAim = gamepadActionMap.useMoveStickAsAimFallback && allowMovementAimFallback;
-            if (movementCanDriveAim && gamepadMove.magnitude >= gamepadActionMap.deadzone)
-            {
+            // Right stick → free analog aim, always available.
+            float lookX        = ReadStrongestAxisForSlot(slot, gamepadActionMap.lookHorizontalAxis, gamepadActionMap.lookHorizontalAxisAlt);
+            float lookY        = ReadStrongestAxisForSlot(slot, gamepadActionMap.lookVerticalAxis,   gamepadActionMap.lookVerticalAxisAlt);
+            Vector2 rightStick = new Vector2(lookX, lookY);
+            if (rightStick.magnitude >= gamepadActionMap.aimDeadzone) return ClampVector(rightStick);
+
+            // Left stick as aim fallback — only for single-stick layouts that explicitly opt in.
+            // NOTE: movement direction never drives aim by default (prevents "shoots to ground" bug).
+            if (gamepadActionMap.useMoveStickAsAimFallback && gamepadMove.magnitude >= gamepadActionMap.deadzone)
                 return ClampVector(gamepadMove);
-            }
-
-            if (allowMovementAimFallback)
-            {
-                return Vector2.zero;
-            }
-
-            float lookX = ReadStrongestAxisForSlot(slot, gamepadActionMap.lookHorizontalAxis, gamepadActionMap.lookHorizontalAxisAlt);
-            float lookY = ReadStrongestAxisForSlot(slot, gamepadActionMap.lookVerticalAxis, gamepadActionMap.lookVerticalAxisAlt);
-            Vector2 legacyAim = new Vector2(lookX, lookY);
-            if (legacyAim.magnitude >= gamepadActionMap.aimDeadzone)
-            {
-                return ClampVector(legacyAim);
-            }
 
             return Vector2.zero;
         }
@@ -606,19 +777,16 @@ namespace ProjectPVP.Input
             return secondary.sqrMagnitude > primary.sqrMagnitude ? secondary : primary;
         }
 
-        private static Vector2 CombineAim(Vector2 keyboardAim, Vector2 gamepadAim, Vector2 movementFallback)
+        /// <summary>
+        /// Combines aim vectors from keyboard (mouse/WASD) and gamepad (stick/d-pad).
+        /// Movement direction is intentionally excluded — aim must come from
+        /// explicit inputs only so falling/walking never contaminates shot direction.
+        /// </summary>
+        private static Vector2 CombineAim(Vector2 keyboardAim, Vector2 gamepadAim)
         {
-            if (keyboardAim.sqrMagnitude > 0.01f)
-            {
-                return keyboardAim;
-            }
-
-            if (gamepadAim.sqrMagnitude > 0.01f)
-            {
-                return gamepadAim;
-            }
-
-            return movementFallback.sqrMagnitude > 0.01f ? movementFallback : Vector2.zero;
+            if (keyboardAim.sqrMagnitude > 0.01f) return keyboardAim;
+            if (gamepadAim.sqrMagnitude  > 0.01f) return gamepadAim;
+            return Vector2.zero;
         }
 
         private static Vector2 ClampVector(Vector2 value)

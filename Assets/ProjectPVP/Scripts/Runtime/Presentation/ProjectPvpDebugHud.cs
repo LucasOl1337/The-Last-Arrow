@@ -105,7 +105,7 @@ namespace ProjectPVP.Presentation
             GUILayout.Space(4f);
             GUILayout.Label("Slot 1: A/D mover, W/S mirar, Space pular, Q atirar, E melee, Left Shift dash", _bodyStyle);
             GUILayout.Space(4f);
-            GUILayout.Label("Slot 2: Setas mover/mirar, Enter pular, Right Ctrl atirar, Right Shift melee, Keypad 0 dash", _bodyStyle);
+            GUILayout.Label("Slot 2 (60%): I/J/K/L mover+mirar, Enter pular, Right Ctrl atirar, Right Alt melee, P ultimate, Right Shift/M dash", _bodyStyle);
             GUILayout.Space(4f);
             GUILayout.Label("Gamepad por slot: D-Pad ou Left Stick mover/mirar, Triangle ult, Circle melee, X pular, Square atirar, L1/L2/R1/R2 dash", _bodyStyle);
             GUILayout.Space(4f);
@@ -159,7 +159,8 @@ namespace ProjectPVP.Presentation
                     : "Sem personagem";
                 return fallbackName + ": aguardando spawn\n" +
                     "Wins: " + wins + "\n" +
-                    "Character: " + configuredCharacterName;
+                    "Character: " + configuredCharacterName + "\n" +
+                    "Control: " + slot.ResolveControlMode().ToDisplayName();
             }
 
             return BuildLegacyPlayerSummary(fallbackName, player, wins);
@@ -175,6 +176,13 @@ namespace ProjectPVP.Presentation
             string characterName = player.characterDefinition != null && !string.IsNullOrWhiteSpace(player.characterDefinition.displayName)
                 ? player.characterDefinition.displayName
                 : "Sem personagem";
+            string controlMode = player.SlotProfile != null
+                ? player.SlotProfile.ResolveControlMode().ToDisplayName()
+                : CombatantControlMode.Human.ToDisplayName();
+            if (player.SlotProfile != null && player.SlotProfile.ResolveControlMode() == CombatantControlMode.AI)
+            {
+                controlMode += " (" + player.SlotProfile.ResolveAiBrain() + ")";
+            }
 
             ICombatantInputSource inputSource = player.InputSource;
             PlayerInputFrame frame = inputSource != null ? inputSource.CurrentFrame : default;
@@ -183,10 +191,33 @@ namespace ProjectPVP.Presentation
             string gamepadStatus = !gamepadEnabled ? "Off" : gamepadSlot > 0 ? "On P" + gamepadSlot : "On?";
             Vector2 aimHoldDirection = player.AimHoldDirection;
             string faceButtonDebug = inputSource != null ? inputSource.FaceButtonDebug : "-";
+            ProjectileController lastProjectile = player.LastLaunchedProjectile;
+            string assistEnabled = lastProjectile != null && lastProjectile.AssistEnabledRuntime ? "ON" : "OFF";
+            string assistLocked = lastProjectile != null && lastProjectile.AssistTargetLocked ? "Yes" : "No";
+            string assistAngle = lastProjectile != null ? lastProjectile.AssistCurrentAngleDeg.ToString("0.0") : "-";
+            string assistAppliedStrength = lastProjectile != null ? lastProjectile.AssistAppliedStrength.ToString("0.00") : "-";
+            string codexStatus = string.Empty;
+            if (inputSource is CodexBrokerCombatantInputSource codexInput)
+            {
+                string shortSessionId = string.IsNullOrWhiteSpace(codexInput.SessionId)
+                    ? "-"
+                    : codexInput.SessionId.Length > 8 ? codexInput.SessionId.Substring(0, 8) : codexInput.SessionId;
+                string intentAge = codexInput.IntentAgeMs < 0f ? "-" : codexInput.IntentAgeMs.ToString("0");
+                codexStatus =
+                    "CodexSession: " + shortSessionId + " | Owner: " + (string.IsNullOrWhiteSpace(codexInput.ControllerOwner) ? "-" : codexInput.ControllerOwner) + " | Source: " + codexInput.LastExecutorSource + "\n" +
+                    "CodexIntent: " + (string.IsNullOrWhiteSpace(codexInput.CurrentIntentMode) ? "-" : codexInput.CurrentIntentMode) +
+                    " | AgeMs: " + intentAge +
+                    " | AgentAction: " + (codexInput.HasAgentAction ? "Yes" : "No") +
+                    " | Start: " + (codexInput.IsSessionStarting ? "Yes" : "No") +
+                    " | Tick: " + (codexInput.IsStrategyRequestInFlight ? "Busy" : "Idle") +
+                    " | AgentMode: " + (codexInput.useAgentDrivenMode ? "On" : "Off") + "\n" +
+                    "CodexWhy: " + (string.IsNullOrWhiteSpace(codexInput.CurrentIntentReason) ? "-" : codexInput.CurrentIntentReason) + "\n";
+            }
 
             return fallbackName + " -> " + characterName + "\n" +
                 "Wins: " + wins + "\n" +
                 "Slot: " + player.SlotId.ToDisplayName() + "\n" +
+                "Control: " + controlMode + "\n" +
                 "Arrows: " + player.CurrentArrows + "\n" +
                 "Facing: " + (player.Facing < 0 ? "Left" : "Right") + "\n" +
                 "Grounded: " + (player.IsGrounded ? "Yes" : "No") + " | Wall: " + (player.IsTouchingWall ? "Yes" : "No") + "\n" +
@@ -197,6 +228,8 @@ namespace ProjectPVP.Presentation
                 "Axis: " + frame.axis.ToString("0.00") + "\n" +
                 "Aim: (" + frame.aim.x.ToString("0.00") + ", " + frame.aim.y.ToString("0.00") + ")" + "\n" +
                 "AimHoldDir: (" + aimHoldDirection.x.ToString("0.00") + ", " + aimHoldDirection.y.ToString("0.00") + ")" + "\n" +
+                "Assist: " + assistEnabled + " | Locked: " + assistLocked + " | Angle: " + assistAngle + " | Strength: " + assistAppliedStrength + "\n" +
+                codexStatus +
                 "FaceBtns: " + faceButtonDebug + "\n" +
                 "Jump: " + (frame.jumpPressed ? "Pressed" : "-") + " | Shoot: " + (frame.shootHeld ? "Held" : "-") + " | UltBtn: " + (frame.ultimatePressed ? "Pressed" : "-") + " | DashBtn: " + ((frame.dashPrimaryPressed || frame.dashSecondaryPressed) ? "Pressed" : "-");
         }

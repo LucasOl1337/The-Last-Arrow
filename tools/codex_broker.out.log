@@ -1,0 +1,725 @@
+[broker] active report | agentSessions=0 strategySessions=0
+Codex broker listening on http://127.0.0.1:8765
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] active report | agentSessions=0 strategySessions=0
+[broker] agent_session_started | slot=2 session=agent-slot-2-177 frame=1
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-
+[broker] active report | agentSessions=1 strategySessions=0
+[broker] slot=2 owner=Unknown source=unknown frame=1 intent=stabilize why=default_safe_plan input=axis=+0.00 aim=(+0.00,+0.00) btns=-

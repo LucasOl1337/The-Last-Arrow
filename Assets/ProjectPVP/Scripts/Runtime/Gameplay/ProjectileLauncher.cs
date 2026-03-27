@@ -11,6 +11,14 @@ namespace ProjectPVP.Gameplay
             GameObject sourceObject,
             Vector2 origin,
             Vector2 direction,
+            Transform assistTarget,
+            bool assistEnabled,
+            float assistStrength,
+            float assistMaxTurnRateDeg,
+            float assistAcquireConeDeg,
+            float assistMaxRange,
+            float assistMinDistance,
+            float assistDropoffStartRatio,
             Vector2 inheritedVelocity,
             float inheritFactor,
             Sprite overrideSprite,
@@ -27,7 +35,21 @@ namespace ProjectPVP.Gameplay
                 projectile.ApplyDefinition(definition);
             }
 
-            projectile.Launch(sourceObject, origin, direction, inheritedVelocity, inheritFactor, overrideSprite);
+            projectile.Launch(
+                sourceObject,
+                origin,
+                direction,
+                assistTarget,
+                assistEnabled,
+                assistStrength,
+                assistMaxTurnRateDeg,
+                assistAcquireConeDeg,
+                assistMaxRange,
+                assistMinDistance,
+                assistDropoffStartRatio,
+                inheritedVelocity,
+                inheritFactor,
+                overrideSprite);
             projectile.transform.localScale = Vector3.one * Mathf.Max(0.01f, scale);
             return projectile;
         }

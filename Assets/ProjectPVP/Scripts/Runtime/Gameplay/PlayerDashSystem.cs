@@ -1,0 +1,163 @@
+using ProjectPVP.Input;
+using UnityEngine;
+
+namespace ProjectPVP.Gameplay
+{
+    /// <summary>
+    /// Handles dash attacks and velocity.
+    /// </summary>
+    public sealed class PlayerDashSystem
+    {
+        private const float DashParryWindow = 0.2f;
+        private const float DashPressParryWindow = 0.2f;
+        private const float DashComboWindow = 0.2f;
+
+        private readonly PlayerContext _context;
+        private readonly PlayerStatResolver _statResolver;
+
+        public PlayerDashSystem(PlayerContext context, PlayerStatResolver statResolver)
+        {
+            _context = context;
+            _statResolver = statResolver;
+        }
+
+        public void TryStartDash(PlayerInputFrame frame)
+        {
+            bool primaryPressed = frame.dashPrimaryPressed;
+            bool secondaryPressed = frame.dashSecondaryPressed;
+            if (primaryPressed || secondaryPressed)
+            {
+                _context.dashPressTimer = DashPressParryWindow;
+                _context.pendingDashPrimary |= primaryPressed;
+                _context.pendingDashSecondary |= secondaryPressed;
+                _context.dashComboWindowLeft = Mathf.Max(_context.dashComboWindowLeft, DashComboWindow);
+            }
+
+            if (!_context.pendingDashPrimary && !_context.pendingDashSecondary)
+            {
+                return;
+            }
+
+            bool isDashing = _context.dashTimeLeft > 0f;
+            if (isDashing)
+            {
+                return;
+            }
+
+            if (_context.dashComboWindowLeft <= 0f && !primaryPressed && !secondaryPressed)
+            {
+                _context.pendingDashPrimary = false;
+                _context.pendingDashSecondary = false;
+                return;
+            }
+
+            int usedCount = 0;
+            bool usePrimary = _context.pendingDashPrimary && _context.dashPrimaryCooldownLeft <= 0f;
+            bool useSecondary = _context.pendingDashSecondary && _context.dashSecondaryCooldownLeft <= 0f;
+
+            if (usePrimary)
+            {
+                _context.dashPrimaryCooldownLeft = _statResolver.ResolveDashCooldown();
+                _context.pendingDashPrimary = false;
+                usedCount += 1;
+            }
+
+            if (useSecondary)
+            {
+                _context.dashSecondaryCooldownLeft = _statResolver.ResolveDashCooldown();
+                _context.pendingDashSecondary = false;
+                usedCount += 1;
+            }
+
+            if (usedCount <= 0)
+            {
+                if (_context.dashComboWindowLeft <= 0f)
+                {
+                    _context.pendingDashPrimary = false;
+                    _context.pendingDashSecondary = false;
+                }
+
+                return;
+            }
+
+            _context.dashComboWindowLeft = 0f;
+
+            Vector2 direction = ResolveDashDirection();
+            float dashSpeed = _statResolver.ResolveDashDistance() > 0f && _statResolver.ResolveDashDuration() > 0f
+                ? (_statResolver.ResolveDashDistance() * usedCount) / _statResolver.ResolveDashDuration()
+                : _statResolver.ResolveMoveSpeed() * _statResolver.ResolveDashMultiplier() * usedCount;
+
+            _context.dashVelocity = direction * dashSpeed;
+            _context.dashTimeLeft = _statResolver.ResolveDashDuration();
+            _context.dashParryTimer = DashParryWindow;
+            _context.dashJumpUsed = false;
+            TriggerDashAnimation(_statResolver.ResolveActionDuration("dash", 0.3f));
+        }
+
+        public Vector2 UpdateDashVelocity(float deltaTime, ref Vector2 velocity)
+        {
+            if (_context.dashTimeLeft <= 0f)
+            {
+                return Vector2.zero;
+            }
+
+            if (HasBufferedJump() && !_context.dashJumpUsed)
+            {
+                velocity.y = Mathf.Max(velocity.y, _statResolver.ResolveJumpVelocity());
+                _context.dashJumpUsed = true;
+                ConsumeBufferedJump();
+                TriggerJumpStartAnimation();
+            }
+
+            Vector2 dashVelocity = _context.dashVelocity;
+            _context.dashTimeLeft -= deltaTime;
+
+            if (_context.dashTimeLeft <= 0f)
+            {
+                _context.dashVelocity = Vector2.zero;
+            }
+
+            return dashVelocity;
+        }
+
+        public void TriggerDashAnimation(float duration)
+        {
+            _context.dashAnimationHoldTimeLeft = Mathf.Max(duration, 0f);
+        }
+
+        public Vector2 ResolveDashDirection()
+        {
+            int facingDirection = _context.facing == 0 ? 1 : (_context.facing > 0 ? 1 : -1);
+            return new Vector2(facingDirection, 0f);
+        }
+
+        public void ApplyTransientVelocity(ref Vector2 velocity, Vector2 previousVelocity, Vector2 currentVelocity, ref Vector2 lastVelocity)
+        {
+            if (previousVelocity != Vector2.zero && currentVelocity == Vector2.zero)
+            {
+                velocity += previousVelocity;
+                lastVelocity = Vector2.zero;
+                return;
+            }
+
+            velocity += currentVelocity;
+            lastVelocity = currentVelocity;
+        }
+
+        private bool HasBufferedJump()
+        {
+            return _context.jumpBufferLeft > 0f;
+        }
+
+        private void ConsumeBufferedJump()
+        {
+            _context.jumpBufferLeft = 0f;
+        }
+
+        private void TriggerJumpStartAnimation()
+        {
+            float duration = _statResolver.ResolveActionDuration("jump_start", 0.12f);
+            _context.jumpStartTimeLeft = duration;
+        }
+    }
+}

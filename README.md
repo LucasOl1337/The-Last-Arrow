@@ -36,6 +36,7 @@ Resumo dele:
 - personagens organizados em pastas proprias com animacoes, dados e rotacoes, sem misturar tudo num lugar so
 - area `Shared` para o que e comum entre personagens e `Resources` para centralizar o que precisa ser carregado
 - uma base modular e simples de manter, que facilita ajustar mecanicas, adicionar conteudo novo e seguir evoluindo o projeto sem virar bagunca
+- fluxo de branch paralelo com `git worktree`, documentado em `Docs/Git-Worktree-Workflow.md`
 
 ## Personagens
 

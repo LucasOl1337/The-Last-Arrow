@@ -47,16 +47,16 @@ Canonical keyboard mapping
 - Dash secondary: Left Alt
 
 - Player 2
-- Left: Left Arrow
-- Right: Right Arrow
-- Up: Up Arrow
-- Down: Down Arrow
+- Left: J
+- Right: L
+- Up: I
+- Down: K
 - Jump: Enter
 - Shoot: Right Control
-- Melee: Right Shift
-- Ultimate: Keypad Enter
-- Dash primary: Keypad 0
-- Dash secondary: Keypad Period
+- Melee: Right Alt
+- Ultimate: P
+- Dash primary: Right Shift
+- Dash secondary: M
 
 Canonical gamepad mapping
 - X: Jump

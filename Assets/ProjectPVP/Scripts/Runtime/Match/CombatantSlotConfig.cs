@@ -61,6 +61,11 @@ namespace ProjectPVP.Match
             return slotId.ToDisplayName();
         }
 
+        public CombatantControlMode ResolveControlMode()
+        {
+            return ResolvePlayerProfile().ResolveControlMode();
+        }
+
         public Color ResolveDebugTint()
         {
             return ResolvePlayerProfile().ResolveDebugTint(slotId);
