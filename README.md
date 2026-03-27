@@ -20,6 +20,7 @@ Resumo dele:
 - novo fluxo de personagens com catalogos, bootstrap profiles e roster de combate
 - polimento forte em colisao, rampas, wall jump, quinas e leitura de greybox
 - arena atualizada com imagens novas, suporte a video background e apresentacao melhor no repositorio
+- memoria operacional para IA em `Docs/ContextAndAiGuide`, com entradas datadas e pacote de integracao
 
 ## O que ja temos de mais legal
 

@@ -240,6 +240,16 @@ if (player1.IsKnockedBack)
 
 ## Git Workflow
 
+### ContextAndAiGuide
+```powershell
+.\tools\context-ai-guide.ps1 new-entry -Slug minha-sessao -Title "titulo da sessao"
+.\tools\context-ai-guide.ps1 refresh-current -EntryRelativePath "Docs/ContextAndAiGuide/Daily/YYYY-MM-DD-minha-sessao.md"
+```
+
+- toda IA deve ler `Docs/ContextAndAiGuide/CURRENT_CONTEXT.md` antes de continuar
+- toda sessao deve gerar um arquivo datado em `Docs/ContextAndAiGuide/Daily/`
+- handoffs, manifests e pacotes de integracao devem ir para `Docs/ContextAndAiGuide/Packages/`
+
 ### Before Starting Work
 ```bash
 git status                    # Check current state
