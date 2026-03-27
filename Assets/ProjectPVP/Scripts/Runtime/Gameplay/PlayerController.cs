@@ -207,6 +207,15 @@ namespace ProjectPVP.Gameplay
         public float ResolvedUltimateReplayDuration => ResolveUltimateReplayDuration();
         public float DashParryTimeLeft => _dashParryTimer;
         public float DashPressTimeLeft => _dashPressTimer;
+        public float DashPrimaryCooldownLeft => _dashPrimaryCooldownLeft;
+        public float DashSecondaryCooldownLeft => _dashSecondaryCooldownLeft;
+        public float ShootCooldownLeft => _shootCooldownLeft;
+        public float MeleeCooldownLeft => _meleeCooldownLeft;
+        public float UltimateCooldownLeft => _ultimateCooldownLeft;
+        public float MeleeTimeLeft => _meleeTimeLeft;
+        public float UltimateTimeLeft => _ultimateTimeLeft;
+        public float HitStunTimeLeft => _hitStunTimeLeft;
+        public float KnockbackTimeLeft => _knockbackTimeLeft;
         public PlayerInputFrame CurrentInputFrame => _currentInputFrame;
         public string CurrentVisualActionKey => ResolveVisualActionKey();
         public ICombatantInputSource InputSource => _runtimeInputSource;
@@ -421,6 +430,12 @@ namespace ProjectPVP.Gameplay
         public void AddArrows(int amount)
         {
             _arrows = Mathf.Clamp(_arrows + amount, 0, ResolveMaxArrows());
+        }
+
+        public void AssignInputSource(MonoBehaviour source)
+        {
+            inputSource = source;
+            ConfigureInput();
         }
 
         public void Kill()
