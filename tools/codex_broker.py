@@ -3,11 +3,13 @@ import os
 import subprocess
 import threading
 import time
+import traceback
 from copy import deepcopy
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 from pathlib import Path
 from typing import Any
+from codex_trace_store import append_trace_event
 
 
 BROKER_HOST = os.environ.get("CODEX_BROKER_HOST", "127.0.0.1")
@@ -20,6 +22,7 @@ CODEX_TIMEOUT_SECONDS = float(os.environ.get("CODEX_TURN_TIMEOUT_SEC", "45"))
 CODEX_MODEL = os.environ.get("CODEX_MODEL", "")
 REPORT_INTERVAL_SECONDS = float(os.environ.get("CODEX_BROKER_REPORT_INTERVAL_SEC", "1.0"))
 REPORT_HEARTBEAT_SECONDS = float(os.environ.get("CODEX_BROKER_REPORT_HEARTBEAT_SEC", "5.0"))
+REPORT_CLEAR_SCREEN = os.environ.get("CODEX_BROKER_CLEAR_SCREEN", "0") == "1"
 SYSTEM_PROMPT = PROMPT_PATH.read_text(encoding="utf-8").strip()
 
 DEFAULT_INTENT = {
@@ -246,7 +249,7 @@ class BrokerSession:
     def __init__(self, slot_id: int, session_id: str, initial_intent: dict[str, Any] | None):
         self.slot_id = slot_id
         self.session_id = session_id
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.cached_intent = deepcopy(initial_intent) if initial_intent else deepcopy(DEFAULT_INTENT)
         self.cached_at_ms = now_ms()
         self.generated_at_frame = -1
@@ -314,7 +317,7 @@ class AgentDrivenSession:
     def __init__(self, slot_id: int, session_id: str, initial_prompt_state: dict[str, Any]):
         self.slot_id = slot_id
         self.session_id = session_id
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.prompt_state = deepcopy(initial_prompt_state)
         self.executor_feedback: dict[str, Any] = {}
         self.updated_at_ms = now_ms()
@@ -326,9 +329,19 @@ class AgentDrivenSession:
         self.last_error = ""
         self.reset_reason = ""
         self.stopped = False
+        self.agent_model = CODEX_MODEL or "codex-cli-default"
+        self.agent_phase = "waiting_for_agent"
+        self.agent_note = "No Codex heartbeat yet"
+        self.agent_last_heartbeat_ms = 0
+        self.agent_last_turn_started_ms = 0
+        self.agent_last_turn_completed_ms = 0
+        self.agent_thinking = False
+        self.agent_last_error = ""
+        self.codex_session_id = ""
 
     def state_payload(self) -> dict[str, Any]:
         with self.lock:
+            prompt_state = deepcopy(self.prompt_state)
             return {
                 "ok": True,
                 "sessionId": self.session_id,
@@ -336,7 +349,7 @@ class AgentDrivenSession:
                 "frame": self.frame,
                 "updatedAtUnixMs": self.updated_at_ms,
                 "forceRefresh": self.force_refresh,
-                "promptState": deepcopy(self.prompt_state),
+                "promptState": prompt_state,
                 "executorFeedback": deepcopy(self.executor_feedback),
                 "lastIntent": deepcopy(self.cached_intent),
                 "lastIntentUpdatedAtUnixMs": self.intent_updated_at_ms,
@@ -344,16 +357,23 @@ class AgentDrivenSession:
                 "resetReason": self.reset_reason,
                 "stopped": self.stopped,
                 "agentActionCount": self.agent_action_count,
+                "botId": str(prompt_state.get("botId", "") or ((prompt_state.get("self") or {}).get("botId", "")) or ""),
             }
 
     def report_payload(self) -> dict[str, Any]:
         with self.lock:
             input_payload = deepcopy((self.executor_feedback or {}).get("reportedInput") or {})
             source = str((self.executor_feedback or {}).get("source", "")).strip()
+            prompt_state = deepcopy(self.prompt_state)
+            self_prompt = prompt_state.get("self") or {}
+            arena = prompt_state.get("arena") or {}
             has_agent_action = self.agent_action_count > 0 and self.intent_updated_at_ms > 0
             controller_owner = describe_controller(source)
             if source.startswith("codex_") and not has_agent_action:
                 controller_owner = "BrokerDefault"
+            heartbeat_age_ms = -1
+            if self.agent_last_heartbeat_ms > 0:
+                heartbeat_age_ms = max(0, now_ms() - self.agent_last_heartbeat_ms)
             return {
                 "sessionId": self.session_id,
                 "slotId": self.slot_id,
@@ -367,9 +387,16 @@ class AgentDrivenSession:
                 "summary": str((self.executor_feedback or {}).get("summary", "")),
                 "intentMode": str((self.cached_intent or {}).get("mode", "")),
                 "intentReason": str((self.cached_intent or {}).get("reason", "")),
+                "botId": str(prompt_state.get("botId", "") or self_prompt.get("botId", "") or ""),
+                "botDisplayName": str(prompt_state.get("botDisplayName", "") or self_prompt.get("botDisplayName", "") or ""),
                 "feedbackIntentMode": str((self.executor_feedback or {}).get("intentMode", "")),
                 "feedbackIntentReason": str((self.executor_feedback or {}).get("intentReason", "")),
                 "intentAgeMs": (self.executor_feedback or {}).get("intentAgeMs", -1),
+                "roundsToChampion": int(arena.get("roundsToChampion", 0) or 0),
+                "playerOneWins": int(arena.get("playerOneWins", 0) or 0),
+                "playerTwoWins": int(arena.get("playerTwoWins", 0) or 0),
+                "pendingRoundWinnerSlot": int(arena.get("pendingRoundWinnerSlot", 0) or 0),
+                "pendingChampionSlot": int(arena.get("pendingChampionSlot", 0) or 0),
                 "projectileThreatActive": bool((self.executor_feedback or {}).get("projectileThreatActive", False)),
                 "targetVisible": bool((self.executor_feedback or {}).get("targetVisible", False)),
                 "roundResetPending": bool((self.executor_feedback or {}).get("roundResetPending", False)),
@@ -377,6 +404,16 @@ class AgentDrivenSession:
                 "lastInputSummary": compact_input(input_payload),
                 "agentActionCount": self.agent_action_count,
                 "hasAgentAction": has_agent_action,
+                "agentModel": self.agent_model,
+                "agentPhase": self.agent_phase,
+                "agentThinking": self.agent_thinking,
+                "agentNote": self.agent_note,
+                "agentHeartbeatAgeMs": heartbeat_age_ms,
+                "agentLastHeartbeatUnixMs": self.agent_last_heartbeat_ms,
+                "agentLastTurnStartedUnixMs": self.agent_last_turn_started_ms,
+                "agentLastTurnCompletedUnixMs": self.agent_last_turn_completed_ms,
+                "agentLastError": self.agent_last_error,
+                "codexSessionId": self.codex_session_id,
                 "lastError": self.last_error,
                 "resetReason": self.reset_reason,
             }
@@ -400,6 +437,51 @@ class AgentDrivenSession:
             self.force_refresh = False
             return self.intent_envelope()
 
+    def refresh_start(self, initial_prompt_state: dict[str, Any]) -> dict[str, Any]:
+        with self.lock:
+            self.prompt_state = deepcopy(initial_prompt_state)
+            self.frame = int(initial_prompt_state.get("frame", self.frame))
+            self.updated_at_ms = now_ms()
+            self.force_refresh = True
+            self.stopped = False
+            return self.intent_envelope()
+
+    def update_agent_status(self, payload: dict[str, Any]) -> None:
+        with self.lock:
+            model = str(payload.get("model", "")).strip()
+            phase = str(payload.get("phase", "")).strip()
+            note = str(payload.get("note", "")).strip()
+            codex_session_id = str(payload.get("codexSessionId", "")).strip()
+            error = str(payload.get("error", "")).strip()
+            turn_started_ms = payload.get("turnStartedUnixMs")
+            turn_completed_ms = payload.get("turnCompletedUnixMs")
+
+            if model:
+                self.agent_model = model[:64]
+            if phase:
+                self.agent_phase = phase[:32]
+            if note:
+                self.agent_note = note[:160]
+            if codex_session_id:
+                self.codex_session_id = codex_session_id[:128]
+            if error:
+                self.agent_last_error = error[:160]
+
+            self.agent_thinking = bool(payload.get("thinking", False))
+            self.agent_last_heartbeat_ms = now_ms()
+
+            try:
+                if turn_started_ms is not None:
+                    self.agent_last_turn_started_ms = max(0, int(turn_started_ms))
+            except (TypeError, ValueError):
+                pass
+
+            try:
+                if turn_completed_ms is not None:
+                    self.agent_last_turn_completed_ms = max(0, int(turn_completed_ms))
+            except (TypeError, ValueError):
+                pass
+
     def reset(self, reason: str) -> None:
         with self.lock:
             self.reset_reason = reason
@@ -408,6 +490,8 @@ class AgentDrivenSession:
     def stop(self) -> None:
         with self.lock:
             self.stopped = True
+            self.agent_phase = "stopped"
+            self.agent_thinking = False
 
     def intent_envelope(self) -> dict[str, Any]:
         has_agent_action = self.agent_action_count > 0 and self.intent_updated_at_ms > 0
@@ -459,10 +543,17 @@ def build_console_report(snapshot: dict[str, Any]) -> str:
             f"slot={session.get('slotId')} "
             f"owner={session.get('controllerOwner')} "
             f"source={session.get('controllerSource')} "
+            f"model={session.get('agentModel') or '-'} "
+            f"phase={session.get('agentPhase') or '-'} "
+            f"thinking={'yes' if session.get('agentThinking') else 'no'} "
+            f"hbMs={session.get('agentHeartbeatAgeMs', -1)} "
+            f"codexSession={(session.get('codexSessionId') or '-')[:12]} "
             f"frame={session.get('frame')} "
+            f"actions={session.get('agentActionCount', 0)} "
             f"intent={session.get('intentMode') or '-'} "
             f"why={session.get('intentReason') or '-'} "
-            f"input={session.get('lastInputSummary') or '-'}"
+            f"input={session.get('lastInputSummary') or '-'} "
+            f"note={session.get('agentNote') or '-'}"
         )
     return "\n".join(lines)
 
@@ -479,7 +570,10 @@ def reporter_loop() -> None:
             should_print = now - last_printed_at >= REPORT_HEARTBEAT_SECONDS
 
         if should_print:
-            print(build_console_report(snapshot), flush=True)
+            report_text = build_console_report(snapshot)
+            if REPORT_CLEAR_SCREEN:
+                print("\x1b[2J\x1b[H", end="", flush=True)
+            print(report_text, flush=True)
             last_digest = digest
             last_printed_at = now
 
@@ -511,44 +605,58 @@ class BrokerHandler(BaseHTTPRequestHandler):
         except ValueError as exc:
             self._write_json(400, {"ok": False, "error": str(exc)})
             return
-
-        if self.path == "/session/start":
-            self._handle_session_start(payload)
+        except Exception as exc:
+            log_event("request_parse_failed", path=self.path, error=repr(exc))
+            print(traceback.format_exc(), flush=True)
+            self._safe_write_json(500, {"ok": False, "error": f"request_parse_failed:{type(exc).__name__}"})
             return
 
-        if self.path == "/strategy/tick":
-            self._handle_strategy_tick(payload)
-            return
+        try:
+            if self.path == "/session/start":
+                self._handle_session_start(payload)
+                return
 
-        if self.path == "/session/reset":
-            self._handle_session_reset(payload)
-            return
+            if self.path == "/strategy/tick":
+                self._handle_strategy_tick(payload)
+                return
 
-        if self.path == "/session/stop":
-            self._handle_session_stop(payload)
-            return
+            if self.path == "/session/reset":
+                self._handle_session_reset(payload)
+                return
 
-        if self.path == "/agent/session/start":
-            self._handle_agent_session_start(payload)
-            return
+            if self.path == "/session/stop":
+                self._handle_session_stop(payload)
+                return
 
-        if self.path == "/agent/state":
-            self._handle_agent_state(payload)
-            return
+            if self.path == "/agent/session/start":
+                self._handle_agent_session_start(payload)
+                return
 
-        if self.path == "/agent/action":
-            self._handle_agent_action(payload)
-            return
+            if self.path == "/agent/state":
+                self._handle_agent_state(payload)
+                return
 
-        if self.path == "/agent/session/reset":
-            self._handle_agent_session_reset(payload)
-            return
+            if self.path == "/agent/action":
+                self._handle_agent_action(payload)
+                return
 
-        if self.path == "/agent/session/stop":
-            self._handle_agent_session_stop(payload)
-            return
+            if self.path == "/agent/heartbeat":
+                self._handle_agent_heartbeat(payload)
+                return
 
-        self._write_json(404, {"ok": False, "error": "not_found"})
+            if self.path == "/agent/session/reset":
+                self._handle_agent_session_reset(payload)
+                return
+
+            if self.path == "/agent/session/stop":
+                self._handle_agent_session_stop(payload)
+                return
+
+            self._write_json(404, {"ok": False, "error": "not_found"})
+        except Exception as exc:
+            log_event("request_handler_failed", path=self.path, error=repr(exc))
+            print(traceback.format_exc(), flush=True)
+            self._safe_write_json(500, {"ok": False, "error": f"request_handler_failed:{type(exc).__name__}"})
 
     def log_message(self, format: str, *args: Any) -> None:
         return
@@ -604,13 +712,40 @@ class BrokerHandler(BaseHTTPRequestHandler):
 
     def _handle_agent_session_start(self, payload: dict[str, Any]) -> None:
         slot_id = int(payload.get("slotId", 2))
-        prompt_state = payload.get("promptState") or {}
-        session_id = f"agent-slot-{slot_id}-{now_ms()}"
-        session = AgentDrivenSession(slot_id, session_id, prompt_state)
+        prompt_state_raw = payload.get("promptState")
+        prompt_state = prompt_state_raw if isinstance(prompt_state_raw, dict) else {}
+        log_event(
+            "agent_session_start_request",
+            slot=slot_id,
+            frame=prompt_state.get("frame", -1),
+            promptStateType=type(prompt_state_raw).__name__,
+        )
         with AGENT_LOCK:
+            existing_session_id = AGENT_SESSION_BY_SLOT.get(slot_id, "")
+            existing_session = AGENT_SESSIONS.get(existing_session_id) if existing_session_id else None
+            if existing_session is not None and not existing_session.stopped:
+                envelope = existing_session.refresh_start(prompt_state)
+                append_trace_event("unity_agent_session_reused", {
+                    "slotId": slot_id,
+                    "sessionId": existing_session.session_id,
+                    "frame": int(prompt_state.get("frame", -1)),
+                    "promptState": prompt_state,
+                })
+                log_event("agent_session_started", slot=slot_id, session=existing_session.session_id[:16], frame=prompt_state.get("frame", -1), reused=True)
+                self._write_json(200, envelope)
+                return
+
+            session_id = f"agent-slot-{slot_id}-{now_ms()}"
+            session = AgentDrivenSession(slot_id, session_id, prompt_state)
             AGENT_SESSIONS[session_id] = session
             AGENT_SESSION_BY_SLOT[slot_id] = session_id
-        log_event("agent_session_started", slot=slot_id, session=session_id[:16], frame=prompt_state.get("frame", -1))
+        append_trace_event("unity_agent_session_started", {
+            "slotId": slot_id,
+            "sessionId": session_id,
+            "frame": int(prompt_state.get("frame", -1)),
+            "promptState": prompt_state,
+        })
+        log_event("agent_session_started", slot=slot_id, session=session_id[:16], frame=prompt_state.get("frame", -1), reused=False)
         self._write_json(200, session.intent_envelope())
 
     def _handle_agent_state(self, payload: dict[str, Any]) -> None:
@@ -624,6 +759,16 @@ class BrokerHandler(BaseHTTPRequestHandler):
 
         envelope = session.publish_state(payload)
         report = session.report_payload()
+        append_trace_event("unity_state_received", {
+            "slotId": report["slotId"],
+            "sessionId": session_id,
+            "frame": report["frame"],
+            "promptState": deepcopy(payload.get("promptState") or {}),
+            "executorFeedback": deepcopy(payload.get("executorFeedback") or {}),
+            "forceRefresh": bool(payload.get("forceRefresh", False)),
+            "controllerOwner": report["controllerOwner"],
+            "controllerSource": report["controllerSource"],
+        })
         log_event(
             "agent_state",
             slot=report["slotId"],
@@ -649,8 +794,38 @@ class BrokerHandler(BaseHTTPRequestHandler):
             return
 
         envelope = session.publish_action(intent)
+        append_trace_event("broker_action_received", {
+            "slotId": session.slot_id,
+            "sessionId": session_id,
+            "intent": intent,
+            "frame": session.frame,
+        })
         log_event("agent_action", slot=session.slot_id, mode=intent["mode"], why=intent["reason"] or "-", session=session_id[:16])
         self._write_json(200, envelope)
+
+    def _handle_agent_heartbeat(self, payload: dict[str, Any]) -> None:
+        session_id = str(payload.get("sessionId", "")).strip()
+        with AGENT_LOCK:
+            session = AGENT_SESSIONS.get(session_id)
+
+        if session is None:
+            self._write_json(404, {"ok": False, "error": "unknown_agent_session"})
+            return
+
+        session.update_agent_status(payload)
+        append_trace_event("broker_heartbeat_received", {
+            "slotId": session.slot_id,
+            "sessionId": session_id,
+            "phase": str(payload.get("phase", "")),
+            "thinking": bool(payload.get("thinking", False)),
+            "note": str(payload.get("note", "")),
+            "error": str(payload.get("error", "")),
+            "model": str(payload.get("model", "")),
+            "codexSessionId": str(payload.get("codexSessionId", "")),
+            "turnStartedUnixMs": payload.get("turnStartedUnixMs", 0),
+            "turnCompletedUnixMs": payload.get("turnCompletedUnixMs", 0),
+        })
+        self._write_json(200, {"ok": True, "sessionId": session_id})
 
     def _handle_agent_session_reset(self, payload: dict[str, Any]) -> None:
         session_id = str(payload.get("sessionId", "")).strip()
@@ -719,6 +894,13 @@ class BrokerHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(encoded)))
         self.end_headers()
         self.wfile.write(encoded)
+
+    def _safe_write_json(self, status_code: int, payload: dict[str, Any]) -> None:
+        try:
+            self._write_json(status_code, payload)
+        except Exception as exc:
+            log_event("response_write_failed", path=self.path, error=repr(exc))
+            print(traceback.format_exc(), flush=True)
 
 
 def main() -> None:

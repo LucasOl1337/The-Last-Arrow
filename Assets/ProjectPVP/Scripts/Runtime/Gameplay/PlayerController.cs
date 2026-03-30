@@ -48,6 +48,7 @@ namespace ProjectPVP.Gameplay
         private PlayerActionLockSystem _actionLockSystem;
         private PlayerAnchorSystem _anchorSystem;
         private PlayerCombatSystem _combatSystem;
+        private bool _externalControlLock;
 
         public int playerId
         {
@@ -57,6 +58,8 @@ namespace ProjectPVP.Gameplay
 
         public CombatantSlotId SlotId => CombatantSlotIdUtility.FromInt(slotId);
         public CombatantSlotProfile SlotProfile => slotProfile;
+        public string BotId => slotProfile != null ? slotProfile.ResolveBotId(SlotId) : string.Empty;
+        public string BotDisplayName => slotProfile != null ? slotProfile.ResolveBotDisplayName(SlotId) : SlotId.ToDisplayName();
         public int Facing => _context.facing;
         public int CurrentArrows => _context.arrows;
         public bool IsDead => _context.isDead;
@@ -71,6 +74,7 @@ namespace ProjectPVP.Gameplay
         public bool IsUltimateActive => _context != null && _context.ultimateTimeLeft > 0f;
         public bool IsHitStunned => _context.hitStunTimeLeft > 0f;
         public bool IsKnockedBack => _context.knockbackTimeLeft > 0f;
+        public bool IsExternallyControlLocked => _externalControlLock;
         public float ShootCooldownLeft => _context != null ? _context.shootCooldownLeft : 0f;
         public float MeleeCooldownLeft => _context != null ? _context.meleeCooldownLeft : 0f;
         public float DashPrimaryCooldownLeft => _context != null ? _context.dashPrimaryCooldownLeft : 0f;
@@ -188,6 +192,12 @@ namespace ProjectPVP.Gameplay
                 return;
             }
 
+            if (_externalControlLock)
+            {
+                ApplyExternalControlLockState();
+                return;
+            }
+
             EnsureCharacterMechanicsRuntime();
             CaptureInputFrame();
 
@@ -280,7 +290,7 @@ namespace ProjectPVP.Gameplay
 
         private void Update()
         {
-            if (_context == null || _context.RuntimeInputSource == null)
+            if (_context == null || _context.RuntimeInputSource == null || _externalControlLock)
             {
                 return;
             }
@@ -304,6 +314,15 @@ namespace ProjectPVP.Gameplay
             _movementSystem.SnapToGroundAtSpawn(worldPosition);
             _collisionSystem.RefreshCollisionState();
             _context.CharacterMechanicsRuntime?.OnSpawned();
+        }
+
+        public void SetExternalControlLock(bool locked)
+        {
+            _externalControlLock = locked;
+            if (locked)
+            {
+                ApplyExternalControlLockState();
+            }
         }
 
         public void AddArrows(int amount)
@@ -617,6 +636,11 @@ namespace ProjectPVP.Gameplay
                 ? slotProfile.ResolveControlMode()
                 : CombatantControlMode.Human;
 
+            if (Application.isPlaying)
+            {
+                Debug.Log($"[CodexBot] PlayerController slot {slotId} resolving input source mode={controlMode} brain={(slotProfile != null ? slotProfile.ResolveAiBrain().ToString() : "<none>")}");
+            }
+
             switch (controlMode)
             {
                 case CombatantControlMode.AI:
@@ -731,6 +755,11 @@ namespace ProjectPVP.Gameplay
                 ? slotProfile.ResolveAiBrain()
                 : AiBrainKind.LocalHeuristic;
 
+            if (Application.isPlaying)
+            {
+                Debug.Log($"[CodexBot] PlayerController slot {slotId} selecting AI source brain={aiBrain}");
+            }
+
             return aiBrain == AiBrainKind.CodexBroker
                 ? EnsureCodexBrokerInputSource()
                 : EnsureLocalAiInputSource();
@@ -742,11 +771,13 @@ namespace ProjectPVP.Gameplay
             if (brokerInput == null && Application.isPlaying)
             {
                 brokerInput = gameObject.AddComponent<CodexBrokerCombatantInputSource>();
+                Debug.Log($"[CodexBot] PlayerController slot {slotId} added CodexBrokerCombatantInputSource.");
             }
 
             if (brokerInput != null)
             {
                 brokerInput.ConfigureForSlot(SlotId);
+                Debug.Log($"[CodexBot] PlayerController slot {slotId} configured CodexBrokerCombatantInputSource.");
             }
 
             return brokerInput;
@@ -798,6 +829,26 @@ namespace ProjectPVP.Gameplay
 
             _context.RuntimeInputSource.CaptureFrame();
             _context.currentInputFrame = _context.RuntimeInputSource.CurrentFrame;
+        }
+
+        private void ApplyExternalControlLockState()
+        {
+            if (_context == null)
+            {
+                return;
+            }
+
+            _context.currentInputFrame = default;
+            _context.shootHeldLastFrame = false;
+            _context.aimHoldActive = false;
+
+            if (body != null)
+            {
+                body.linearVelocity = Vector2.zero;
+            }
+
+            _collisionSystem.RefreshCollisionState();
+            UpdatePresentationState();
         }
 
         private void ApplyDefinitionToCollider()

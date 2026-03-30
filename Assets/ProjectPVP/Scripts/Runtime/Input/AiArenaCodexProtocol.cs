@@ -85,6 +85,8 @@ namespace ProjectPVP.Input
     public sealed class CodexPromptState
     {
         public int frame;
+        public string botId = string.Empty;
+        public string botDisplayName = string.Empty;
         public string task = "win the round safely";
         public CodexPromptCombatant self = new CodexPromptCombatant();
         public CodexPromptCombatant target = new CodexPromptCombatant();
@@ -98,6 +100,8 @@ namespace ProjectPVP.Input
     public sealed class CodexPromptCombatant
     {
         public int slotId;
+        public string botId = string.Empty;
+        public string botDisplayName = string.Empty;
         public string displayName = string.Empty;
         public string actionKey = string.Empty;
         public bool isDead;
@@ -123,6 +127,14 @@ namespace ProjectPVP.Input
     public sealed class CodexPromptArena
     {
         public bool roundResetPending;
+        public int roundsToChampion;
+        public int playerOneWins;
+        public int playerTwoWins;
+        public int currentRespawnSeedIndex;
+        public string currentRespawnSeedLabel = string.Empty;
+        public int pendingRoundWinnerSlot;
+        public int pendingChampionSlot;
+        public int championAnnouncementSlot;
         public bool selfCornered;
         public bool targetCornered;
         public float horizontalDistance;

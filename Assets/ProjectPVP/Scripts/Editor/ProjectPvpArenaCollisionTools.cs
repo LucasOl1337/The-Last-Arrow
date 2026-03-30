@@ -57,11 +57,11 @@ namespace ProjectPVP.EditorTools
                 new Vector2( 923.0845f, -718.6229f),
                 new Vector2( 920.0106f, -715.5986f),
                 new Vector2( 893.4595f, -395.7075f),
-                new Vector2(1281.4905f, -396.6788f)),
+                new Vector2(1281.4905f, -435.1032f)),
 
             new EdgeStamp("Right Lower Ledge",
                 new Vector2(1022.5819f, -406.0453f),
-                new Vector2(1281.4905f, -396.6788f)),
+                new Vector2(1281.4905f, -435.1032f)),
 
             new EdgeStamp("Left Mid Platform",
                 new Vector2(-618.3665f, 105.4300f),
@@ -78,7 +78,7 @@ namespace ProjectPVP.EditorTools
 
             new EdgeStamp("Upper Right Ledge",
                 new Vector2( 896.9836f, 381.3927f),
-                new Vector2(1281.3246f, 396.5228f)),
+                new Vector2(1281.3246f, 372.6032f)),
 
             new EdgeStamp("Right Mid Platform",
                 new Vector2( 784.6702f, -79.3488f),

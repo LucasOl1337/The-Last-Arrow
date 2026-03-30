@@ -61,6 +61,20 @@ namespace ProjectPVP.Match
             return slotId.ToDisplayName();
         }
 
+        public string ResolveBotId()
+        {
+            return playerProfile != null
+                ? playerProfile.ResolveBotId(slotId)
+                : string.Empty;
+        }
+
+        public string ResolveBotDisplayName()
+        {
+            return playerProfile != null
+                ? playerProfile.ResolveBotDisplayName(slotId)
+                : ResolveDisplayName();
+        }
+
         public CombatantControlMode ResolveControlMode()
         {
             return ResolvePlayerProfile().ResolveControlMode();
@@ -79,7 +93,9 @@ namespace ProjectPVP.Match
             }
 
             controller.slotId = Mathf.Max(1, slotId.ToInt());
-            controller.AssignSlotProfile(ResolvePlayerProfile());
+            CombatantSlotProfile resolvedProfile = ResolvePlayerProfile();
+            controller.AssignSlotProfile(resolvedProfile);
+            Debug.Log($"[CodexBot] ApplySelectionToController slot={slotId} mode={resolvedProfile?.controlMode} brain={resolvedProfile?.aiBrain} controller={(controller != null ? controller.name : "<null>")}");
 
             if (characterProfile != null)
             {

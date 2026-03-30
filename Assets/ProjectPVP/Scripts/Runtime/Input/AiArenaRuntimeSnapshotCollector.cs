@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -32,7 +33,7 @@ namespace ProjectPVP.Input
             }
 
             _controllers.Clear();
-            MonoBehaviour[] behaviours = Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            MonoBehaviour[] behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
             for (int index = 0; index < behaviours.Length; index += 1)
             {
                 MonoBehaviour behaviour = behaviours[index];
@@ -94,7 +95,7 @@ namespace ProjectPVP.Input
         public List<AiArenaProjectileSnapshot> ResolveProjectileSnapshots(AiArenaControllerSnapshot self)
         {
             var projectiles = new List<AiArenaProjectileSnapshot>(8);
-            MonoBehaviour[] behaviours = Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            MonoBehaviour[] behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
             for (int index = 0; index < behaviours.Length; index += 1)
             {
                 MonoBehaviour behaviour = behaviours[index];
@@ -117,7 +118,7 @@ namespace ProjectPVP.Input
 
         public AiArenaArenaSnapshot ResolveArenaSnapshot()
         {
-            MonoBehaviour[] behaviours = Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+            MonoBehaviour[] behaviours = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
             for (int index = 0; index < behaviours.Length; index += 1)
             {
                 MonoBehaviour behaviour = behaviours[index];
@@ -130,6 +131,14 @@ namespace ProjectPVP.Input
                 {
                     wrapBounds = ReadRectProperty(behaviour, "ActiveWrapBounds", new Rect(-1280f, -720f, 2560f, 1440f)),
                     roundResetPending = ReadBoolProperty(behaviour, "IsRoundResetPending", false),
+                    roundsToChampion = ReadIntProperty(behaviour, "RoundsToChampion", 1),
+                    playerOneWins = ReadIntProperty(behaviour, "PlayerOneWins", 0),
+                    playerTwoWins = ReadIntProperty(behaviour, "PlayerTwoWins", 0),
+                    currentRespawnSeedIndex = ReadIntProperty(behaviour, "CurrentRespawnSeedIndex", 0),
+                    currentRespawnSeedLabel = ReadStringProperty(behaviour, "CurrentRespawnSeedLabel", "Fallback"),
+                    pendingRoundWinnerSlot = ReadEnumAsIntProperty(behaviour, "PendingRoundWinnerSlot", 0),
+                    pendingChampionSlot = ReadEnumAsIntProperty(behaviour, "PendingChampionSlot", 0),
+                    championAnnouncementSlot = ReadEnumAsIntProperty(behaviour, "ChampionAnnouncementSlot", 0),
                 };
             }
 
@@ -137,6 +146,14 @@ namespace ProjectPVP.Input
             {
                 wrapBounds = new Rect(-1280f, -720f, 2560f, 1440f),
                 roundResetPending = false,
+                roundsToChampion = 1,
+                playerOneWins = 0,
+                playerTwoWins = 0,
+                currentRespawnSeedIndex = 0,
+                currentRespawnSeedLabel = "Fallback",
+                pendingRoundWinnerSlot = 0,
+                pendingChampionSlot = 0,
+                championAnnouncementSlot = 0,
             };
         }
 
@@ -156,6 +173,8 @@ namespace ProjectPVP.Input
             {
                 isValid = true,
                 slotId = resolvedSlotId,
+                botId = ReadStringProperty(controller, "BotId", string.Empty),
+                botDisplayName = ReadStringProperty(controller, "BotDisplayName", controller.name),
                 characterId = ReadStringField(controller, "characterDefinition", string.Empty),
                 displayName = controller.name,
                 actionKey = ReadStringProperty(controller, "CurrentVisualActionKey", string.Empty),
@@ -329,6 +348,30 @@ namespace ProjectPVP.Input
             }
         }
 
+        private static int ReadEnumAsIntProperty(MonoBehaviour behaviour, string propertyName, int fallback)
+        {
+            try
+            {
+                var property = behaviour.GetType().GetProperty(propertyName);
+                if (property == null)
+                {
+                    return fallback;
+                }
+
+                object value = property.GetValue(behaviour);
+                if (value == null)
+                {
+                    return fallback;
+                }
+
+                return value.GetType().IsEnum ? Convert.ToInt32(value) : fallback;
+            }
+            catch
+            {
+                return fallback;
+            }
+        }
+
         private static Rect ReadRectProperty(MonoBehaviour behaviour, string propertyName, Rect fallback)
         {
             try
@@ -379,6 +422,8 @@ namespace ProjectPVP.Input
     {
         public bool isValid;
         public int slotId;
+        public string botId;
+        public string botDisplayName;
         public string characterId;
         public string displayName;
         public string actionKey;
@@ -422,5 +467,13 @@ namespace ProjectPVP.Input
     {
         public Rect wrapBounds;
         public bool roundResetPending;
+        public int roundsToChampion;
+        public int playerOneWins;
+        public int playerTwoWins;
+        public int currentRespawnSeedIndex;
+        public string currentRespawnSeedLabel;
+        public int pendingRoundWinnerSlot;
+        public int pendingChampionSlot;
+        public int championAnnouncementSlot;
     }
 }

@@ -24,6 +24,14 @@ namespace ProjectPVP.Input
     public sealed class AiArenaArenaObservation
     {
         public bool roundResetPending;
+        public int roundsToChampion;
+        public int playerOneWins;
+        public int playerTwoWins;
+        public int currentRespawnSeedIndex;
+        public string currentRespawnSeedLabel = string.Empty;
+        public int pendingRoundWinnerSlot;
+        public int pendingChampionSlot;
+        public int championAnnouncementSlot;
         public float wrapXMin;
         public float wrapXMax;
         public float wrapYMin;
@@ -34,6 +42,8 @@ namespace ProjectPVP.Input
     public sealed class AiArenaCombatantObservation
     {
         public int slotId;
+        public string botId = string.Empty;
+        public string botDisplayName = string.Empty;
         public string characterId = string.Empty;
         public string displayName = string.Empty;
         public string actionKey = string.Empty;

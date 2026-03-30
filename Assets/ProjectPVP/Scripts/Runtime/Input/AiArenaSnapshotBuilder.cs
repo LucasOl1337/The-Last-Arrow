@@ -25,6 +25,14 @@ namespace ProjectPVP.Input
                 arena = new AiArenaArenaObservation
                 {
                     roundResetPending = arena.roundResetPending,
+                    roundsToChampion = arena.roundsToChampion,
+                    playerOneWins = arena.playerOneWins,
+                    playerTwoWins = arena.playerTwoWins,
+                    currentRespawnSeedIndex = arena.currentRespawnSeedIndex,
+                    currentRespawnSeedLabel = arena.currentRespawnSeedLabel ?? string.Empty,
+                    pendingRoundWinnerSlot = arena.pendingRoundWinnerSlot,
+                    pendingChampionSlot = arena.pendingChampionSlot,
+                    championAnnouncementSlot = arena.championAnnouncementSlot,
                     wrapXMin = arena.wrapBounds.xMin,
                     wrapXMax = arena.wrapBounds.xMax,
                     wrapYMin = arena.wrapBounds.yMin,
@@ -74,6 +82,8 @@ namespace ProjectPVP.Input
             return new AiArenaCombatantObservation
             {
                 slotId = snapshot.slotId,
+                botId = snapshot.botId,
+                botDisplayName = snapshot.botDisplayName,
                 characterId = snapshot.characterId,
                 displayName = snapshot.displayName,
                 actionKey = snapshot.actionKey,

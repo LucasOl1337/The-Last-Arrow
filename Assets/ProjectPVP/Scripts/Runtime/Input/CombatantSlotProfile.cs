@@ -17,6 +17,8 @@ namespace ProjectPVP.Match
         private static CombatantSlotProfile s_slotTwoFallback;
 
         public string displayName = string.Empty;
+        public string botId = string.Empty;
+        public string botDisplayName = string.Empty;
         public CombatantControlMode controlMode = CombatantControlMode.Human;
         public AiBrainKind aiBrain = AiBrainKind.LocalHeuristic;
         public bool useDefaultKeyboardBindings = true;
@@ -35,7 +37,31 @@ namespace ProjectPVP.Match
         {
             return !string.IsNullOrWhiteSpace(displayName)
                 ? displayName.Trim()
-                : slotId.ToDisplayName();
+                : (!string.IsNullOrWhiteSpace(botDisplayName)
+                    ? botDisplayName.Trim()
+                    : slotId.ToDisplayName());
+        }
+
+        public string ResolveBotId(CombatantSlotId slotId)
+        {
+            return !string.IsNullOrWhiteSpace(botId)
+                ? botId.Trim()
+                : string.Empty;
+        }
+
+        public string ResolveBotDisplayName(CombatantSlotId slotId)
+        {
+            if (!string.IsNullOrWhiteSpace(botDisplayName))
+            {
+                return botDisplayName.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(displayName))
+            {
+                return displayName.Trim();
+            }
+
+            return slotId.ToDisplayName();
         }
 
         public CombatantControlMode ResolveControlMode()
@@ -117,6 +143,8 @@ namespace ProjectPVP.Match
             CombatantSlotProfile fallback = CreateInstance<CombatantSlotProfile>();
             fallback.hideFlags = HideFlags.HideAndDontSave;
             fallback.displayName = slotId.ToDisplayName();
+            fallback.botId = string.Empty;
+            fallback.botDisplayName = slotId.ToDisplayName();
             fallback.controlMode = CombatantControlMode.Human;
             fallback.aiBrain = AiBrainKind.LocalHeuristic;
             fallback.useDefaultKeyboardBindings = true;
