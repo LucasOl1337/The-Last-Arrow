@@ -30,6 +30,9 @@
 # OS
 Thumbs.db
 Desktop.ini
+__pycache__/
+*.pyc
+*.pyo
 
 # Unity recovery
 Assets/_Recovery/
@@ -38,3 +41,10 @@ Assets/_Recovery.meta
 # Local backups and side experiments
 Backups/
 webV/
+
+# Python runtime outputs
+tools/*.log
+tools/*.out.log
+tools/*.err.log
+tools/bot_memory/
+tools/tests/__pycache__/

@@ -47,12 +47,15 @@ namespace ProjectPVP.Editor
 
         private static void DrawMechanicsAnchorShortcuts(PlayerController controller)
         {
-            if (controller == null || controller.characterDefinition == null || controller.characterDefinition.mechanicsModule == null)
+            CharacterMechanicsModule mechanicsModule = controller != null && controller.characterDefinition != null
+                ? controller.characterDefinition.ResolveMechanicsModule()
+                : null;
+            if (mechanicsModule == null)
             {
                 return;
             }
 
-            foreach (CharacterMechanicsSceneAnchorDefinition definition in controller.characterDefinition.mechanicsModule.GetAdditionalSceneAnchors(controller, controller.characterDefinition))
+            foreach (CharacterMechanicsSceneAnchorDefinition definition in mechanicsModule.GetAdditionalSceneAnchors(controller, controller.characterDefinition))
             {
                 if (definition == null || string.IsNullOrWhiteSpace(definition.childName))
                 {
@@ -217,13 +220,16 @@ namespace ProjectPVP.Editor
 
         private static void DrawAdditionalAnchorHandles(PlayerController controller)
         {
-            if (controller == null || controller.characterDefinition == null || controller.characterDefinition.mechanicsModule == null)
+            CharacterMechanicsModule mechanicsModule = controller != null && controller.characterDefinition != null
+                ? controller.characterDefinition.ResolveMechanicsModule()
+                : null;
+            if (mechanicsModule == null)
             {
                 return;
             }
 
             Vector3 rootPosition = controller.transform.position;
-            foreach (CharacterMechanicsSceneAnchorDefinition definition in controller.characterDefinition.mechanicsModule.GetAdditionalSceneAnchors(controller, controller.characterDefinition))
+            foreach (CharacterMechanicsSceneAnchorDefinition definition in mechanicsModule.GetAdditionalSceneAnchors(controller, controller.characterDefinition))
             {
                 if (definition == null || string.IsNullOrWhiteSpace(definition.childName))
                 {
@@ -336,12 +342,15 @@ namespace ProjectPVP.Editor
 
         private static void CreateAdditionalMechanicsAnchors(PlayerController controller)
         {
-            if (controller == null || controller.characterDefinition == null || controller.characterDefinition.mechanicsModule == null)
+            CharacterMechanicsModule mechanicsModule = controller != null && controller.characterDefinition != null
+                ? controller.characterDefinition.ResolveMechanicsModule()
+                : null;
+            if (mechanicsModule == null)
             {
                 return;
             }
 
-            foreach (CharacterMechanicsSceneAnchorDefinition definition in controller.characterDefinition.mechanicsModule.GetAdditionalSceneAnchors(controller, controller.characterDefinition))
+            foreach (CharacterMechanicsSceneAnchorDefinition definition in mechanicsModule.GetAdditionalSceneAnchors(controller, controller.characterDefinition))
             {
                 if (definition == null || string.IsNullOrWhiteSpace(definition.childName))
                 {

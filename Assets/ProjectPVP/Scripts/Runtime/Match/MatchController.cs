@@ -1,14 +1,56 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using ProjectPVP.Audio;
 using ProjectPVP.Characters;
 using ProjectPVP.Data;
 using ProjectPVP.Gameplay;
+using ProjectPVP.Input;
+using RuntimeInput = global::UnityEngine.Input;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 namespace ProjectPVP.Match
 {
+    [System.Serializable]
+    public sealed class RoundRespawnSeed
+    {
+        public string label = string.Empty;
+        public Vector2 slotOneSpawnPoint;
+        public Vector2 slotTwoSpawnPoint;
+
+        public Vector2 GetSpawnPoint(CombatantSlotId slotId)
+        {
+            return slotId == CombatantSlotId.SlotTwo ? slotTwoSpawnPoint : slotOneSpawnPoint;
+        }
+
+        public string ResolveLabel(int seedNumber)
+        {
+            return string.IsNullOrWhiteSpace(label)
+                ? $"Seed {seedNumber}"
+                : label.Trim();
+        }
+    }
+
+    [Serializable]
+    internal sealed class RuntimeBotMenuSlotAssignment
+    {
+        public int slotId;
+        public bool enabled;
+        public string botId = string.Empty;
+        public string displayName = string.Empty;
+        public string provider = string.Empty;
+        public string model = string.Empty;
+    }
+
+    [Serializable]
+    internal sealed class RuntimeBotMenuAssignmentsFile
+    {
+        public string updatedAt = string.Empty;
+        public List<RuntimeBotMenuSlotAssignment> slots = new List<RuntimeBotMenuSlotAssignment>();
+    }
+
     public sealed class MatchController : MonoBehaviour
     {
         public ArenaDefinitionAsset arenaDefinition;
@@ -22,20 +64,74 @@ namespace ProjectPVP.Match
         public bool wrapEnabled = true;
         public int maxWins = 5;
         public float roundResetDelay = 1.25f;
+        public float respawnFreezeDuration = 0.5f;
+        public float championAnnouncementDuration = 2f;
+        [SerializeField] private List<RoundRespawnSeed> roundRespawnSeeds = CreateDefaultRespawnSeeds();
+        [SerializeField] private int currentRespawnSeedIndex;
         public Vector2 defaultPlayerOneSpawn = new Vector2(-420f, -540f);
         public Vector2 defaultPlayerTwoSpawn = new Vector2(420f, -540f);
         public Rect defaultWrapBounds = new Rect(-1280f, -720f, 2560f, 1440f);
         public Vector2 defaultWrapPadding = new Vector2(40f, 40f);
+        [Header("Debug Shortcuts")]
+        public bool enableDebugShortcuts = true;
+        public bool autoEnableSlotTwoDebugBotOnPlay = true;
+        public bool autoForceCodexBrokerForSlotTwoOnPlay = true;
+        public AiBrainKind slotTwoDebugAiBrain = AiBrainKind.LocalHeuristic;
 
         private AudioSource _musicSource;
         [SerializeField] private int[] slotWins = new int[2];
         private Coroutine _roundResetRoutine;
+        private readonly Dictionary<CombatantSlotId, CombatantSlotProfile> _runtimeOriginalProfiles = new Dictionary<CombatantSlotId, CombatantSlotProfile>();
+        private readonly Dictionary<CombatantSlotId, CombatantSlotProfile> _runtimeOverrideProfiles = new Dictionary<CombatantSlotId, CombatantSlotProfile>();
+        private CombatantSlotProfile _slotTwoOriginalProfile;
+        private CombatantSlotProfile _slotTwoRuntimeBotProfile;
+        private bool _slotTwoBotShortcutEnabled;
+        private CombatantSlotId _pendingRoundWinnerSlot = CombatantSlotId.None;
+        private CombatantSlotId _pendingChampionSlot = CombatantSlotId.None;
+        private float _respawnFreezeTimeLeft;
+        private CombatantSlotId _championAnnouncementSlot = CombatantSlotId.None;
+        private float _championAnnouncementTimeLeft;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void BootstrapSlotTwoCodexBot()
+        {
+            MatchController[] controllers = UnityEngine.Object.FindObjectsByType<MatchController>(FindObjectsSortMode.None);
+            if (controllers == null || controllers.Length == 0)
+            {
+                Debug.LogWarning("[CodexBot] Bootstrap could not find a MatchController after scene load.");
+                return;
+            }
+
+            for (int index = 0; index < controllers.Length; index += 1)
+            {
+                MatchController controller = controllers[index];
+                if (controller == null)
+                {
+                    continue;
+                }
+
+                Debug.Log($"[CodexBot] Bootstrap forcing runtime bot assignments on MatchController instance {controller.name}.");
+                controller.ForceCodexBotsReadyForPlay();
+            }
+        }
 
         public IReadOnlyList<CombatantSlotConfig> Slots => roster != null ? roster.Slots : System.Array.Empty<CombatantSlotConfig>();
         public IReadOnlyList<CharacterBootstrapProfile> AvailableCharacters => characterCatalog != null ? characterCatalog.Characters : System.Array.Empty<CharacterBootstrapProfile>();
+        public IReadOnlyList<RoundRespawnSeed> RoundRespawnSeeds => roundRespawnSeeds != null
+            ? roundRespawnSeeds
+            : System.Array.Empty<RoundRespawnSeed>();
         public int PlayerOneWins => GetWins(CombatantSlotId.SlotOne);
         public int PlayerTwoWins => GetWins(CombatantSlotId.SlotTwo);
+        public int RoundsToChampion => Mathf.Max(1, maxWins);
         public bool IsRoundResetPending => _roundResetRoutine != null;
+        public bool IsRespawnFreezeActive => _respawnFreezeTimeLeft > 0f;
+        public int CurrentRespawnSeedIndex => NormalizeRespawnSeedIndex(currentRespawnSeedIndex);
+        public string CurrentRespawnSeedLabel => TryGetRespawnSeed(CurrentRespawnSeedIndex, out RoundRespawnSeed seed)
+            ? seed.ResolveLabel(CurrentRespawnSeedIndex + 1)
+            : "Fallback";
+        public CombatantSlotId PendingRoundWinnerSlot => _pendingRoundWinnerSlot;
+        public CombatantSlotId PendingChampionSlot => _pendingChampionSlot;
+        public CombatantSlotId ChampionAnnouncementSlot => _championAnnouncementTimeLeft > 0f ? _championAnnouncementSlot : CombatantSlotId.None;
         public Rect ActiveWrapBounds => arenaDefinition != null ? arenaDefinition.wrapBounds : defaultWrapBounds;
         public Vector2 PlayerOneSpawnPoint => GetSpawnPoint(CombatantSlotId.SlotOne);
         public Vector2 PlayerTwoSpawnPoint => GetSpawnPoint(CombatantSlotId.SlotTwo);
@@ -50,17 +146,20 @@ namespace ProjectPVP.Match
         private void Awake()
         {
             SyncRosterAliases();
+            EnsureRespawnSeedConfiguration();
             EnsureRuntimeCombatantsForConfiguredSlots();
         }
 
         private void OnValidate()
         {
             SyncRosterAliases();
+            EnsureRespawnSeedConfiguration();
         }
 
         private void OnEnable()
         {
             SyncRosterAliases();
+            EnsureRespawnSeedConfiguration();
             SubscribePlayers();
         }
 
@@ -72,10 +171,38 @@ namespace ProjectPVP.Match
         private void Start()
         {
             SyncRosterAliases();
+            Debug.Log($"[CodexBot] MatchController.Start forcing runtime bot assignments auto-play={autoEnableSlotTwoDebugBotOnPlay} forceBrain={autoForceCodexBrokerForSlotTwoOnPlay}");
+            ForceCodexBotsReadyForPlay();
+            EnsureRoundHudOverlay();
             CacheSceneSpawnPoints();
             EnsureMusicSource();
             PlayArenaMusic();
-            RespawnPlayers();
+            RespawnPlayers(applyFreeze: false);
+            PrewarmCodexSessions();
+        }
+
+        private void Update()
+        {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            TickFreezeAndAnnouncements(Time.deltaTime);
+
+            if (!enableDebugShortcuts)
+            {
+                return;
+            }
+
+            bool shiftHeld = RuntimeInput.GetKey(global::UnityEngine.KeyCode.LeftShift)
+                || RuntimeInput.GetKey(global::UnityEngine.KeyCode.RightShift);
+            bool togglePressed = RuntimeInput.GetKeyDown(global::UnityEngine.KeyCode.B)
+                || RuntimeInput.GetKeyDown(global::UnityEngine.KeyCode.S);
+            if (shiftHeld && togglePressed)
+            {
+                EnsurePlayerTwoDebugBotEnabled(!_slotTwoBotShortcutEnabled);
+            }
         }
 
         private void LateUpdate()
@@ -162,6 +289,11 @@ namespace ProjectPVP.Match
             CombatantSlotConfig slot = GetSlot(slotId);
             int slotIndex = Mathf.Max(0, slotId.ToIndex());
 
+            if (TryGetCurrentRespawnSeedPoint(slotId, out Vector2 respawnSeedPoint))
+            {
+                return respawnSeedPoint;
+            }
+
             if (useScenePlayerPositionsAsSpawn && slot != null && slot.fallbackSpawnPoint != Vector2.zero)
             {
                 if (!Application.isPlaying && slot.controller != null)
@@ -185,10 +317,24 @@ namespace ProjectPVP.Match
             return slotId == CombatantSlotId.SlotTwo ? defaultPlayerTwoSpawn : defaultPlayerOneSpawn;
         }
 
+        public Vector2 GetRespawnSeedPoint(int seedIndex, CombatantSlotId slotId)
+        {
+            return TryGetRespawnSeed(seedIndex, out RoundRespawnSeed seed)
+                ? seed.GetSpawnPoint(slotId)
+                : GetFallbackSpawnPoint(slotId);
+        }
+
+        public string ResolveSlotDisplayName(CombatantSlotId slotId)
+        {
+            CombatantSlotConfig slot = GetSlot(slotId);
+            return slot != null ? slot.ResolveDisplayName() : slotId.ToDisplayName();
+        }
+
         private void SyncRosterAliases()
         {
             roster ??= new MatchRoster();
             EnsureSlotWinsCapacity();
+            EnsureRespawnSeedConfiguration();
             roster.EnsureDefaults(legacySlotOneController, legacySlotTwoController);
 
             SyncSlotAlias(CombatantSlotId.SlotOne, defaultPlayerOneSpawn, ref legacySlotOneController);
@@ -263,6 +409,237 @@ namespace ProjectPVP.Match
             }
         }
 
+        private void TogglePlayerTwoBotShortcut()
+        {
+            EnsurePlayerTwoDebugBotEnabled(!_slotTwoBotShortcutEnabled);
+        }
+
+        private void EnsurePlayerTwoDebugBotEnabled(bool enabled, bool forceReapply = false)
+        {
+            CombatantSlotConfig slot = GetSlot(CombatantSlotId.SlotTwo);
+            if (slot == null || (enabled == _slotTwoBotShortcutEnabled && !forceReapply))
+            {
+                return;
+            }
+
+            if (enabled)
+            {
+                _slotTwoOriginalProfile = slot.playerProfile;
+                _slotTwoRuntimeBotProfile = CreateRuntimeControlOverrideProfile(slot.ResolvePlayerProfile(), CombatantSlotId.SlotTwo, CombatantControlMode.AI, slotTwoDebugAiBrain);
+                slot.playerProfile = _slotTwoRuntimeBotProfile;
+                _slotTwoBotShortcutEnabled = true;
+            }
+            else
+            {
+                slot.playerProfile = _slotTwoOriginalProfile;
+                _slotTwoBotShortcutEnabled = false;
+            }
+
+            slot.ApplySelectionToController();
+            Debug.Log($"[CodexBot] Slot 2 bot enabled={enabled} brain={slotTwoDebugAiBrain} profileMode={slot.playerProfile?.controlMode} controller={(slot.controller != null ? slot.controller.name : "<null>")}");
+            PrewarmCodexSessionForController(slot.controller);
+        }
+
+        private void EnsureSlotTwoCodexBotReadyForPlay()
+        {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            // Existing scene instances may deserialize new flags as false, so force
+            // the intended auto-play behavior in code instead of relying on Inspector state.
+            slotTwoDebugAiBrain = AiBrainKind.CodexBroker;
+            Debug.Log("[CodexBot] Forcing slot 2 into AI + CodexBroker at runtime.");
+            EnsurePlayerTwoDebugBotEnabled(true, forceReapply: true);
+        }
+
+        public void ForceSlotTwoCodexBotReadyForPlay()
+        {
+            EnsureSlotTwoCodexBotReadyForPlay();
+        }
+
+        public void ForceCodexBotsReadyForPlay()
+        {
+            if (!TryApplyRuntimeBotMenuAssignments())
+            {
+                EnsureSlotTwoCodexBotReadyForPlay();
+            }
+        }
+
+        private static CombatantSlotProfile CreateRuntimeControlOverrideProfile(
+            CombatantSlotProfile sourceProfile,
+            CombatantSlotId slotId,
+            CombatantControlMode controlMode,
+            AiBrainKind aiBrain)
+        {
+            CombatantSlotProfile templateProfile = sourceProfile != null
+                ? sourceProfile
+                : CombatantSlotProfile.ResolveRuntimeFallback(slotId);
+            CombatantSlotProfile runtimeProfile = templateProfile != null
+                ? Instantiate(templateProfile)
+                : null;
+
+            if (runtimeProfile == null)
+            {
+                return null;
+            }
+
+            runtimeProfile.hideFlags = HideFlags.HideAndDontSave;
+            runtimeProfile.controlMode = controlMode;
+            runtimeProfile.aiBrain = aiBrain;
+            return runtimeProfile;
+        }
+
+        private bool TryApplyRuntimeBotMenuAssignments()
+        {
+            if (!Application.isPlaying)
+            {
+                return false;
+            }
+
+            RuntimeBotMenuAssignmentsFile runtimeAssignments = LoadRuntimeBotMenuAssignments();
+            if (runtimeAssignments == null || runtimeAssignments.slots == null || runtimeAssignments.slots.Count == 0)
+            {
+                return false;
+            }
+
+            bool anyEnabled = false;
+            for (int index = 0; index < Slots.Count; index += 1)
+            {
+                CombatantSlotConfig slot = Slots[index];
+                if (slot == null)
+                {
+                    continue;
+                }
+
+                RuntimeBotMenuSlotAssignment assignment = FindRuntimeAssignment(runtimeAssignments, slot.slotId);
+                if (assignment != null && assignment.enabled)
+                {
+                    ApplyRuntimeBotAssignment(slot, assignment);
+                    anyEnabled = true;
+                    continue;
+                }
+
+                RestoreRuntimeBotAssignment(slot);
+            }
+
+            if (anyEnabled)
+            {
+                Debug.Log($"[CodexBot] Applied runtime bot menu assignments from {ResolveRuntimeBotMenuAssignmentsPath()}");
+            }
+
+            return anyEnabled;
+        }
+
+        private void ApplyRuntimeBotAssignment(CombatantSlotConfig slot, RuntimeBotMenuSlotAssignment assignment)
+        {
+            if (slot == null || assignment == null)
+            {
+                return;
+            }
+
+            if (!_runtimeOriginalProfiles.ContainsKey(slot.slotId))
+            {
+                _runtimeOriginalProfiles[slot.slotId] = slot.playerProfile;
+            }
+
+            CombatantSlotProfile overrideProfile = CreateRuntimeControlOverrideProfile(
+                slot.ResolvePlayerProfile(),
+                slot.slotId,
+                CombatantControlMode.AI,
+                AiBrainKind.CodexBroker);
+            if (overrideProfile == null)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(assignment.botId))
+            {
+                overrideProfile.botId = assignment.botId.Trim();
+            }
+
+            string resolvedName = !string.IsNullOrWhiteSpace(assignment.displayName)
+                ? assignment.displayName.Trim()
+                : slot.ResolveDisplayName();
+            overrideProfile.botDisplayName = resolvedName;
+            overrideProfile.displayName = resolvedName;
+            slot.playerProfile = overrideProfile;
+            _runtimeOverrideProfiles[slot.slotId] = overrideProfile;
+            slot.ApplySelectionToController();
+            Debug.Log($"[CodexBot] Runtime assignment applied slot={slot.slotId} botId={overrideProfile.botId} display={resolvedName} provider={assignment.provider} model={assignment.model}");
+            PrewarmCodexSessionForController(slot.controller);
+        }
+
+        private void RestoreRuntimeBotAssignment(CombatantSlotConfig slot)
+        {
+            if (slot == null)
+            {
+                return;
+            }
+
+            if (!_runtimeOriginalProfiles.TryGetValue(slot.slotId, out CombatantSlotProfile originalProfile))
+            {
+                return;
+            }
+
+            slot.playerProfile = originalProfile;
+            slot.ApplySelectionToController();
+            _runtimeOriginalProfiles.Remove(slot.slotId);
+            _runtimeOverrideProfiles.Remove(slot.slotId);
+        }
+
+        private static RuntimeBotMenuSlotAssignment FindRuntimeAssignment(RuntimeBotMenuAssignmentsFile runtimeAssignments, CombatantSlotId slotId)
+        {
+            if (runtimeAssignments == null || runtimeAssignments.slots == null)
+            {
+                return null;
+            }
+
+            int slotInt = slotId.ToInt();
+            for (int index = 0; index < runtimeAssignments.slots.Count; index += 1)
+            {
+                RuntimeBotMenuSlotAssignment assignment = runtimeAssignments.slots[index];
+                if (assignment != null && assignment.slotId == slotInt)
+                {
+                    return assignment;
+                }
+            }
+
+            return null;
+        }
+
+        private static RuntimeBotMenuAssignmentsFile LoadRuntimeBotMenuAssignments()
+        {
+            string path = ResolveRuntimeBotMenuAssignmentsPath();
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
+            try
+            {
+                string json = File.ReadAllText(path);
+                if (string.IsNullOrWhiteSpace(json))
+                {
+                    return null;
+                }
+
+                RuntimeBotMenuAssignmentsFile payload = JsonUtility.FromJson<RuntimeBotMenuAssignmentsFile>(json);
+                return payload != null && payload.slots != null ? payload : null;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"[CodexBot] Failed to load runtime bot assignments from {path}: {exception.Message}");
+                return null;
+            }
+        }
+
+        private static string ResolveRuntimeBotMenuAssignmentsPath()
+        {
+            return Path.GetFullPath(Path.Combine(Application.dataPath, "..", "tools", "bot_memory", "runtime_slot_assignments.json"));
+        }
+
         private void HandlePlayerDeath(PlayerController deadPlayer)
         {
             if (_roundResetRoutine != null || deadPlayer == null)
@@ -270,6 +647,7 @@ namespace ProjectPVP.Match
                 return;
             }
 
+            CombatantSlotId roundWinner = CombatantSlotId.None;
             for (int index = 0; index < Slots.Count; index += 1)
             {
                 CombatantSlotConfig slot = Slots[index];
@@ -279,8 +657,17 @@ namespace ProjectPVP.Match
                 }
 
                 AddWin(slot.slotId);
+                roundWinner = slot.slotId;
             }
 
+            if (roundWinner == CombatantSlotId.None)
+            {
+                return;
+            }
+
+            _pendingRoundWinnerSlot = roundWinner;
+            AdvanceRespawnSeed();
+            _pendingChampionSlot = ResolveChampionSlot();
             _roundResetRoutine = StartCoroutine(ResetRoundAfterDelay());
         }
 
@@ -300,18 +687,23 @@ namespace ProjectPVP.Match
         {
             yield return new WaitForSeconds(roundResetDelay);
 
-            if (GetWins(CombatantSlotId.SlotOne) >= maxWins || GetWins(CombatantSlotId.SlotTwo) >= maxWins)
+            if (_pendingChampionSlot != CombatantSlotId.None)
             {
-                ResetWins();
+                Debug.Log($"[Rounds] {_pendingChampionSlot.ToDisplayName()} venceu a serie. Resetando rounds e respawn seeds.");
+                ShowChampionAnnouncement(_pendingChampionSlot);
+                ResetSeriesState();
             }
 
             RespawnPlayers();
+            _pendingRoundWinnerSlot = CombatantSlotId.None;
+            _pendingChampionSlot = CombatantSlotId.None;
             _roundResetRoutine = null;
         }
 
-        private void RespawnPlayers()
+        private void RespawnPlayers(bool applyFreeze = true)
         {
             SyncRosterAliases();
+            ForceCodexBotsReadyForPlay();
 
             for (int index = 0; index < Slots.Count; index += 1)
             {
@@ -322,7 +714,51 @@ namespace ProjectPVP.Match
                 }
 
                 slot.ApplySelectionToController();
+                if (slot.slotId == CombatantSlotId.SlotTwo)
+                {
+                    Debug.Log($"[CodexBot] Respawn applied slot 2 profileMode={slot.playerProfile?.controlMode} aiBrain={slot.playerProfile?.aiBrain} controller={(slot.controller != null ? slot.controller.name : "<null>")}");
+                }
                 slot.controller.SetSpawnPosition(GetSpawnPoint(slot.slotId));
+                slot.controller.SetExternalControlLock(applyFreeze);
+                PrewarmCodexSessionForController(slot.controller);
+            }
+
+            if (applyFreeze)
+            {
+                BeginRespawnFreeze();
+            }
+            else
+            {
+                _respawnFreezeTimeLeft = 0f;
+                SetPlayersExternalControlLock(false);
+            }
+        }
+
+        private void PrewarmCodexSessions()
+        {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            for (int index = 0; index < Slots.Count; index += 1)
+            {
+                CombatantSlotConfig slot = Slots[index];
+                PrewarmCodexSessionForController(slot != null ? slot.controller : null);
+            }
+        }
+
+        private static void PrewarmCodexSessionForController(PlayerController controller)
+        {
+            if (controller == null)
+            {
+                return;
+            }
+
+            CodexBrokerCombatantInputSource codexInput = controller.GetComponent<CodexBrokerCombatantInputSource>();
+            if (codexInput != null)
+            {
+                codexInput.PrewarmSession();
             }
         }
 
@@ -330,6 +766,45 @@ namespace ProjectPVP.Match
         {
             CacheSceneSpawnPoint(CombatantSlotId.SlotOne, defaultPlayerOneSpawn);
             CacheSceneSpawnPoint(CombatantSlotId.SlotTwo, defaultPlayerTwoSpawn);
+        }
+
+        private void EnsureRespawnSeedConfiguration()
+        {
+            if (roundRespawnSeeds == null || roundRespawnSeeds.Count == 0)
+            {
+                roundRespawnSeeds = CreateDefaultRespawnSeeds();
+            }
+
+            for (int index = 0; index < roundRespawnSeeds.Count; index += 1)
+            {
+                RoundRespawnSeed seed = roundRespawnSeeds[index];
+                if (seed == null)
+                {
+                    roundRespawnSeeds[index] = new RoundRespawnSeed();
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(seed.label))
+                {
+                    seed.label = $"Seed {index + 1}";
+                }
+            }
+
+            currentRespawnSeedIndex = NormalizeRespawnSeedIndex(currentRespawnSeedIndex);
+            maxWins = Mathf.Max(1, maxWins);
+            respawnFreezeDuration = Mathf.Max(0f, respawnFreezeDuration);
+            championAnnouncementDuration = Mathf.Max(0f, championAnnouncementDuration);
+        }
+
+        private void EnsureRoundHudOverlay()
+        {
+            ProjectPvpMatchRoundHudOverlay runtimeOverlay = GetComponent<ProjectPvpMatchRoundHudOverlay>();
+            if (runtimeOverlay == null)
+            {
+                runtimeOverlay = gameObject.AddComponent<ProjectPvpMatchRoundHudOverlay>();
+            }
+            runtimeOverlay.SetMatchController(this);
+            Debug.Log($"[Rounds] Attached round HUD overlay to MatchController '{name}'.");
         }
 
         private void EnsureSlotWinsCapacity()
@@ -347,6 +822,210 @@ namespace ProjectPVP.Match
             {
                 slotWins[index] = 0;
             }
+        }
+
+        private void ResetSeriesState()
+        {
+            ResetWins();
+            ResetRespawnSeedCycle();
+        }
+
+        private void BeginRespawnFreeze()
+        {
+            if (respawnFreezeDuration <= 0f)
+            {
+                _respawnFreezeTimeLeft = 0f;
+                SetPlayersExternalControlLock(false);
+                return;
+            }
+
+            _respawnFreezeTimeLeft = respawnFreezeDuration;
+            SetPlayersExternalControlLock(true);
+        }
+
+        private void TickFreezeAndAnnouncements(float deltaTime)
+        {
+            if (deltaTime <= 0f)
+            {
+                return;
+            }
+
+            if (_respawnFreezeTimeLeft > 0f)
+            {
+                _respawnFreezeTimeLeft = Mathf.Max(0f, _respawnFreezeTimeLeft - deltaTime);
+                if (_respawnFreezeTimeLeft <= 0f)
+                {
+                    SetPlayersExternalControlLock(false);
+                }
+            }
+
+            if (_championAnnouncementTimeLeft > 0f)
+            {
+                _championAnnouncementTimeLeft = Mathf.Max(0f, _championAnnouncementTimeLeft - deltaTime);
+                if (_championAnnouncementTimeLeft <= 0f)
+                {
+                    _championAnnouncementSlot = CombatantSlotId.None;
+                }
+            }
+        }
+
+        private void ShowChampionAnnouncement(CombatantSlotId championSlot)
+        {
+            _championAnnouncementSlot = championSlot;
+            _championAnnouncementTimeLeft = championAnnouncementDuration;
+        }
+
+        private void SetPlayersExternalControlLock(bool locked)
+        {
+            foreach (PlayerController player in EnumerateControllers())
+            {
+                if (player != null)
+                {
+                    player.SetExternalControlLock(locked);
+                }
+            }
+        }
+
+        private CombatantSlotId ResolveChampionSlot()
+        {
+            for (int index = 0; index < Slots.Count; index += 1)
+            {
+                CombatantSlotConfig slot = Slots[index];
+                if (slot != null && GetWins(slot.slotId) >= RoundsToChampion)
+                {
+                    return slot.slotId;
+                }
+            }
+
+            return CombatantSlotId.None;
+        }
+
+        private bool TryGetCurrentRespawnSeedPoint(CombatantSlotId slotId, out Vector2 spawnPoint)
+        {
+            if (TryGetRespawnSeed(CurrentRespawnSeedIndex, out RoundRespawnSeed seed))
+            {
+                spawnPoint = seed.GetSpawnPoint(slotId);
+                return true;
+            }
+
+            spawnPoint = Vector2.zero;
+            return false;
+        }
+
+        private bool TryGetRespawnSeed(int seedIndex, out RoundRespawnSeed seed)
+        {
+            EnsureRespawnSeedConfiguration();
+            seed = null;
+
+            if (roundRespawnSeeds == null || roundRespawnSeeds.Count == 0)
+            {
+                return false;
+            }
+
+            int normalizedIndex = NormalizeRespawnSeedIndex(seedIndex);
+            if (normalizedIndex < 0 || normalizedIndex >= roundRespawnSeeds.Count)
+            {
+                return false;
+            }
+
+            seed = roundRespawnSeeds[normalizedIndex];
+            return seed != null;
+        }
+
+        private void AdvanceRespawnSeed()
+        {
+            if (roundRespawnSeeds == null || roundRespawnSeeds.Count == 0)
+            {
+                currentRespawnSeedIndex = 0;
+                return;
+            }
+
+            currentRespawnSeedIndex = (CurrentRespawnSeedIndex + 1) % roundRespawnSeeds.Count;
+        }
+
+        private void ResetRespawnSeedCycle()
+        {
+            currentRespawnSeedIndex = 0;
+        }
+
+        private int NormalizeRespawnSeedIndex(int seedIndex)
+        {
+            if (roundRespawnSeeds == null || roundRespawnSeeds.Count == 0)
+            {
+                return 0;
+            }
+
+            if (seedIndex < 0)
+            {
+                return 0;
+            }
+
+            return seedIndex % roundRespawnSeeds.Count;
+        }
+
+        private Vector2 GetFallbackSpawnPoint(CombatantSlotId slotId)
+        {
+            CombatantSlotConfig slot = GetSlot(slotId);
+            int slotIndex = Mathf.Max(0, slotId.ToIndex());
+
+            if (useScenePlayerPositionsAsSpawn && slot != null && slot.fallbackSpawnPoint != Vector2.zero)
+            {
+                if (!Application.isPlaying && slot.controller != null)
+                {
+                    return slot.controller.ConfiguredSpawnWorldPosition;
+                }
+
+                return slot.fallbackSpawnPoint;
+            }
+
+            if (arenaDefinition != null && arenaDefinition.spawnPoints != null && arenaDefinition.spawnPoints.Count > 0)
+            {
+                return arenaDefinition.GetSpawnPoint(Mathf.Min(slotIndex, arenaDefinition.spawnPoints.Count - 1));
+            }
+
+            if (slot != null && slot.fallbackSpawnPoint != Vector2.zero)
+            {
+                return slot.fallbackSpawnPoint;
+            }
+
+            return slotId == CombatantSlotId.SlotTwo ? defaultPlayerTwoSpawn : defaultPlayerOneSpawn;
+        }
+
+        private static List<RoundRespawnSeed> CreateDefaultRespawnSeeds()
+        {
+            return new List<RoundRespawnSeed>
+            {
+                new RoundRespawnSeed
+                {
+                    label = "Low Corner Reset",
+                    slotOneSpawnPoint = new Vector2(-639f, -572f),
+                    slotTwoSpawnPoint = new Vector2(690f, -576f),
+                },
+                new RoundRespawnSeed
+                {
+                    label = "Outer Mid Platforms",
+                    slotOneSpawnPoint = new Vector2(-560f, 110f),
+                    slotTwoSpawnPoint = new Vector2(830f, -6f),
+                },
+                new RoundRespawnSeed
+                {
+                    label = "High Perches",
+                    slotOneSpawnPoint = new Vector2(-1110f, 366f),
+                    slotTwoSpawnPoint = new Vector2(1108f, 382f),
+                },
+                new RoundRespawnSeed
+                {
+                    label = "Bridge Scramble",
+                    slotOneSpawnPoint = new Vector2(-96f, -248f),
+                    slotTwoSpawnPoint = new Vector2(364f, -250f),
+                },
+                new RoundRespawnSeed
+                {
+                    label = "Inner Mid Platforms",
+                    slotOneSpawnPoint = new Vector2(-342f, 108f),
+                    slotTwoSpawnPoint = new Vector2(632f, -4f),
+                },
+            };
         }
 
         private void CacheSceneSpawnPoint(CombatantSlotId slotId, Vector2 defaultSpawnPoint)
@@ -460,7 +1139,6 @@ namespace ProjectPVP.Match
             Rect wrapBounds = ActiveWrapBounds;
             Vector2 wrapPadding = GetWrapPadding();
             Vector3 position = player.transform.position;
-
             if (position.x < wrapBounds.xMin - wrapPadding.x)
             {
                 position.x = wrapBounds.xMax + wrapPadding.x;

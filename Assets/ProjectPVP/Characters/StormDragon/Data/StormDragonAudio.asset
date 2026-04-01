@@ -25,7 +25,7 @@ MonoBehaviour:
     clip:
       fileID: 0
     resourcesPath: ProjectPVP/Audio/Characters/StormDragon/dash
-    playbackSpeed: 2
+    playbackSpeed: 1.25
     volumeDb: 0
     stopAfterSeconds: 0.1
   - actionName: melee
@@ -39,14 +39,14 @@ MonoBehaviour:
     clip:
       fileID: 0
     resourcesPath: ProjectPVP/Audio/Characters/StormDragon/shoot
-    playbackSpeed: 2
+    playbackSpeed: 1
     volumeDb: 0
     stopAfterSeconds: 0.3
   - actionName: ult
     clip:
       fileID: 0
     resourcesPath: ProjectPVP/Audio/Characters/StormDragon/ult
-    playbackSpeed: 2
+    playbackSpeed: 1
     volumeDb: 0
     stopAfterSeconds: 1
   - actionName: aim

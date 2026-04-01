@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using ProjectPVP.Gameplay;
 using UnityEngine;
 
 namespace ProjectPVP.Data
@@ -97,12 +96,12 @@ namespace ProjectPVP.Data
 
         [Header("Stats")]
         [HideInInspector] public bool overridesStats;
-        public float moveSpeed = 240f;
-        public float acceleration = 1600f;
-        public float friction = 2000f;
-        public float jumpVelocity = 360f;
-        public float gravity = 1200f;
-        public float maxFallSpeed = 2000f;
+        public float moveSpeed = 415f;
+        public float acceleration = 2200f;
+        public float friction = 2400f;
+        public float jumpVelocity = 660f;
+        public float gravity = 1500f;
+        public float maxFallSpeed = 1500f;
         public float shootCooldown = 0.001f;
         public int maxArrows = 5;
         public float meleeCooldown = 0.45f;
@@ -161,23 +160,32 @@ namespace ProjectPVP.Data
         public Sprite projectileSprite;
 
         [Header("Projectile Motion")]
-        public float projectileBaseSpeed = 1500f;
+        public float projectileBaseSpeed = 1600f;
         public float projectileMinSpeed = 720f;
         public float projectileSpeedDecay = 360f;
-        public float projectileGravity = 750f;
-        public float projectileGravityDelayRatio;
-        public float projectileGravityRampRatio = 0.6f;
-        public float projectileGravityMinScale = 0.45f;
-        public float projectileGravityMaxScale = 1.2f;
-        public float projectileUpwardGravityMultiplier = 3.2f;
-        public float projectileUpwardSpeedDecayMultiplier = 2.2f;
-        public float projectileMaxLifetime = 2.5f;
+        public float projectileGravity = 800f;
+        public float projectileGravityDelayRatio = 0.05f;
+        public float projectileGravityRampRatio = 0.2f;
+        public float projectileGravityMinScale = 0.9f;
+        public float projectileGravityMaxScale = 1.0f;
+        public float projectileUpwardGravityMultiplier = 1.6f;
+        public float projectileUpwardSpeedDecayMultiplier = 1.3f;
+        public float projectileMaxLifetime = 2.0f;
         public float projectileMaxRange = 1440f;
         public bool projectileRotateWithVelocity = true;
         public bool projectileCollectableWhenStuck = true;
 
+        [Header("Projectile Assist")]
+        public bool projectileAssistEnabled = false;
+        [Range(0f, 1f)] public float projectileAssistStrength = 0.32f;
+        public float projectileAssistMaxTurnRateDeg = 420f;
+        public float projectileAssistAcquireConeDeg = 36f;
+        public float projectileAssistMaxRange = 1600f;
+        public float projectileAssistMinDistance = 40f;
+        [Range(0f, 1f)] public float projectileAssistDropoffStartRatio = 0.6f;
+
         [Header("Projectile Hitbox")]
-        public Vector2 projectileFlightHitboxSize = new Vector2(24f, 10f);
+        public Vector2 projectileFlightHitboxSize = new Vector2(48f, 8f);
         public Vector2 projectileFlightHitboxOffset = new Vector2(32f, 0f);
         public Vector2 projectileCollectibleHitboxSize = new Vector2(96f, 24f);
         public Vector2 projectileCollectibleHitboxOffset = Vector2.zero;
@@ -185,7 +193,7 @@ namespace ProjectPVP.Data
         [Header("Action Config")]
         public CharacterAnimationCatalog animationCatalog;
         public CharacterAudioDefinition audioDefinition;
-        public CharacterMechanicsModule mechanicsModule;
+        public ScriptableObject mechanicsModule;
 
         [Header("Actions")]
         public List<CharacterActionConfig> actions = new List<CharacterActionConfig>();

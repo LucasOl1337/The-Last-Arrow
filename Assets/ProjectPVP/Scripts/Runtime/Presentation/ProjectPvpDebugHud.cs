@@ -3,6 +3,7 @@ using ProjectPVP.Gameplay;
 using ProjectPVP.Input;
 using ProjectPVP.Match;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.Serialization;
 
 namespace ProjectPVP.Presentation
@@ -20,22 +21,50 @@ namespace ProjectPVP.Presentation
         private GUIStyle _panelStyle;
         private GUIStyle _titleStyle;
         private GUIStyle _bodyStyle;
+        private GUIStyle _roundDotStyle;
+        private GUIStyle _roundDotInactiveStyle;
+        private GUIStyle _winnerBannerStyle;
+        private GUIStyle _winnerTextStyle;
+        private Canvas _overlayCanvas;
+        private RectTransform _leftDotRoot;
+        private RectTransform _rightDotRoot;
+        private Image[] _leftDots;
+        private Image[] _rightDots;
+        private Text _winnerText;
+        private Image _winnerBackground;
+        private Sprite _dotSprite;
 
         private void OnGUI()
         {
             EnsureStyles();
 
-            DrawSummaryPanel(new Rect(18f, 18f, 360f, 336f));
+            DrawSummaryPanel(new Rect(18f, 18f, 360f, 396f));
 
             if (showControls)
             {
-                DrawControlsPanel(new Rect(18f, 364f, 360f, 260f));
+                DrawControlsPanel(new Rect(18f, 424f, 360f, 260f));
             }
 
             if (showProjectNotes)
             {
                 DrawNotesPanel(new Rect(Screen.width - 348f, 18f, 330f, 120f));
             }
+
+            DrawRoundCounters();
+            DrawWinnerBanner();
+        }
+
+        private void Start()
+        {
+            // Legacy IMGUI HUD only. The visible round overlay now comes from MatchController.
+        }
+
+        private void LateUpdate()
+        {
+        }
+
+        private void OnDestroy()
+        {
         }
 
         private void EnsureStyles()
@@ -65,6 +94,195 @@ namespace ProjectPVP.Presentation
                 wordWrap = true,
                 normal = { textColor = new Color(0.9f, 0.94f, 1f) },
             };
+
+            _roundDotStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 18,
+                normal = { textColor = new Color(0.76f, 0.14f, 0.14f, 0.95f) },
+            };
+
+            _roundDotInactiveStyle = new GUIStyle(_roundDotStyle)
+            {
+                normal = { textColor = new Color(0.08f, 0.08f, 0.08f, 0.78f) },
+            };
+
+            _winnerBannerStyle = new GUIStyle(GUI.skin.box)
+            {
+                normal =
+                {
+                    background = Texture2D.whiteTexture,
+                },
+                padding = new RectOffset(18, 18, 8, 8),
+            };
+
+            _winnerTextStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 24,
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = new Color(1f, 0.94f, 0.94f) },
+            };
+        }
+
+        private void EnsureOverlayHud()
+        {
+            if (_overlayCanvas != null)
+            {
+                return;
+            }
+
+            GameObject canvasObject = new GameObject("RoundHudOverlay");
+            canvasObject.transform.SetParent(transform, false);
+
+            _overlayCanvas = canvasObject.AddComponent<Canvas>();
+            _overlayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            _overlayCanvas.sortingOrder = short.MaxValue;
+
+            canvasObject.AddComponent<CanvasScaler>();
+            canvasObject.AddComponent<GraphicRaycaster>();
+
+            _dotSprite = CreateDotSprite();
+            _leftDotRoot = CreateDotRoot("LeftRoundDots", canvasObject.transform, new Vector2(18f, -18f), TextAnchor.UpperLeft);
+            _rightDotRoot = CreateDotRoot("RightRoundDots", canvasObject.transform, new Vector2(-18f, -18f), TextAnchor.UpperRight);
+            _leftDots = CreateDotRow(_leftDotRoot, true);
+            _rightDots = CreateDotRow(_rightDotRoot, false);
+
+            GameObject winnerObject = new GameObject("WinnerBanner", typeof(RectTransform));
+            winnerObject.transform.SetParent(canvasObject.transform, false);
+            _winnerBackground = winnerObject.AddComponent<Image>();
+            _winnerBackground.color = new Color(0f, 0f, 0f, 0f);
+            RectTransform winnerRect = _winnerBackground.rectTransform;
+            winnerRect.anchorMin = new Vector2(0.5f, 1f);
+            winnerRect.anchorMax = new Vector2(0.5f, 1f);
+            winnerRect.pivot = new Vector2(0.5f, 1f);
+            winnerRect.anchoredPosition = new Vector2(0f, -14f);
+            winnerRect.sizeDelta = new Vector2(380f, 44f);
+
+            GameObject winnerTextObject = new GameObject("WinnerText", typeof(RectTransform));
+            winnerTextObject.transform.SetParent(winnerObject.transform, false);
+            _winnerText = winnerTextObject.AddComponent<Text>();
+            _winnerText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            _winnerText.fontSize = 24;
+            _winnerText.fontStyle = FontStyle.Bold;
+            _winnerText.alignment = TextAnchor.MiddleCenter;
+            _winnerText.color = new Color(1f, 0.94f, 0.94f, 1f);
+            _winnerText.text = string.Empty;
+
+            RectTransform textRect = _winnerText.rectTransform;
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+        }
+
+        private RectTransform CreateDotRoot(string name, Transform parent, Vector2 anchoredPosition, TextAnchor anchor)
+        {
+            GameObject rootObject = new GameObject(name, typeof(RectTransform));
+            rootObject.transform.SetParent(parent, false);
+            RectTransform root = rootObject.AddComponent<RectTransform>();
+            root.anchorMin = anchor == TextAnchor.UpperLeft ? new Vector2(0f, 1f) : new Vector2(1f, 1f);
+            root.anchorMax = root.anchorMin;
+            root.pivot = anchor == TextAnchor.UpperLeft ? new Vector2(0f, 1f) : new Vector2(1f, 1f);
+            root.anchoredPosition = anchoredPosition;
+            root.sizeDelta = new Vector2(140f, 24f);
+            return root;
+        }
+
+        private Image[] CreateDotRow(RectTransform root, bool leftToRight)
+        {
+            const int dotCount = 5;
+            Image[] dots = new Image[dotCount];
+            for (int index = 0; index < dotCount; index += 1)
+            {
+                GameObject dotObject = new GameObject("Dot" + index, typeof(RectTransform));
+                dotObject.transform.SetParent(root, false);
+                Image image = dotObject.AddComponent<Image>();
+                image.sprite = _dotSprite;
+                image.type = Image.Type.Simple;
+                image.color = new Color(0.08f, 0.08f, 0.08f, 0.82f);
+
+                RectTransform rect = image.rectTransform;
+                rect.anchorMin = new Vector2(0f, 0.5f);
+                rect.anchorMax = new Vector2(0f, 0.5f);
+                rect.sizeDelta = new Vector2(10f, 10f);
+                rect.anchoredPosition = new Vector2((leftToRight ? index : (dotCount - 1 - index)) * 18f, 0f);
+                dots[index] = image;
+            }
+
+            return dots;
+        }
+
+        private void UpdateOverlayHud()
+        {
+            if (matchController == null)
+            {
+                return;
+            }
+
+            EnsureOverlayHud();
+
+            UpdateDotRow(_leftDots, matchController.PlayerOneWins);
+            UpdateDotRow(_rightDots, matchController.PlayerTwoWins);
+
+            if (_winnerBackground != null && _winnerText != null)
+            {
+                bool showWinner = matchController.ChampionAnnouncementSlot != CombatantSlotId.None;
+                _winnerBackground.enabled = showWinner;
+                _winnerText.enabled = showWinner;
+                if (showWinner)
+                {
+                    _winnerBackground.color = new Color(0f, 0f, 0f, 0.62f);
+                    _winnerText.text = "VENCEDOR = " + matchController.ResolveSlotDisplayName(matchController.ChampionAnnouncementSlot);
+                }
+            }
+        }
+
+        private void UpdateDotRow(Image[] dots, int wins)
+        {
+            if (dots == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < dots.Length; index += 1)
+            {
+                if (dots[index] == null)
+                {
+                    continue;
+                }
+
+                dots[index].color = index < wins
+                    ? new Color(0.86f, 0.12f, 0.12f, 0.95f)
+                    : new Color(0.08f, 0.08f, 0.08f, 0.82f);
+            }
+        }
+
+        private Sprite CreateDotSprite()
+        {
+            Texture2D texture = new Texture2D(16, 16, TextureFormat.RGBA32, false);
+            texture.filterMode = FilterMode.Bilinear;
+            Vector2 center = new Vector2(7.5f, 7.5f);
+            float radius = 7f;
+
+            for (int y = 0; y < texture.height; y += 1)
+            {
+                for (int x = 0; x < texture.width; x += 1)
+                {
+                    float distance = Vector2.Distance(new Vector2(x, y), center);
+                    float alpha = Mathf.Clamp01(1f - ((distance - radius) / 1.5f));
+                    if (distance <= radius)
+                    {
+                        texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                    }
+                    else
+                    {
+                        texture.SetPixel(x, y, Color.clear);
+                    }
+                }
+            }
+
+            texture.Apply();
+            return Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 16f);
         }
 
         private void DrawSummaryPanel(Rect rect)
@@ -95,7 +313,69 @@ namespace ProjectPVP.Presentation
                 GUILayout.Label("Round reset em andamento...", _bodyStyle);
             }
 
+            if (matchController != null)
+            {
+                GUILayout.Space(8f);
+                GUILayout.Label(
+                    "First to " + matchController.RoundsToChampion + " rounds" + "\n" +
+                    "Respawn seed " + (matchController.CurrentRespawnSeedIndex + 1) + ": " + matchController.CurrentRespawnSeedLabel,
+                    _bodyStyle);
+
+                if (matchController.PendingChampionSlot != CombatantSlotId.None)
+                {
+                    GUILayout.Space(4f);
+                    GUILayout.Label(matchController.PendingChampionSlot.ToDisplayName() + " e o campeao da serie.", _bodyStyle);
+                }
+                else if (matchController.PendingRoundWinnerSlot != CombatantSlotId.None)
+                {
+                    GUILayout.Space(4f);
+                    GUILayout.Label(matchController.PendingRoundWinnerSlot.ToDisplayName() + " venceu o round.", _bodyStyle);
+                }
+            }
+
             GUILayout.EndArea();
+        }
+
+        private void DrawRoundCounters()
+        {
+            if (matchController == null)
+            {
+                return;
+            }
+
+            DrawRoundDots(new Rect(18f, 8f, 160f, 28f), matchController.PlayerOneWins, leftAligned: true);
+            DrawRoundDots(new Rect(Screen.width - 178f, 8f, 160f, 28f), matchController.PlayerTwoWins, leftAligned: false);
+        }
+
+        private void DrawRoundDots(Rect rect, int wins, bool leftAligned)
+        {
+            const int dotCount = 5;
+            float dotSpacing = 18f;
+            float totalWidth = (dotCount - 1) * dotSpacing;
+            float startX = leftAligned ? rect.x : rect.x + rect.width - totalWidth - 10f;
+
+            for (int index = 0; index < dotCount; index += 1)
+            {
+                Rect dotRect = new Rect(startX + (index * dotSpacing), rect.y, 18f, rect.height);
+                GUIStyle style = index < wins ? _roundDotStyle : _roundDotInactiveStyle;
+                GUI.Label(dotRect, "\u25CF", style);
+            }
+        }
+
+        private void DrawWinnerBanner()
+        {
+            if (matchController == null || matchController.ChampionAnnouncementSlot == CombatantSlotId.None)
+            {
+                return;
+            }
+
+            Rect rect = new Rect((Screen.width * 0.5f) - 180f, 16f, 360f, 46f);
+            Color previousColor = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.62f);
+            GUI.Box(rect, GUIContent.none, _winnerBannerStyle);
+            GUI.color = Color.white;
+            GUI.Label(rect, "VENCEDOR = " + matchController.ResolveSlotDisplayName(matchController.ChampionAnnouncementSlot), _winnerTextStyle);
+            GUI.color = previousColor;
         }
 
         private void DrawControlsPanel(Rect rect)
@@ -105,7 +385,7 @@ namespace ProjectPVP.Presentation
             GUILayout.Space(4f);
             GUILayout.Label("Slot 1: A/D mover, W/S mirar, Space pular, Q atirar, E melee, Left Shift dash", _bodyStyle);
             GUILayout.Space(4f);
-            GUILayout.Label("Slot 2: Setas mover/mirar, Enter pular, Right Ctrl atirar, Right Shift melee, Keypad 0 dash", _bodyStyle);
+            GUILayout.Label("Slot 2 (60%): I/J/K/L mover+mirar, Enter pular, Right Ctrl atirar, Right Alt melee, P ultimate, Right Shift/M dash", _bodyStyle);
             GUILayout.Space(4f);
             GUILayout.Label("Gamepad por slot: D-Pad ou Left Stick mover/mirar, Triangle ult, Circle melee, X pular, Square atirar, L1/L2/R1/R2 dash", _bodyStyle);
             GUILayout.Space(4f);
@@ -158,8 +438,9 @@ namespace ProjectPVP.Presentation
                     ? slot.ResolveCharacterDefinition().displayName
                     : "Sem personagem";
                 return fallbackName + ": aguardando spawn\n" +
-                    "Wins: " + wins + "\n" +
-                    "Character: " + configuredCharacterName;
+                    "Rounds: " + wins + "\n" +
+                    "Character: " + configuredCharacterName + "\n" +
+                    "Control: " + slot.ResolveControlMode().ToDisplayName();
             }
 
             return BuildLegacyPlayerSummary(fallbackName, player, wins);
@@ -175,6 +456,13 @@ namespace ProjectPVP.Presentation
             string characterName = player.characterDefinition != null && !string.IsNullOrWhiteSpace(player.characterDefinition.displayName)
                 ? player.characterDefinition.displayName
                 : "Sem personagem";
+            string controlMode = player.SlotProfile != null
+                ? player.SlotProfile.ResolveControlMode().ToDisplayName()
+                : CombatantControlMode.Human.ToDisplayName();
+            if (player.SlotProfile != null && player.SlotProfile.ResolveControlMode() == CombatantControlMode.AI)
+            {
+                controlMode += " (" + player.SlotProfile.ResolveAiBrain() + ")";
+            }
 
             ICombatantInputSource inputSource = player.InputSource;
             PlayerInputFrame frame = inputSource != null ? inputSource.CurrentFrame : default;
@@ -183,10 +471,33 @@ namespace ProjectPVP.Presentation
             string gamepadStatus = !gamepadEnabled ? "Off" : gamepadSlot > 0 ? "On P" + gamepadSlot : "On?";
             Vector2 aimHoldDirection = player.AimHoldDirection;
             string faceButtonDebug = inputSource != null ? inputSource.FaceButtonDebug : "-";
+            ProjectileController lastProjectile = player.LastLaunchedProjectile;
+            string assistEnabled = lastProjectile != null && lastProjectile.AssistEnabledRuntime ? "ON" : "OFF";
+            string assistLocked = lastProjectile != null && lastProjectile.AssistTargetLocked ? "Yes" : "No";
+            string assistAngle = lastProjectile != null ? lastProjectile.AssistCurrentAngleDeg.ToString("0.0") : "-";
+            string assistAppliedStrength = lastProjectile != null ? lastProjectile.AssistAppliedStrength.ToString("0.00") : "-";
+            string codexStatus = string.Empty;
+            if (inputSource is CodexBrokerCombatantInputSource codexInput)
+            {
+                string shortSessionId = string.IsNullOrWhiteSpace(codexInput.SessionId)
+                    ? "-"
+                    : codexInput.SessionId.Length > 8 ? codexInput.SessionId.Substring(0, 8) : codexInput.SessionId;
+                string intentAge = codexInput.IntentAgeMs < 0f ? "-" : codexInput.IntentAgeMs.ToString("0");
+                codexStatus =
+                    "CodexSession: " + shortSessionId + " | Owner: " + (string.IsNullOrWhiteSpace(codexInput.ControllerOwner) ? "-" : codexInput.ControllerOwner) + " | Source: " + codexInput.LastExecutorSource + "\n" +
+                    "CodexIntent: " + (string.IsNullOrWhiteSpace(codexInput.CurrentIntentMode) ? "-" : codexInput.CurrentIntentMode) +
+                    " | AgeMs: " + intentAge +
+                    " | AgentAction: " + (codexInput.HasAgentAction ? "Yes" : "No") +
+                    " | Start: " + (codexInput.IsSessionStarting ? "Yes" : "No") +
+                    " | Tick: " + (codexInput.IsStrategyRequestInFlight ? "Busy" : "Idle") +
+                    " | AgentMode: " + (codexInput.useAgentDrivenMode ? "On" : "Off") + "\n" +
+                    "CodexWhy: " + (string.IsNullOrWhiteSpace(codexInput.CurrentIntentReason) ? "-" : codexInput.CurrentIntentReason) + "\n";
+            }
 
             return fallbackName + " -> " + characterName + "\n" +
-                "Wins: " + wins + "\n" +
+                "Rounds: " + wins + "\n" +
                 "Slot: " + player.SlotId.ToDisplayName() + "\n" +
+                "Control: " + controlMode + "\n" +
                 "Arrows: " + player.CurrentArrows + "\n" +
                 "Facing: " + (player.Facing < 0 ? "Left" : "Right") + "\n" +
                 "Grounded: " + (player.IsGrounded ? "Yes" : "No") + " | Wall: " + (player.IsTouchingWall ? "Yes" : "No") + "\n" +
@@ -197,6 +508,8 @@ namespace ProjectPVP.Presentation
                 "Axis: " + frame.axis.ToString("0.00") + "\n" +
                 "Aim: (" + frame.aim.x.ToString("0.00") + ", " + frame.aim.y.ToString("0.00") + ")" + "\n" +
                 "AimHoldDir: (" + aimHoldDirection.x.ToString("0.00") + ", " + aimHoldDirection.y.ToString("0.00") + ")" + "\n" +
+                "Assist: " + assistEnabled + " | Locked: " + assistLocked + " | Angle: " + assistAngle + " | Strength: " + assistAppliedStrength + "\n" +
+                codexStatus +
                 "FaceBtns: " + faceButtonDebug + "\n" +
                 "Jump: " + (frame.jumpPressed ? "Pressed" : "-") + " | Shoot: " + (frame.shootHeld ? "Held" : "-") + " | UltBtn: " + (frame.ultimatePressed ? "Pressed" : "-") + " | DashBtn: " + ((frame.dashPrimaryPressed || frame.dashSecondaryPressed) ? "Pressed" : "-");
         }

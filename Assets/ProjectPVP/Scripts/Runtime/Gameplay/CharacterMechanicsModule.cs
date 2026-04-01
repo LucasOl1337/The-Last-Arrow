@@ -52,4 +52,12 @@ namespace ProjectPVP.Gameplay
         public virtual void OnUltimateImpactApplied() { }
         public virtual void DrawGizmos(bool selected) { }
     }
+
+    public static class CharacterMechanicsModuleExtensions
+    {
+        public static CharacterMechanicsModule ResolveMechanicsModule(this CharacterDefinition definition)
+        {
+            return definition != null ? definition.mechanicsModule as CharacterMechanicsModule : null;
+        }
+    }
 }

@@ -79,12 +79,21 @@ namespace ProjectPVP.Editor
 
         private static void CollectMechanicsModuleActionKeys(CharacterDefinition definition, List<string> actionKeys)
         {
-            if (definition == null || definition.mechanicsModule == null || actionKeys == null)
+            ScriptableObject mechanicsModule = definition != null ? definition.mechanicsModule : null;
+            if (mechanicsModule == null || actionKeys == null)
             {
                 return;
             }
 
-            IEnumerable<string> additionalKeys = definition.mechanicsModule.GetAdditionalActionKeys(definition);
+            System.Reflection.MethodInfo method = mechanicsModule.GetType().GetMethod(
+                "GetAdditionalActionKeys",
+                new[] { typeof(CharacterDefinition) });
+            if (method == null)
+            {
+                return;
+            }
+
+            IEnumerable<string> additionalKeys = method.Invoke(mechanicsModule, new object[] { definition }) as IEnumerable<string>;
             if (additionalKeys == null)
             {
                 return;

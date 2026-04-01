@@ -9,6 +9,7 @@ namespace ProjectPVP.Presentation
         public MatchController matchController;
         public Color boundsColor = new Color(0.2f, 0.85f, 1f, 0.9f);
         public Color spawnColor = new Color(1f, 0.9f, 0.25f, 0.95f);
+        public Color alternateSpawnColor = new Color(0.35f, 1f, 0.72f, 0.9f);
         public float spawnMarkerRadius = 24f;
 
         private void Reset()
@@ -28,6 +29,25 @@ namespace ProjectPVP.Presentation
                 return;
             }
 
+            if (matchController.RoundRespawnSeeds.Count > 0)
+            {
+                for (int index = 0; index < matchController.RoundRespawnSeeds.Count; index += 1)
+                {
+                    float alpha = index == matchController.CurrentRespawnSeedIndex ? 1f : 0.35f;
+                    float radius = index == matchController.CurrentRespawnSeedIndex ? spawnMarkerRadius : spawnMarkerRadius * 0.72f;
+                    Vector2 slotOnePoint = matchController.GetRespawnSeedPoint(index, CombatantSlotId.SlotOne);
+                    Vector2 slotTwoPoint = matchController.GetRespawnSeedPoint(index, CombatantSlotId.SlotTwo);
+
+                    DrawSpawnMarker(slotOnePoint, new Color(spawnColor.r, spawnColor.g, spawnColor.b, alpha), radius);
+                    DrawSpawnMarker(slotTwoPoint, new Color(alternateSpawnColor.r, alternateSpawnColor.g, alternateSpawnColor.b, alpha), radius);
+
+                    Gizmos.color = new Color(1f, 1f, 1f, index == matchController.CurrentRespawnSeedIndex ? 0.45f : 0.18f);
+                    Gizmos.DrawLine(slotOnePoint, slotTwoPoint);
+                }
+
+                return;
+            }
+
             Gizmos.color = spawnColor;
             if (matchController.Slots.Count > 0)
             {
@@ -39,18 +59,19 @@ namespace ProjectPVP.Presentation
                         continue;
                     }
 
-                    DrawSpawnMarker(matchController.GetSpawnPoint(slot.slotId));
+                    DrawSpawnMarker(matchController.GetSpawnPoint(slot.slotId), spawnColor, spawnMarkerRadius);
                 }
 
                 return;
             }
         }
 
-        private void DrawSpawnMarker(Vector2 spawnPoint)
+        private void DrawSpawnMarker(Vector2 spawnPoint, Color color, float radius)
         {
-            Gizmos.DrawWireSphere(spawnPoint, spawnMarkerRadius);
-            Gizmos.DrawLine(spawnPoint + Vector2.left * spawnMarkerRadius, spawnPoint + Vector2.right * spawnMarkerRadius);
-            Gizmos.DrawLine(spawnPoint + Vector2.up * spawnMarkerRadius, spawnPoint + Vector2.down * spawnMarkerRadius);
+            Gizmos.color = color;
+            Gizmos.DrawWireSphere(spawnPoint, radius);
+            Gizmos.DrawLine(spawnPoint + Vector2.left * radius, spawnPoint + Vector2.right * radius);
+            Gizmos.DrawLine(spawnPoint + Vector2.up * radius, spawnPoint + Vector2.down * radius);
         }
     }
 }

@@ -240,6 +240,18 @@ if (player1.IsKnockedBack)
 
 ## Git Workflow
 
+### Worktrees
+```powershell
+.\tools\git-worktree.ps1 list
+.\tools\git-worktree.ps1 create -Branch feature/nome-da-feature
+.\tools\git-worktree.ps1 open   -Branch feature/nome-da-feature
+.\tools\git-worktree.ps1 remove -Branch feature/nome-da-feature
+```
+
+- `main` deve ficar limpa no diretório principal
+- cada feature deve viver em uma worktree própria
+- detalhes operacionais: `Docs/Git-Worktree-Workflow.md`
+
 ### Before Starting Work
 ```bash
 git status                    # Check current state

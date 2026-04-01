@@ -1,0 +1,210 @@
+using UnityEngine;
+
+namespace ProjectPVP.Input
+{
+    internal static class AiArenaHeuristicPolicy
+    {
+        public static string DecideJson(string snapshotJson)
+        {
+            AiArenaSnapshotEnvelope snapshot = JsonUtility.FromJson<AiArenaSnapshotEnvelope>(snapshotJson);
+            AiArenaDecisionEnvelope decision = Decide(snapshot);
+            return JsonUtility.ToJson(decision);
+        }
+
+        public static AiArenaDecisionEnvelope Decide(AiArenaSnapshotEnvelope snapshot)
+        {
+            var decision = new AiArenaDecisionEnvelope();
+            if (snapshot == null || snapshot.schemaVersion != AiArenaSnapshotEnvelope.CurrentSchemaVersion)
+            {
+                decision.status = "invalid_snapshot";
+                decision.debugSummary = "AI invalid snapshot";
+                return decision;
+            }
+
+            AiArenaSemanticObservation semantics = snapshot.semantics ?? new AiArenaSemanticObservation();
+            AiArenaCombatantObservation self = snapshot.self ?? new AiArenaCombatantObservation();
+            AiArenaCombatantObservation target = snapshot.opponents != null && snapshot.opponents.Count > 0
+                ? snapshot.opponents[0]
+                : new AiArenaCombatantObservation();
+
+            if (!semantics.hasTarget || self.isDead)
+            {
+                decision.status = "idle";
+                decision.debugSummary = "AI no target";
+                return decision;
+            }
+
+            bool canShoot = semantics.selfHasArrows && self.shootCooldownLeft <= 0.01f;
+            bool canMelee = self.meleeCooldownLeft <= 0.01f && !self.isMeleeActive;
+            bool canDash = self.dashCooldownLeft <= 0.01f && !self.isDashing;
+            bool canUltimate = self.ultimateCooldownLeft <= 0.01f && !self.isUltimateActive;
+
+            float axis = ResolveNeutralAxis(snapshot.frame, semantics, self, target);
+            Vector2 aim = semantics.predictedTargetDirection.sqrMagnitude > 0.001f
+                ? semantics.predictedTargetDirection.normalized
+                : semantics.targetDirection.normalized;
+
+            bool useJump = false;
+            bool useShoot = false;
+            bool useMelee = false;
+            bool useUltimate = false;
+            bool useDash = false;
+
+            if (semantics.incomingProjectileThreat)
+            {
+                if (self.canParryProjectile && semantics.incomingProjectileTime <= 0.18f)
+                {
+                    axis = 0f;
+                }
+                else if (semantics.shouldDashEvade && canDash)
+                {
+                    axis = semantics.targetDirection.x >= 0f ? 1f : -1f;
+                    useDash = true;
+                    decision.debugSummary = "AI PARRY DASH";
+                }
+                else if (semantics.shouldJumpEvade)
+                {
+                    axis = semantics.targetDirection.x >= 0f ? -0.35f : 0.35f;
+                    useJump = true;
+                    decision.debugSummary = "AI JUMP EVADE";
+                }
+            }
+
+            if (!useDash && !useJump && semantics.targetUsingUltimate)
+            {
+                if (canDash)
+                {
+                    axis = semantics.targetDirection.x >= 0f ? -1f : 1f;
+                    useDash = true;
+                    decision.debugSummary = "AI DODGE ULT";
+                }
+                else
+                {
+                    axis = semantics.targetDirection.x >= 0f ? -1f : 1f;
+                }
+            }
+
+            if (!useDash && !useJump && semantics.shouldPunish)
+            {
+                if (canUltimate && semantics.targetInUltimateRange && !semantics.incomingProjectileThreat)
+                {
+                    useUltimate = true;
+                    axis = 0f;
+                    decision.debugSummary = "AI PUNISH ULT";
+                }
+                else if (canMelee && semantics.targetInMeleeRange)
+                {
+                    useMelee = true;
+                    axis = 0f;
+                    decision.debugSummary = "AI PUNISH MELEE";
+                }
+                else if (canShoot && semantics.targetInShootRange)
+                {
+                    useShoot = true;
+                    decision.debugSummary = "AI PUNISH SHOT";
+                }
+            }
+
+            if (!useDash && !useJump && !useUltimate && !useMelee)
+            {
+                if (semantics.shouldAntiAir && canShoot)
+                {
+                    useShoot = true;
+                    decision.debugSummary = "AI ANTI AIR";
+                }
+                else if (canMelee && semantics.targetInMeleeRange && !semantics.targetUsingUltimate && !semantics.targetUsingMelee)
+                {
+                    useMelee = true;
+                    axis = 0f;
+                    decision.debugSummary = "AI MELEE";
+                }
+                else if (canShoot && semantics.targetInShootRange && semantics.shouldZone && !semantics.targetUsingUltimate)
+                {
+                    useShoot = true;
+                    decision.debugSummary = "AI ZONE SHOT";
+                }
+                else if (canUltimate && semantics.targetInUltimateRange && semantics.targetCornered && !semantics.incomingProjectileThreat)
+                {
+                    useUltimate = true;
+                    axis = 0f;
+                    decision.debugSummary = "AI CORNER ULT";
+                }
+                else if (canDash
+                    && semantics.shouldPressure
+                    && semantics.horizontalDistance > 520f
+                    && !semantics.incomingProjectileThreat
+                    && !semantics.targetUsingUltimate)
+                {
+                    axis = semantics.targetDirection.x >= 0f ? 1f : -1f;
+                    useDash = true;
+                    decision.debugSummary = "AI DASH IN";
+                }
+                else if (semantics.targetAbove && semantics.horizontalDistance < 640f && self.isGrounded)
+                {
+                    useJump = true;
+                    decision.debugSummary = "AI CLIMB";
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(decision.debugSummary))
+            {
+                decision.debugSummary = useUltimate
+                    ? "AI ULT"
+                    : useMelee
+                        ? "AI MELEE"
+                        : useShoot
+                            ? "AI SHOOT"
+                            : useDash
+                                ? "AI DASH"
+                                : Mathf.Abs(axis) > 0.1f
+                                    ? "AI MOVE"
+                                    : "AI HOLD";
+            }
+
+            decision.moveAxis = Mathf.Clamp(axis, -1f, 1f);
+            decision.aimX = aim.x;
+            decision.aimY = aim.y;
+            decision.jumpPressed = useJump;
+            decision.jumpHeld = useJump || (semantics.targetAbove && semantics.horizontalDistance < 700f);
+            decision.shootPressed = useShoot;
+            decision.shootHeld = useShoot;
+            decision.meleePressed = useMelee;
+            decision.ultimatePressed = useUltimate;
+            decision.dashPrimaryPressed = useDash;
+            return decision;
+        }
+
+        private static float ResolveNeutralAxis(
+            int frame,
+            AiArenaSemanticObservation semantics,
+            AiArenaCombatantObservation self,
+            AiArenaCombatantObservation target)
+        {
+            float towardTarget = semantics.targetDirection.x >= 0f ? 1f : -1f;
+            float awayFromTarget = -towardTarget;
+
+            if (semantics.selfCornered && semantics.horizontalDistance < 240f)
+            {
+                return towardTarget;
+            }
+
+            if (semantics.targetUsingMelee || semantics.targetPressuring || semantics.shouldRetreat)
+            {
+                return awayFromTarget;
+            }
+
+            if (semantics.shouldPressure || semantics.shouldAdvance)
+            {
+                return towardTarget;
+            }
+
+            if (semantics.shouldZone && semantics.targetInShootRange)
+            {
+                float strafe = ((frame / 20) % 2 == 0) ? 0.35f : -0.35f;
+                return target.position.y > self.position.y ? strafe : -strafe;
+            }
+
+            return 0f;
+        }
+    }
+}

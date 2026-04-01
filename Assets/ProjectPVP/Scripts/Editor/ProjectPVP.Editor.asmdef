@@ -2,7 +2,13 @@
   "name": "ProjectPVP.Editor",
   "rootNamespace": "ProjectPVP",
   "references": [
-    "ProjectPVP.Runtime"
+    "ProjectPVP.Characters",
+    "ProjectPVP.Core",
+    "ProjectPVP.Data",
+    "ProjectPVP.Gameplay",
+    "ProjectPVP.Input",
+    "ProjectPVP.Match",
+    "ProjectPVP.Presentation"
   ],
   "includePlatforms": [
     "Editor"

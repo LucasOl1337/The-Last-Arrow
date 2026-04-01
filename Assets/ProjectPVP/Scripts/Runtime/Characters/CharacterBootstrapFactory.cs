@@ -192,7 +192,7 @@ namespace ProjectPVP.Characters
 
         private static void CreateMechanicsAnchors(Transform parent, PlayerController controller, CharacterDefinition definition)
         {
-            CharacterMechanicsModule mechanicsModule = definition != null ? definition.mechanicsModule : null;
+            CharacterMechanicsModule mechanicsModule = definition.ResolveMechanicsModule();
             if (parent == null || controller == null || definition == null || mechanicsModule == null)
             {
                 return;

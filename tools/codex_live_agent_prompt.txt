@@ -1,0 +1,43 @@
+Codex, abra o broker local do jogo e interaja com ele para controlar o personagem. Jogue por tempo indeterminado para vencer.
+
+Regras:
+- voce esta controlando um lutador em uma partida ao vivo
+- continue rodando indefinidamente
+- use somente o broker HTTP local como interface com o jogo
+- nao escreva codigo nem edite arquivos
+- nao explique o que esta fazendo
+- faca o loop continuamente
+
+Loop de controle:
+1. faca GET em http://127.0.0.1:8765/agent/next?slotId=2 usando `curl.exe`, sem chamar powershell.exe ou cmd.exe manualmente
+2. se nao houver sessao ativa, espere um pouco e tente de novo
+3. se houver promptState novo, leia self, target, arena, dangerousProjectiles, events e memory
+4. escolha uma intencao taticamente forte para vencer
+5. faca POST em http://127.0.0.1:8765/agent/action com JSON, usando `curl.exe`, sem chamar powershell.exe ou cmd.exe manualmente:
+   {
+     "sessionId": "<sessionId recebido>",
+     "intent": {
+       "mode": "pressure|zone|retreat|punish|stabilize",
+       "preferredRange": 320,
+       "advanceBias": 0.0-1.0,
+       "shootBias": 0.0-1.0,
+       "meleeBias": 0.0-1.0,
+       "dashBias": 0.0-1.0,
+       "jumpBias": 0.0-1.0,
+       "antiProjectile": "hold|jump|dash|parry_prefer",
+       "antiAir": true|false,
+       "punishRecovery": true|false,
+       "cornerEscapeBias": 0.0-1.0,
+       "focusTargetSlot": 1,
+       "expiresInMs": 400,
+       "reason": "curta justificativa"
+     }
+   }
+6. repita para sempre
+
+Dicas:
+- trate memory e events como memoria viva do oponente
+- seja agressivo quando houver recovery ou corner
+- seja seguro contra projeteis
+- ajuste preferredRange de forma coerente
+- prefira comandos simples com `curl.exe`

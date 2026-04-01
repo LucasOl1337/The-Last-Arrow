@@ -3,19 +3,18 @@ using ProjectPVP.Data;
 
 namespace ProjectPVP.Gameplay
 {
+    /// <summary>
+    /// TowerFall-inspired arrow physics with limited ballistic assist.
+    /// The player still chooses one of 8 snapped directions; when a target is
+    /// inside that sector, the projectile can bias toward the best trajectory
+    /// with a capped turn rate so it remains dodgeable.
+    /// </summary>
     public sealed class ProjectileController : MonoBehaviour
     {
-        public float baseSpeed = 1500f;
-        public float minSpeed = 720f;
-        public float speedDecay = 360f;
-        public float gravity = 750f;
-        public float gravityDelayRatio = 0f;
-        public float gravityRampRatio = 0.6f;
-        public float gravityMinScale = 0.45f;
-        public float gravityMaxScale = 1.2f;
-        public float upwardGravityMultiplier = 3.2f;
-        public float upwardSpeedDecayMultiplier = 2.2f;
-        public float maxLifetime = 2.5f;
+        [Header("Physics")]
+        public float baseSpeed = 2800f;
+        public float gravity = 2200f;
+        public float maxLifetime = 2.0f;
         public float maxRange = 1440f;
         public bool rotateWithVelocity = true;
         public bool collectableWhenStuck = true;
@@ -26,21 +25,33 @@ namespace ProjectPVP.Gameplay
         public Vector2 collectibleHitboxSize = new Vector2(96f, 24f);
         public Vector2 collectibleHitboxOffset = Vector2.zero;
 
+        [Header("Components")]
         public Rigidbody2D body;
         public BoxCollider2D hitCollider;
         public SpriteRenderer spriteRenderer;
 
         private GameObject _sourceObject;
-        private Vector2 _velocity = Vector2.right;
-        private Vector2 _forwardDirection = Vector2.right;
-        private float _forwardSpeed;
+        private Vector2 _velocity;
+        private Vector2 _launchDirection;
         private float _lifetimeLeft;
         private float _distanceTravelled;
         private bool _launched;
         private bool _isStuck;
         private bool _isCollectible;
         private bool _isDisarmed;
+        private Transform _assistTarget;
+        private bool _assistEnabledRuntime;
+        private bool _assistTargetLocked;
+        private float _assistStrengthRuntime;
+        private float _assistMaxTurnRateDegRuntime;
+        private float _assistAcquireConeDegRuntime;
+        private float _assistMaxRangeRuntime;
+        private float _assistMinDistanceRuntime;
+        private float _assistDropoffStartRatioRuntime;
+        private float _assistCurrentAngleDeg;
+        private float _assistAppliedStrength;
 
+        // ── Public state ──────────────────────────────────────────────────────────
         public GameObject SourceObject => _sourceObject;
         public bool IsStuck => _isStuck;
         public bool IsCollectible => _isCollectible;
@@ -48,8 +59,15 @@ namespace ProjectPVP.Gameplay
         public Vector2 CurrentVelocity => _velocity;
         public Vector2 TravelDirection => _velocity.sqrMagnitude > 0.01f
             ? _velocity.normalized
-            : (_forwardDirection.sqrMagnitude > 0.01f ? _forwardDirection.normalized : Vector2.right);
+            : (_launchDirection.sqrMagnitude > 0.01f ? _launchDirection.normalized : Vector2.right);
 
+        // Legacy assist props — kept so existing code that reads them compiles without changes.
+        public bool AssistEnabledRuntime => _assistEnabledRuntime;
+        public bool AssistTargetLocked => _assistTargetLocked;
+        public float AssistCurrentAngleDeg => _assistCurrentAngleDeg;
+        public float AssistAppliedStrength => _assistAppliedStrength;
+
+        // ── Unity lifecycle ───────────────────────────────────────────────────────
         private void Reset()
         {
             body = GetComponent<Rigidbody2D>();
@@ -80,48 +98,22 @@ namespace ProjectPVP.Gameplay
                 return;
             }
 
-            float deltaTime = Time.fixedDeltaTime;
-            Vector2 previousPosition = body != null ? body.position : (Vector2)transform.position;
+            float dt = Time.fixedDeltaTime;
+            Vector2 prevPos = body != null ? body.position : (Vector2)transform.position;
 
-            if (Mathf.Abs(_forwardSpeed) > minSpeed)
-            {
-                float decay = speedDecay;
-                if (_velocity.y > 0f)
-                {
-                    decay *= upwardSpeedDecayMultiplier;
-                }
+            // Gravity applied each frame from the moment of launch — no delay, no ramp.
+            _velocity.y -= gravity * dt;
+            ApplyAssistSteering(prevPos, dt);
 
-                _forwardSpeed = Mathf.Sign(_forwardSpeed) * Mathf.Max(Mathf.Abs(_forwardSpeed) - (decay * deltaTime), minSpeed);
-            }
-
-            Vector2 forwardComponent = _forwardDirection * _forwardSpeed;
-            float currentAlongForward = Vector2.Dot(_velocity, _forwardDirection);
-            Vector2 sideComponent = _velocity - (_forwardDirection * currentAlongForward);
-            _velocity = forwardComponent + sideComponent;
-
-            if (_distanceTravelled >= maxRange * gravityDelayRatio)
-            {
-                float progress = maxRange > 0.01f ? Mathf.Clamp01(_distanceTravelled / maxRange) : 1f;
-                float ramp = gravityRampRatio > 0f ? Mathf.Clamp01(progress / gravityRampRatio) : 1f;
-                float gravityScale = Mathf.Lerp(gravityMinScale, gravityMaxScale, ramp);
-                float gravityStrength = gravity * gravityScale;
-                if (_velocity.y > 0f)
-                {
-                    gravityStrength *= upwardGravityMultiplier;
-                }
-
-                _velocity += Vector2.down * gravityStrength * deltaTime;
-            }
-
-            Vector2 nextPosition = previousPosition + (_velocity * deltaTime);
+            Vector2 nextPos = prevPos + _velocity * dt;
 
             if (body != null)
             {
-                body.MovePosition(nextPosition);
+                body.MovePosition(nextPos);
             }
             else
             {
-                transform.position = nextPosition;
+                transform.position = nextPos;
             }
 
             if (rotateWithVelocity && _velocity.sqrMagnitude > 0.01f)
@@ -130,8 +122,8 @@ namespace ProjectPVP.Gameplay
                 transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
             }
 
-            _distanceTravelled += Vector2.Distance(previousPosition, nextPosition);
-            _lifetimeLeft -= deltaTime;
+            _distanceTravelled += Vector2.Distance(prevPos, nextPos);
+            _lifetimeLeft -= dt;
 
             if (_distanceTravelled >= maxRange || _lifetimeLeft <= 0f)
             {
@@ -204,18 +196,52 @@ namespace ProjectPVP.Gameplay
             Stick(_isCollectible);
         }
 
-        public void Launch(GameObject sourceObject, Vector2 origin, Vector2 direction, Vector2 inheritedVelocity, float inheritFactor, Sprite overrideSprite)
+        // ── Launch ────────────────────────────────────────────────────────────────
+        /// <summary>
+        /// Fires the arrow with ballistic physics plus optional limited assist steering.
+        /// Assist never teleports or fully homes the shot; it only biases the velocity
+        /// toward a reachable arc within the configured turn-rate and range limits.
+        /// </summary>
+        public void Launch(
+            GameObject sourceObject,
+            Vector2 origin,
+            Vector2 direction,
+            Transform assistTarget,
+            bool launchAssistEnabled,
+            float launchAssistStrength,
+            float launchAssistMaxTurnRateDeg,
+            float launchAssistAcquireConeDeg,
+            float launchAssistMaxRange,
+            float launchAssistMinDistance,
+            float launchAssistDropoffStartRatio,
+            Vector2 inheritedVelocity,
+            float inheritFactor,
+            Sprite overrideSprite)
         {
             _sourceObject = sourceObject;
-            _forwardDirection = direction == Vector2.zero ? Vector2.right : direction.normalized;
-            _forwardSpeed = Mathf.Max(minSpeed, baseSpeed + Mathf.Max(0f, Vector2.Dot(inheritedVelocity * inheritFactor, _forwardDirection)));
-            _velocity = _forwardDirection * _forwardSpeed;
+            _launchDirection = direction == Vector2.zero ? Vector2.right : direction.normalized;
+
+            // Add player's own velocity component along the shot direction.
+            float inheritedBoost = Mathf.Max(0f, Vector2.Dot(inheritedVelocity * inheritFactor, _launchDirection));
+            _velocity = _launchDirection * (baseSpeed + inheritedBoost);
+
             _lifetimeLeft = maxLifetime;
             _distanceTravelled = 0f;
             _launched = true;
             _isStuck = false;
             _isCollectible = collectableWhenStuck;
             _isDisarmed = false;
+            _assistTarget = assistTarget;
+            _assistEnabledRuntime = launchAssistEnabled && assistTarget != null;
+            _assistTargetLocked = _assistEnabledRuntime;
+            _assistStrengthRuntime = Mathf.Clamp01(launchAssistStrength);
+            _assistMaxTurnRateDegRuntime = Mathf.Max(0f, launchAssistMaxTurnRateDeg);
+            _assistAcquireConeDegRuntime = Mathf.Clamp(launchAssistAcquireConeDeg, 0f, 180f);
+            _assistMaxRangeRuntime = Mathf.Max(0f, launchAssistMaxRange);
+            _assistMinDistanceRuntime = Mathf.Max(0f, launchAssistMinDistance);
+            _assistDropoffStartRatioRuntime = Mathf.Clamp01(launchAssistDropoffStartRatio);
+            _assistCurrentAngleDeg = 0f;
+            _assistAppliedStrength = 0f;
 
             if (spriteRenderer != null && overrideSprite != null)
             {
@@ -239,6 +265,7 @@ namespace ProjectPVP.Gameplay
             }
         }
 
+        // ── Definition ────────────────────────────────────────────────────────────
         public void ApplyDefinition(CharacterDefinition definition)
         {
             if (definition == null)
@@ -247,15 +274,7 @@ namespace ProjectPVP.Gameplay
             }
 
             baseSpeed = definition.projectileBaseSpeed;
-            minSpeed = definition.projectileMinSpeed;
-            speedDecay = definition.projectileSpeedDecay;
             gravity = definition.projectileGravity;
-            gravityDelayRatio = definition.projectileGravityDelayRatio;
-            gravityRampRatio = definition.projectileGravityRampRatio;
-            gravityMinScale = definition.projectileGravityMinScale;
-            gravityMaxScale = definition.projectileGravityMaxScale;
-            upwardGravityMultiplier = definition.projectileUpwardGravityMultiplier;
-            upwardSpeedDecayMultiplier = definition.projectileUpwardSpeedDecayMultiplier;
             maxLifetime = definition.projectileMaxLifetime;
             maxRange = definition.projectileMaxRange;
             rotateWithVelocity = definition.projectileRotateWithVelocity;
@@ -267,6 +286,7 @@ namespace ProjectPVP.Gameplay
             ApplyFlightHitbox();
         }
 
+        // ── State transitions ─────────────────────────────────────────────────────
         public void Stick(bool collectable)
         {
             if (_isStuck)
@@ -277,16 +297,38 @@ namespace ProjectPVP.Gameplay
             _isStuck = true;
             _isCollectible = collectable;
             _velocity = Vector2.zero;
-            _forwardSpeed = 0f;
-
-            ApplyCollectibleHitbox();
 
             if (body != null)
             {
                 body.linearVelocity = Vector2.zero;
             }
+
+            ApplyCollectibleHitbox();
         }
 
+        public void SeverByMelee()
+        {
+            if (!_launched || _isStuck || _isDisarmed)
+            {
+                return;
+            }
+
+            _isDisarmed = true;
+            _isCollectible = false;
+
+            _velocity = _velocity.sqrMagnitude > 0.01f
+                ? new Vector2(_velocity.x * 0.2f, Mathf.Min(_velocity.y, -120f))
+                : new Vector2(0f, -120f);
+
+            if (body != null)
+            {
+                body.linearVelocity = Vector2.zero;
+            }
+
+            ApplyCollectibleHitbox();
+        }
+
+        // ── Collision helpers ─────────────────────────────────────────────────────
         private bool ShouldIgnoreCollider(Collider2D other)
         {
             if (other.GetComponentInParent<PlayerCombatAnchor>() != null)
@@ -307,68 +349,52 @@ namespace ProjectPVP.Gameplay
             return other.transform.IsChildOf(_sourceObject.transform);
         }
 
-        private void ResolveProjectileCollision(ProjectileController otherProjectile)
+        private void ResolveProjectileCollision(ProjectileController other)
         {
-            if (otherProjectile == null
-                || otherProjectile == this
-                || !_launched
-                || _isStuck
-                || _isDisarmed
-                || !otherProjectile._launched
-                || otherProjectile._isStuck
-                || otherProjectile._isDisarmed)
+            if (other == null || other == this
+                || !_launched || _isStuck || _isDisarmed
+                || !other._launched || other._isStuck || other._isDisarmed)
             {
                 return;
             }
 
-            if (GetInstanceID() > otherProjectile.GetInstanceID())
+            // Only the lower-ID instance runs the resolution to avoid double-processing.
+            if (GetInstanceID() > other.GetInstanceID())
             {
                 return;
             }
 
-            if (!IsOpposingProjectile(otherProjectile))
+            if (!IsOpposingProjectile(other))
             {
                 return;
             }
 
             DisarmIntoDrop();
-            otherProjectile.DisarmIntoDrop();
+            other.DisarmIntoDrop();
         }
 
-        private bool IsOpposingProjectile(ProjectileController otherProjectile)
+        private bool IsOpposingProjectile(ProjectileController other)
         {
-            float horizontal = ResolveTravelHorizontal();
-            float otherHorizontal = otherProjectile.ResolveTravelHorizontal();
-            return Mathf.Abs(horizontal) > 0.1f
-                && Mathf.Abs(otherHorizontal) > 0.1f
-                && Mathf.Sign(horizontal) != Mathf.Sign(otherHorizontal);
+            float myH = ResolveTravelHorizontal();
+            float theirH = other.ResolveTravelHorizontal();
+            return Mathf.Abs(myH) > 0.1f
+                && Mathf.Abs(theirH) > 0.1f
+                && Mathf.Sign(myH) != Mathf.Sign(theirH);
         }
 
         private float ResolveTravelHorizontal()
         {
-            if (Mathf.Abs(_velocity.x) > 0.1f)
-            {
-                return _velocity.x;
-            }
-
-            return _forwardDirection.x;
+            return Mathf.Abs(_velocity.x) > 0.1f ? _velocity.x : _launchDirection.x;
         }
 
         private void DisarmIntoDrop()
         {
             _isDisarmed = true;
             _isCollectible = true;
-            _forwardDirection = Vector2.zero;
-            _forwardSpeed = 0f;
 
-            if (_velocity.sqrMagnitude > 0.01f)
-            {
-                _velocity = new Vector2(_velocity.x * 0.15f, Mathf.Min(_velocity.y, -40f));
-            }
-            else
-            {
-                _velocity = new Vector2(0f, -40f);
-            }
+            _velocity = _velocity.sqrMagnitude > 0.01f
+                ? new Vector2(_velocity.x * 0.15f, Mathf.Min(_velocity.y, -40f))
+                : new Vector2(0f, -40f);
 
             if (body != null)
             {
@@ -378,33 +404,211 @@ namespace ProjectPVP.Gameplay
             ApplyCollectibleHitbox();
         }
 
-        public void SeverByMelee()
+        // ── Hitbox helpers ────────────────────────────────────────────────────────
+        private void ApplyAssistSteering(Vector2 currentPosition, float deltaTime)
         {
-            if (!_launched || _isStuck || _isDisarmed)
+            if (!_assistEnabledRuntime || _assistTarget == null || _isDisarmed)
             {
+                _assistTargetLocked = false;
+                _assistCurrentAngleDeg = 0f;
+                _assistAppliedStrength = 0f;
                 return;
             }
 
-            _isDisarmed = true;
-            _isCollectible = false;
-            _forwardDirection = Vector2.zero;
-            _forwardSpeed = 0f;
-
-            if (_velocity.sqrMagnitude > 0.01f)
+            Vector2 assistAimPoint = ResolveAssistAimPoint();
+            Vector2 toTarget = assistAimPoint - currentPosition;
+            float sqrDistance = toTarget.sqrMagnitude;
+            if (sqrDistance <= 0.0001f)
             {
-                _velocity = new Vector2(_velocity.x * 0.2f, Mathf.Min(_velocity.y, -120f));
+                _assistTargetLocked = false;
+                _assistCurrentAngleDeg = 0f;
+                _assistAppliedStrength = 0f;
+                return;
+            }
+
+            float distance = Mathf.Sqrt(sqrDistance);
+            if (distance < _assistMinDistanceRuntime || distance > _assistMaxRangeRuntime)
+            {
+                _assistTargetLocked = false;
+                _assistCurrentAngleDeg = 0f;
+                _assistAppliedStrength = 0f;
+                return;
+            }
+
+            Vector2 currentDirection = TravelDirection;
+            Vector2 desiredDirection = ResolveDesiredAssistDirection(currentPosition, assistAimPoint, currentDirection);
+            _assistCurrentAngleDeg = Vector2.Angle(currentDirection, desiredDirection);
+
+            if (!_assistTargetLocked && _assistCurrentAngleDeg > _assistAcquireConeDegRuntime)
+            {
+                _assistAppliedStrength = 0f;
+                return;
+            }
+
+            _assistTargetLocked = true;
+            float appliedStrength = ComputeAssistAppliedStrength(
+                _assistStrengthRuntime,
+                distance,
+                _assistMaxRangeRuntime,
+                _assistDropoffStartRatioRuntime);
+            if (appliedStrength <= 0f)
+            {
+                _assistAppliedStrength = 0f;
+                return;
+            }
+
+            float maxStepRadians = Mathf.Deg2Rad * _assistMaxTurnRateDegRuntime * appliedStrength * deltaTime;
+            Vector2 steeredDirection = RotateDirectionTowardsTarget(currentDirection, desiredDirection, maxStepRadians);
+            float speed = Mathf.Max(0.01f, _velocity.magnitude);
+            _velocity = steeredDirection * speed;
+            _assistAppliedStrength = appliedStrength;
+        }
+
+        private Vector2 ResolveAssistAimPoint()
+        {
+            if (_assistTarget == null)
+            {
+                return (Vector2)transform.position;
+            }
+
+            PlayerController targetPlayer = _assistTarget.GetComponent<PlayerController>();
+            if (targetPlayer != null)
+            {
+                if (targetPlayer.IsDead)
+                {
+                    _assistEnabledRuntime = false;
+                    _assistTargetLocked = false;
+                    return (Vector2)_assistTarget.position;
+                }
+
+                return PlayerAnchorSystem.ResolveCombatantAimPoint(targetPlayer);
+            }
+
+            return (Vector2)_assistTarget.position;
+        }
+
+        private Vector2 ResolveDesiredAssistDirection(Vector2 origin, Vector2 target, Vector2 fallbackDirection)
+        {
+            float currentSpeed = Mathf.Max(0.01f, _velocity.magnitude);
+            if (TrySolveBallisticArc(origin, target, currentSpeed, gravity, out Vector2 lowArc, out Vector2 highArc))
+            {
+                float lowAngle = Vector2.Angle(fallbackDirection, lowArc);
+                float highAngle = Vector2.Angle(fallbackDirection, highArc);
+                return lowAngle <= highAngle ? lowArc : highArc;
+            }
+
+            Vector2 direct = target - origin;
+            return direct.sqrMagnitude > 0.0001f ? direct.normalized : fallbackDirection;
+        }
+
+        private static float ComputeAssistAppliedStrength(float baseStrength, float distance, float maxRange, float dropoffStartRatio)
+        {
+            float resolvedBaseStrength = Mathf.Clamp01(baseStrength);
+            if (resolvedBaseStrength <= 0f || maxRange <= 0f)
+            {
+                return 0f;
+            }
+
+            float dropoffStartDistance = Mathf.Clamp01(dropoffStartRatio) * maxRange;
+            if (distance <= dropoffStartDistance)
+            {
+                return resolvedBaseStrength;
+            }
+
+            if (distance >= maxRange)
+            {
+                return 0f;
+            }
+
+            float remainingRange = Mathf.Max(0.0001f, maxRange - dropoffStartDistance);
+            float fade = 1f - ((distance - dropoffStartDistance) / remainingRange);
+            return resolvedBaseStrength * Mathf.Clamp01(fade);
+        }
+
+        private static Vector2 RotateDirectionTowardsTarget(Vector2 currentDirection, Vector2 desiredDirection, float maxStepRadians)
+        {
+            Vector2 safeCurrent = currentDirection.sqrMagnitude > 0.0001f ? currentDirection.normalized : Vector2.right;
+            Vector2 safeDesired = desiredDirection.sqrMagnitude > 0.0001f ? desiredDirection.normalized : safeCurrent;
+            if (maxStepRadians <= 0f)
+            {
+                return safeCurrent;
+            }
+
+            float currentAngleDeg = Mathf.Atan2(safeCurrent.y, safeCurrent.x) * Mathf.Rad2Deg;
+            float desiredAngleDeg = Mathf.Atan2(safeDesired.y, safeDesired.x) * Mathf.Rad2Deg;
+            float steppedAngleDeg = Mathf.MoveTowardsAngle(currentAngleDeg, desiredAngleDeg, maxStepRadians * Mathf.Rad2Deg);
+            float steppedAngleRad = steppedAngleDeg * Mathf.Deg2Rad;
+            return new Vector2(Mathf.Cos(steppedAngleRad), Mathf.Sin(steppedAngleRad)).normalized;
+        }
+
+        private static bool TrySolveBallisticArc(
+            Vector2 origin,
+            Vector2 target,
+            float speed,
+            float gravity,
+            out Vector2 lowArcDir,
+            out Vector2 highArcDir)
+        {
+            lowArcDir = highArcDir = Vector2.zero;
+
+            if (speed < 0.1f)
+            {
+                Vector2 fallback = (target - origin).normalized;
+                lowArcDir = fallback;
+                highArcDir = fallback;
+                return true;
+            }
+
+            float dx = target.x - origin.x;
+            float dy = target.y - origin.y;
+            if (Mathf.Abs(dx) < 1f)
+            {
+                Vector2 direct = (target - origin).normalized;
+                lowArcDir = direct;
+                highArcDir = direct;
+                return true;
+            }
+
+            float speedSq = speed * speed;
+            float a = gravity * dx * dx / (2f * speedSq);
+            if (Mathf.Abs(a) < 0.0001f)
+            {
+                return false;
+            }
+
+            float b = -dx;
+            float c = dy + a;
+            float discriminant = b * b - (4f * a * c);
+            if (discriminant < 0f)
+            {
+                return false;
+            }
+
+            float sqrtDiscriminant = Mathf.Sqrt(discriminant);
+            float tanA = (-b + sqrtDiscriminant) / (2f * a);
+            float tanB = (-b - sqrtDiscriminant) / (2f * a);
+
+            Vector2 TanToDirection(float tanValue)
+            {
+                float cos = 1f / Mathf.Sqrt(1f + (tanValue * tanValue));
+                float sin = tanValue * cos;
+                return new Vector2(cos * (dx >= 0f ? 1f : -1f), sin).normalized;
+            }
+
+            Vector2 first = TanToDirection(tanA);
+            Vector2 second = TanToDirection(tanB);
+            if (Mathf.Abs(tanA) <= Mathf.Abs(tanB))
+            {
+                lowArcDir = first;
+                highArcDir = second;
             }
             else
             {
-                _velocity = new Vector2(0f, -120f);
+                lowArcDir = second;
+                highArcDir = first;
             }
 
-            if (body != null)
-            {
-                body.linearVelocity = Vector2.zero;
-            }
-
-            ApplyCollectibleHitbox();
+            return true;
         }
 
         private void ApplyFlightHitbox()
