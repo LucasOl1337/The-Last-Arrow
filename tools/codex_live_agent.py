@@ -27,6 +27,43 @@ OPENROUTER_SITE_URL = os.environ.get("OPENROUTER_SITE_URL", "").strip()
 OPENROUTER_APP_NAME = os.environ.get("OPENROUTER_APP_NAME", "The Last Arrow Bot Arena").strip()
 TOOLS_DIR = Path(__file__).resolve().parent
 CODEX_PATH = Path(os.environ.get("CODEX_EXE", r"C:\Users\user\.codex\.sandbox-bin\codex.exe"))
+
+# ── Multi-account OAuth fallback ────────────────────────────────────────────
+# Comma-separated list of CODEX_HOME paths. When the current account fails
+# due to quota or auth errors the agent rotates to the next one automatically.
+_DEFAULT_CODEX_HOME = str(Path.home() / ".codex")
+_DEFAULT_CODEX_HOME_2 = str(Path.home() / ".codex2")
+_raw_fallbacks = os.environ.get("CODEX_HOME_FALLBACKS", "").strip()
+if _raw_fallbacks:
+    CODEX_HOME_CANDIDATES: list[str] = [p.strip() for p in _raw_fallbacks.split(",") if p.strip()]
+else:
+    # Auto-discover: primary first, then any .codex* sibling that has auth.json
+    _home = Path.home()
+    CODEX_HOME_CANDIDATES = [_DEFAULT_CODEX_HOME]
+    for _entry in sorted(_home.iterdir()):
+        if (
+            _entry.is_dir()
+            and _entry.name.startswith(".codex")
+            and str(_entry) != _DEFAULT_CODEX_HOME
+            and (_entry / "auth.json").exists()
+        ):
+            CODEX_HOME_CANDIDATES.append(str(_entry))
+    # Also include .codex2 even without auth.json yet so user can log in
+    if _DEFAULT_CODEX_HOME_2 not in CODEX_HOME_CANDIDATES and Path(_DEFAULT_CODEX_HOME_2).exists():
+        CODEX_HOME_CANDIDATES.append(_DEFAULT_CODEX_HOME_2)
+
+# Errors that indicate quota exhaustion or authentication failure
+_QUOTA_ERROR_KEYWORDS = (
+    "rate_limit", "quota", "429", "insufficient_quota",
+    "billing", "auth", "unauthorized", "401", "403",
+    "token limit", "usage limit",
+)
+
+
+def _is_quota_or_auth_error(error: str) -> bool:
+    low = error.lower()
+    return any(kw in low for kw in _QUOTA_ERROR_KEYWORDS)
+# ────────────────────────────────────────────────────────────────────────────
 SYSTEM_PROMPT_PATH = TOOLS_DIR / "codex_broker_system_prompt.txt"
 SCHEMA_PATH = TOOLS_DIR / "codex_broker_output_schema.json"
 SYSTEM_PROMPT = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8").strip()
@@ -268,13 +305,16 @@ def run_openrouter_turn(messages: list[dict[str, str]]) -> tuple[dict[str, Any] 
     return intent, "", {"stdout": response_text, "stderr": "", "returncode": 0}
 
 
-def run_codex_command(command: list[str], capture_thread_id: bool) -> tuple[str | None, dict[str, Any] | None, str, dict[str, Any]]:
+def run_codex_command(command: list[str], capture_thread_id: bool, codex_home: str = "") -> tuple[str | None, dict[str, Any] | None, str, dict[str, Any]]:
     creationflags = 0
     startupinfo = None
     if os.name == "nt":
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    env = os.environ.copy()
+    if codex_home:
+        env["CODEX_HOME"] = codex_home
     try:
         completed = subprocess.run(
             command,
@@ -283,6 +323,7 @@ def run_codex_command(command: list[str], capture_thread_id: bool) -> tuple[str 
             encoding="utf-8",
             timeout=TURN_TIMEOUT_SECONDS,
             check=False,
+            env=env,
             creationflags=creationflags,
             startupinfo=startupinfo,
         )
@@ -342,7 +383,7 @@ def run_codex_command(command: list[str], capture_thread_id: bool) -> tuple[str 
     return thread_id, intent, "", meta
 
 
-def run_codex_new(prompt: str) -> tuple[str | None, dict[str, Any] | None, str, dict[str, Any]]:
+def run_codex_new(prompt: str, codex_home: str = "") -> tuple[str | None, dict[str, Any] | None, str, dict[str, Any]]:
     if CODEX_MODEL_PROVIDER == "openrouter":
         intent, error, meta = run_openrouter_turn([
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -372,10 +413,10 @@ def run_codex_new(prompt: str) -> tuple[str | None, dict[str, Any] | None, str, 
     if CODEX_MODEL:
         command.extend(["--model", CODEX_MODEL])
     command.append(prompt)
-    return run_codex_command(command, capture_thread_id=True)
+    return run_codex_command(command, capture_thread_id=True, codex_home=codex_home)
 
 
-def run_codex_resume(session_id: str, prompt: str) -> tuple[dict[str, Any] | None, str, dict[str, Any]]:
+def run_codex_resume(session_id: str, prompt: str, codex_home: str = "") -> tuple[dict[str, Any] | None, str, dict[str, Any]]:
     if CODEX_MODEL_PROVIDER == "openrouter":
         intent, error, meta = run_openrouter_turn([
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -400,7 +441,7 @@ def run_codex_resume(session_id: str, prompt: str) -> tuple[dict[str, Any] | Non
     if CODEX_MODEL:
         command.extend(["--model", CODEX_MODEL])
     command.append(prompt)
-    _, parsed, error, meta = run_codex_command(command, capture_thread_id=False)
+    _, parsed, error, meta = run_codex_command(command, capture_thread_id=False, codex_home=codex_home)
     return parsed, error, meta
 
 
@@ -531,7 +572,31 @@ def main() -> int:
         log(f"codex executable not found: {CODEX_PATH}")
         return 1
 
+    # ── Account rotation state ────────────────────────────────────────────
+    account_index = 0
+    account_consecutive_failures = 0
+    ACCOUNT_FAILURE_THRESHOLD = 3  # falhas consecutivas antes de rotacionar
+
+    def current_codex_home() -> str:
+        if not CODEX_HOME_CANDIDATES:
+            return ""
+        return CODEX_HOME_CANDIDATES[account_index % len(CODEX_HOME_CANDIDATES)]
+
+    def rotate_account(reason: str) -> bool:
+        nonlocal account_index, account_consecutive_failures
+        if len(CODEX_HOME_CANDIDATES) <= 1:
+            log(f"[auth-fallback] sem contas alternativas para rotacionar ({reason})")
+            return False
+        old_home = current_codex_home()
+        account_index = (account_index + 1) % len(CODEX_HOME_CANDIDATES)
+        account_consecutive_failures = 0
+        new_home = current_codex_home()
+        log(f"[auth-fallback] rotacionando conta: {old_home} -> {new_home} | motivo: {reason}")
+        return True
+    # ─────────────────────────────────────────────────────────────────────
+
     log(f"starting live agent for slot {SLOT_ID} bot={BOT_ID or '-'} via {BROKER_BASE}")
+    log(f"[auth-fallback] contas disponiveis: {CODEX_HOME_CANDIDATES}")
     codex_session_id = ""
     broker_session_id = ""
     last_frame = -1
@@ -547,7 +612,7 @@ def main() -> int:
         "model": CODEX_MODEL or "codex-cli-default",
         "prompt": warmup_prompt,
     })
-    thread_id, warmup_intent, warmup_error, warmup_meta = run_codex_new(warmup_prompt)
+    thread_id, warmup_intent, warmup_error, warmup_meta = run_codex_new(warmup_prompt, codex_home=current_codex_home())
     append_trace_event("warmup_response", {
         "slotId": SLOT_ID,
         "botId": BOT_ID,
@@ -565,6 +630,8 @@ def main() -> int:
         log(f"warmup ready session={codex_session_id[:8]} mode={warmup_intent['mode']}")
     else:
         log(f"warmup skipped error={warmup_error or 'unknown'}")
+        if warmup_error and _is_quota_or_auth_error(warmup_error):
+            rotate_account(warmup_error)
 
     while True:
         status, state = http_get(f"/agent/next?slotId={SLOT_ID}")
@@ -656,7 +723,7 @@ def main() -> int:
                 "model": CODEX_MODEL or "codex-cli-default",
                 "prompt": prompt,
             })
-            thread_id, intent, error, meta = run_codex_new(prompt)
+            thread_id, intent, error, meta = run_codex_new(prompt, codex_home=current_codex_home())
             append_trace_event("codex_response", {
                 "slotId": SLOT_ID,
                 "botId": BOT_ID or payload.get("botId", ""),
@@ -668,12 +735,18 @@ def main() -> int:
                 "model": CODEX_MODEL or "codex-cli-default",
                 "intent": intent,
                 "error": error,
+                "codexHome": current_codex_home(),
                 "stdout": meta.get("stdout", ""),
                 "stderr": meta.get("stderr", ""),
                 "returncode": meta.get("returncode", -1),
             })
             if not thread_id or intent is None:
                 log(f"codex start failed: {error}")
+                account_consecutive_failures += 1
+                if _is_quota_or_auth_error(error) or account_consecutive_failures >= ACCOUNT_FAILURE_THRESHOLD:
+                    rotated = rotate_account(error)
+                    if rotated:
+                        codex_session_id = ""  # reinicia sessao na nova conta
                 send_heartbeat(
                     broker_session_id,
                     codex_session_id,
@@ -686,6 +759,7 @@ def main() -> int:
                 )
                 time.sleep(IDLE_INTERVAL_SECONDS)
                 continue
+            account_consecutive_failures = 0
             codex_session_id = thread_id
             intent = apply_aggression_bias(intent, state)
             log(f"codex session started {codex_session_id[:8]} mode={intent['mode']} reason={intent['reason']}")
@@ -702,7 +776,7 @@ def main() -> int:
                 "model": CODEX_MODEL or "codex-cli-default",
                 "prompt": prompt,
             })
-            intent, error, meta = run_codex_resume(codex_session_id, prompt)
+            intent, error, meta = run_codex_resume(codex_session_id, prompt, codex_home=current_codex_home())
             append_trace_event("codex_response", {
                 "slotId": SLOT_ID,
                 "botId": BOT_ID or payload.get("botId", ""),
@@ -714,12 +788,18 @@ def main() -> int:
                 "model": CODEX_MODEL or "codex-cli-default",
                 "intent": intent,
                 "error": error,
+                "codexHome": current_codex_home(),
                 "stdout": meta.get("stdout", ""),
                 "stderr": meta.get("stderr", ""),
                 "returncode": meta.get("returncode", -1),
             })
             if intent is None:
                 log(f"codex resume failed: {error}")
+                account_consecutive_failures += 1
+                if _is_quota_or_auth_error(error) or account_consecutive_failures >= ACCOUNT_FAILURE_THRESHOLD:
+                    rotated = rotate_account(error)
+                    if rotated:
+                        codex_session_id = ""  # abre nova sessao na nova conta
                 send_heartbeat(
                     broker_session_id,
                     codex_session_id,
@@ -732,6 +812,7 @@ def main() -> int:
                 )
                 time.sleep(POLL_INTERVAL_SECONDS)
                 continue
+            account_consecutive_failures = 0
 
         intent = apply_aggression_bias(intent, state)
 
