@@ -1,5 +1,93 @@
 # Patch Notes
 
+<!-- safe-commit:generated:start -->
+Generated: 2026-05-29T11:23:31.323Z
+Repository: The-Last-Arrow
+Path: C:\projetos\The-Last-Arrow
+Branch: main
+Remote: https://github.com/LucasOl1337/The-Last-Arrow.git
+GitHub baseline: origin/main
+State before safe commit: dirty
+Ahead/behind before safe commit: ahead 0, behind 0
+Recent local file changes detected: 3
+Recent local commit detected: no
+Last commit: 2026-04-07T08:54:22-03:00 - Add bot launcher and Codex account fallback
+
+## Executive Summary
+
+This safe-commit report records the current PC state for The-Last-Arrow before committing the local work. Fetch from origin completed successfully before this report.
+The comparison target is origin/main. The local branch is main, with ahead 0 and behind 0 relative to GitHub after fetch.
+No Git merge conflict entries were detected in the current status.
+GitHub did not report remote-only commits for this branch, or the upstream comparison is unavailable.
+
+## PC Versus GitHub
+
+### Working Tree Compared To GitHub
+```text
+ PatchNotes.md | 74 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 74 insertions(+)
+```
+
+### File-Level Delta Against GitHub
+```text
+M	PatchNotes.md
+```
+
+### Local-Only Commits
+- None.
+
+### GitHub-Only Commits
+- None.
+
+## Local Working Tree
+
+### Current Status
+```text
+## main...origin/main
+ M PatchNotes.md
+?? Assets/Branding/
+?? brand/
+?? build-icon.ico
+?? changelog.md
+ M PatchNotes.md
+?? Assets/Branding/
+?? brand/
+?? build-icon.ico
+?? changelog.md
+```
+
+### Unstaged Diff Stat
+```text
+ PatchNotes.md | 74 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 74 insertions(+)
+```
+
+### Unstaged File Changes
+```text
+M	PatchNotes.md
+```
+
+### Staged Diff Stat
+None.
+
+### Staged File Changes
+None.
+
+## Recent Files On This PC
+- Assets/Branding (2026-05-29T11:05:04.220Z, dir)
+- brand (2026-05-29T03:15:08.136Z, dir)
+- build-icon.ico (2026-05-29T11:02:04.350Z)
+
+## Operational Notes
+
+- These notes were generated before the final staging step for this safe commit.
+- Existing local notes, when present, are preserved below this generated block instead of being discarded.
+- Untracked files are listed through Git status; ignored build/cache folders are not forced into the commit.
+- The intended commit message format is date plus state plus "safe commit".
+<!-- safe-commit:generated:end -->
+
+## Previous Local Notes Preserved
+
 Este arquivo deve ser atualizado de forma sequencial a cada versao nova.
 
 Regra do projeto:
