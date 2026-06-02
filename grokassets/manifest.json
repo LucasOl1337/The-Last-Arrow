@@ -1,8 +1,53 @@
 ﻿{
-  "project": "The-Last-Arrow",
-  "campaign": "grokassets",
-  "generatedAt": "2026-05-31",
-  "status": "structure-created",
-  "visualTheme": "",
-  "assets": []
+    "project":  "The-Last-Arrow",
+    "campaign":  "grokassets",
+    "generatedAt":  "2026-05-31 (marketing surfaces - late capture)",
+    "status":  "structure-created",
+    "visualTheme":  "",
+    "assets":  [
+                   {
+                       "promptFile":  "prompts/2026-05-31-the-last-arrow-decisive-combat.md",
+                       "resolution":  "720p",
+                       "path":  "motion/feature-demos/the-last-arrow-decisive-combat-16x9-10s-720p.mp4",
+                       "type":  "motion-combat-feature",
+                       "duration":  "10s",
+                       "notes":  "Personality-driven 2D combat with decisive last arrow slow-motion moment — feature demo for game presentations"
+                   },
+                   {
+                       "type":  "decisive-moment",
+                       "path":  "content/illustrations/thelastarrow-decisive-moment-09.jpg",
+                       "notes":  "Recovered + organized session asset"
+                   },
+                   {
+                       "type":  "decisive-moment",
+                       "path":  "content/illustrations/thelastarrow-decisive-moment-10.jpg",
+                       "notes":  "Recovered + organized session asset"
+                   },
+                   {
+                       "promptFile":  "prompts/2026-05-31-the-last-arrow-decisive-combat-climax.md",
+                       "resolution":  "720p",
+                       "path":  "motion/feature-demos/the-last-arrow-decisive-combat-climax-16x9-10s-720p.mp4",
+                       "type":  "motion-combat-climax",
+                       "duration":  "10s",
+                       "notes":  "Multi-character combat sequence building to powerful last arrow climax with victory energy — climactic feature demo"
+                   },
+                   {
+                       "type":  "youtube-hero",
+                       "path":  "banners/youtube-channel/thelastarrow-youtube-hero-20260531.jpg",
+                       "notes":  "Fresh 16:9 hero-poster from project grokimaginevideos - primary YouTube channel art"
+                   },
+                   {
+                       "type":  "vertical-reel-thumb",
+                       "path":  "content/thumbnails/thelastarrow-reels-thumb-20260531.jpg",
+                       "notes":  "9:16 vertical reel thumbnail - social/Shorts marketing surface"
+                   }
+               ],
+    "recommended_next_assets":  [
+                                    "YouTube-channel-art (2560x1440) — personality-driven 2D combat with the decisive last arrow slow-motion heroic moment — highest priority",
+                                    "Hero-desktop + social banners (Instagram, LinkedIn)",
+                                    "Light-mode variants of existing combat assets",
+                                    "More character cards and full roster with strong personality",
+                                    "Additional decisive combat / slow-motion moment illustrations",
+                                    "UI mockups of the game in lobby, arena, and character select"
+                                ]
 }

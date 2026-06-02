@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" fill="none">
+  <rect width="1920" height="1080" fill="#111111"/>
+  <!-- Decisive arrow -->
+  <g transform="translate(620, 280)">
+    <polygon points="120,80 420,220 120,360" fill="#C9A46E"/>
+    <rect x="60" y="160" width="80" height="80" fill="#E8DFD0" opacity="0.9"/>
+  </g>
+  <text x="960" y="720" font-family="Georgia, serif" font-size="82" fill="#E8DFD0" letter-spacing="6" text-anchor="middle">The Last Arrow</text>
+</svg>

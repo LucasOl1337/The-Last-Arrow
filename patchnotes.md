@@ -1,34 +1,201 @@
-# Patch Notes — 2026-05-31 Safe Sync
+# Patch Notes - 2026-06-02 Safe Sync (PC vs GitHub Research)
 
-**Project:** The-Last-Arrow (Unity 2D PvP arena game — Mizu/StormDragon characters, bot arena, PixelLab assets, physics/collision tools)  
-**Path:** C:\projetos\The-Last-Arrow  
-**Branch:** main  
-**Generated:** 2026-05-31 batch
+**Project:** The-Last-Arrow (The Last Arrow project)
+**Path:** C:\Projetos\The-Last-Arrow
+**Branch:** main (push: origin)
+**Generated:** 2026-06-02 11:42:57
+**State:** docs | Pre-rebase state: docs | Ahead/Behind post: +0 / -0
 
 ## Executive Summary
-3 changes (docs + grokassets/) in batch. Large Unity project (Assets/ProjectPVP with 100s of animations/rotations, Scripts/Editor+Runtime, collision_gen/, bot tools in Python, mainbot.py).
+Batch safe commit for projects with 24h activity (file mods, commits, dirty tree, or agent-driven patch/changelog touches). Research performed locally via git (fetch, rev-list, diff, status, stash/rebase) comparing current PC working tree + HEAD against GitHub remote (origin/main).
 
-**Themes:** grokassets/; docs updates; prior PHASE1, DEVELOPMENT_GUIDE, Claude-Code-Game-Studios/, INPUT_SOURCE_OF_TRUTH.
+This snapshot captures all local mutations since last synced safe commit (typically 05-31). Includes work from parallel agent sessions (Grok, Claude, sub-agents, /loop etc.). Conflicts (if any during rebase to integrate latest GitHub) were resolved preferring **--ours (PC/local version)** to preserve the authoritative state on this machine.
 
-Cross-ref in cortex-pessoal portfolio.
+Key stats: 24h commits present=no, dirty=yes, stashed=True, rebased=False, conflicts-resolved=False, rebase-aborted=False.
 
-## Local vs GitHub
-Main, origin LucasOl1337/The-Last-Arrow. 3 uncommitted (docs/grokassets).
+## Local PC vs GitHub Comparison (Post-Reconciliation Research)
 
-## Changes
-### Agent Tooling
-- grokassets/ standard (banners, characters, icons, logos, motion, prompts, visual-bible).
+| Aspect | PC (Local) | GitHub (origin) | Notes |
+|--------|------------|---------------------|-------|
+| HEAD | a8e2b92 | a8e2b92 | Post-rebase if applied |
+| Branch tracking | main | origin/main | |
+| Ahead / Behind | +0 | -0 | 0/0 ideal after rebase |
+| Working tree | dirty (17 lines) | (remote clean by definition) | Uncommitted on PC |
+| Unique commits (24h) | 0 listed | See div below | |
+| Divergence PC-only commits | 0 | - | These + uncommitted = what we commit |
+| Divergence GH-only | - | 0 | Integrated via rebase (or ignored if aborted) |
 
-### Docs/Features
-- patchnotes/changelog.
-- Unity + Python bot/ai stack (codex_*, collision tools, editor importers).
+### Commits unique to PC (will be part of this safe commit or already in HEAD)
+(none - all local work is uncommitted or already matched)
 
-### Multi-Agent
-Parallel agents added grokassets/ + docs across projects. Reconciled uniformly. Auto-improvements/ in AutoWebGame adapted from here. No conflicts.
+### Commits only on GitHub (fetched, integrated where possible)
+(none - PC was at or ahead of remote at research time)
 
-## Conclusion
-Ready for 2026-05-31 safe commit.
+### Recent 24h local commits (full subjects + relative time)
+  (no new commits in last 24h; changes are uncommitted or from prior)
+
+### Pending uncommitted changes on PC (porcelain post-rebase/pop)
+```
+M changelog.md
+ M grokassets/manifest.json
+ M patchnotes.md
+?? grokassets/BRAND-USAGE-GUIDELINES.md
+?? grokassets/banners/
+?? grokassets/content/
+?? grokassets/icons/
+?? grokassets/logos/primary/horizontal/dark/the-last-arrow-logo-h-dark.svg
+?? grokassets/motion/
+?? grokassets/prompts/2026-05-31-loop-round5.md
+?? grokassets/prompts/2026-05-31-loop-round7.md
+?? grokassets/prompts/2026-05-31-loop-round8.md
+?? grokassets/prompts/2026-05-31-the-last-arrow-decisive-combat-climax.md
+?? grokassets/prompts/2026-05-31-the-last-arrow-decisive-combat.md
+?? grokassets/prompts/2026-05-31-thelastarrow-character-and-combat-illustrations.md
+?? grokassets/prompts/2026-05-31-thelastarrow-youtube-channel-art.md
+?? grokimaginevideos/
+```
+
+### Diff stat (unstaged work to be snapshotted)
+```
+changelog.md             |  45 ++++++++++++++++
+ grokassets/manifest.json |  57 +++++++++++++++++---
+ patchnotes.md            | 136 +++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 232 insertions(+), 6 deletions(-)
+```
+
+### Untracked files
+```
+grokassets/BRAND-USAGE-GUIDELINES.md
+grokassets/banners/marketing/pitch-deck/bg-v1.svg
+grokassets/banners/marketing/pitch-deck/bg-v10.svg
+grokassets/banners/marketing/pitch-deck/bg-v11.svg
+grokassets/banners/marketing/pitch-deck/bg-v12.svg
+grokassets/banners/marketing/pitch-deck/bg-v13.svg
+grokassets/banners/marketing/pitch-deck/bg-v14.svg
+grokassets/banners/marketing/pitch-deck/bg-v15.svg
+grokassets/banners/marketing/pitch-deck/bg-v16.svg
+grokassets/banners/marketing/pitch-deck/bg-v17.svg
+grokassets/banners/marketing/pitch-deck/bg-v18.svg
+grokassets/banners/marketing/pitch-deck/bg-v19.svg
+grokassets/banners/marketing/pitch-deck/bg-v2.svg
+grokassets/banners/marketing/pitch-deck/bg-v20.svg
+grokassets/banners/marketing/pitch-deck/bg-v21.svg
+grokassets/banners/marketing/pitch-deck/bg-v22.svg
+grokassets/banners/marketing/pitch-deck/bg-v23.svg
+grokassets/banners/marketing/pitch-deck/bg-v24.svg
+grokassets/banners/marketing/pitch-deck/bg-v25.svg
+grokassets/banners/marketing/pitch-deck/bg-v26.svg
+grokassets/banners/marketing/pitch-deck/bg-v27.svg
+grokassets/banners/marketing/pitch-deck/bg-v28.svg
+grokassets/banners/marketing/pitch-deck/bg-v3.svg
+grokassets/banners/marketing/pitch-deck/bg-v4.svg
+grokassets/banners/marketing/pitch-deck/bg-v5.svg
+grokassets/banners/marketing/pitch-deck/bg-v6.svg
+grokassets/banners/marketing/pitch-deck/bg-v7.svg
+grokassets/banners/marketing/pitch-deck/bg-v8.svg
+grokassets/banners/marketing/pitch-deck/bg-v9.svg
+grokassets/banners/social/x-header/the-last-arrow-x-template-1.svg
+... (truncated)
+```
+
+### Change categorization (inferred from paths)
+docs: patchnotes.md (1) | untracked-root: grokassets/BRAND-USAGE-GUIDELINES.md, grokassets/banners/marketing/pitch-deck/bg-v1.svg, grokassets/banners/marketing/pitch-deck/bg-v10.svg... (216) | assets: grokassets/manifest.json, grokassets/BRAND-USAGE-GUIDELINES.md, grokassets/banners/... (14) | root: grokimaginevideos/ (1)
+
+### Remotes (full)
+```
+origin	https://github.com/LucasOl1337/The-Last-Arrow.git (fetch)
+origin	https://github.com/LucasOl1337/The-Last-Arrow.git (push)
+```
+
+### git fetch output (abridged)
+```
+
+```
+
+## Multi-Agent Parallel Work & Conflict Handling
+Many agents (Grok 4.3, Claude, specialized sub-agents, background loops, best-of-n, implement/review loops) operated in parallel across the 23 active projects.
+Observed artifacts: simultaneous edits to patchnotes.md/changelog.md (timestamp ~10:05), .codegraph/ db updates (indexing), source in Kamui/Yume/Terminal/Sennin/simple-ai/VideoGen/LUCA, heavy data/job writes (OmniVoiceDash), recent feature commits (nexarq ~40 commits with detailed feat/fix messages), .bak experiment files, agent handoff mds, heartbeat/state json.
+
+Reconciliation strategy used here:
+- git fetch --all to pull latest GitHub (other agents or CI may have pushed).
+- Stash uncommitted PC work.
+- Rebase onto origin/main (preferring GitHub base).
+- On CONFLICT: checkout --ours + add (PC local wins for the snapshot of 'what is on this machine now').
+- Pop stash. This ensures the safe commit represents the authoritative PC reality on top of (or reconciled with) GitHub.
+- If rebase aborted: still proceed with commit of current PC tree (safe, no data loss).
+- Uniform detailed patchnotes + changelog written before the git add -A + commit.
+
+No hard unresolvable conflicts left; state includes 'conflict-resolved' or 'rebase-aborted' flags where applicable. Cross-project overlaps (grokassets, AGENTS.md, brand, docs) handled by consistent formatting.
+
+## Conclusion & Next
+PC version researched and documented vs GitHub. All qualifying mutations (code, docs, data from agent runs, experiments) staged for the **2026-06-02+docs safe commit**.
+Push target: origin (may be backup/safe for non-primary forks or to avoid affecting public upstreams like sub2api).
+See changelog.md for the concise entry. Prior history preserved below the --- marker.
 
 ---
+Prior patch history (preserved from file before overwrite of top section):
 
-Prior preserved.
+# Patch Notes - 2026-06-02 Safe Sync (PC vs GitHub Research)
+
+**Project:** The-Last-Arrow (The Last Arrow project)
+**Path:** C:\Projetos\The-Last-Arrow
+**Branch:** main (push: origin)
+**Generated:** 2026-06-02 11:39:05
+**State:** clean | Pre-rebase state: clean | Ahead/Behind post: +0 / -0
+
+## Executive Summary
+Batch safe commit for projects with 24h activity (file mods, commits, dirty tree, or agent-driven patch/changelog touches). Research performed locally via git (fetch, rev-list, diff, status, stash/rebase) comparing current PC working tree + HEAD against GitHub remote (origin/main).
+
+This snapshot captures all local mutations since last synced safe commit (typically 05-31). Includes work from parallel agent sessions (Grok, Claude, sub-agents, /loop etc.). Conflicts (if any during rebase to integrate latest GitHub) were resolved preferring **--ours (PC/local version)** to preserve the authoritative state on this machine.
+
+Key stats: 24h commits present=no, dirty=yes, stashed=True, rebased=False, conflicts-resolved=False, rebase-aborted=False.
+
+## Local PC vs GitHub Comparison (Post-Reconciliation Research)
+
+| Aspect | PC (Local) | GitHub (origin) | Notes |
+|--------|------------|---------------------|-------|
+| HEAD | a8e2b92 | a8e2b92 | Post-rebase if applied |
+| Branch tracking | main | origin/main | |
+| Ahead / Behind | +0 | -0 | 0/0 ideal after rebase |
+| Working tree | dirty (15 lines) | (remote clean by definition) | Uncommitted on PC |
+| Unique commits (24h) | 0 listed | See div below | |
+| Divergence PC-only commits | 0 | - | These + uncommitted = what we commit |
+| Divergence GH-only | - | 0 | Integrated via rebase (or ignored if aborted) |
+
+### Commits unique to PC (will be part of this safe commit or already in HEAD)
+(none - all local work is uncommitted or already matched)
+
+### Commits only on GitHub (fetched, integrated where possible)
+(none - PC was at or ahead of remote at research time)
+
+### Recent 24h local commits (full subjects + relative time)
+  (no new commits in last 24h; changes are uncommitted or from prior)
+
+### Pending uncommitted changes on PC (porcelain post-rebase/pop)
+```
+M grokassets/manifest.json
+?? grokassets/BRAND-USAGE-GUIDELINES.md
+?? grokassets/banners/
+?? grokassets/content/
+?? grokassets/icons/
+?? grokassets/logos/primary/horizontal/dark/the-last-arrow-logo-h-dark.svg
+?? grokassets/motion/
+?? grokassets/prompts/2026-05-31-loop-round5.md
+?? grokassets/prompts/2026-05-31-loop-round7.md
+?? grokassets/prompts/2026-05-31-loop-round8.md
+?? grokassets/prompts/2026-05-31-the-last-arrow-decisive-combat-climax.md
+?? grokassets/prompts/2026-05-31-the-last-arrow-decisive-combat.md
+?? grokassets/prompts/2026-05-31-thelastarrow-character-and-combat-illustrations.md
+?? grokassets/prompts/2026-05-31-thelastarrow-youtube-channel-art.md
+?? grokimaginevideos/
+```
+
+### Diff stat (unstaged work to be snapshotted)
+```
+grokassets/manifest.json | 57 +++++++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 51 insertions(+), 6 deletions(-)
+```
+
+... (older history in git + truncated for readability; use git log -S patchnotes or open full file in editor)
+
+(End of 2026-06-02 augmentation. Full git history has complete trail.)
