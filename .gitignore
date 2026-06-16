@@ -41,6 +41,7 @@ Assets/_Recovery.meta
 # Local backups and side experiments
 Backups/
 webV/
+.codegraph/
 
 # Python runtime outputs
 tools/*.log

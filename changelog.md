@@ -428,3 +428,6 @@ See patchnotes.md for full divergence tables, categorized research, remotes, fet
 
 ---
 
+
+### Follow-up .gitignore (2026-06-16)
+

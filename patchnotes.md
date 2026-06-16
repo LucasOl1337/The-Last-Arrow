@@ -698,3 +698,6 @@ Cross-project overlaps observed in this batch: shared `grokassets/` pruning (Ter
 
 **Excluded:** node_modules, venvs, __pycache__, .codegraph/, .playwright-mcp/, .wrangler/, .env*, NUL, .tmp-* scratch scripts, terminals/, browser session caches.
 
+
+## Follow-up .gitignore (2026-06-16)
+
