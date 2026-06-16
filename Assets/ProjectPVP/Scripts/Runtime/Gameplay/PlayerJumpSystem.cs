@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using ProjectPVP.Data;
 using ProjectPVP.Input;
 using UnityEngine;
 
@@ -21,6 +23,7 @@ namespace ProjectPVP.Gameplay
         private readonly PlayerStatResolver _statResolver;
         private readonly PlayerCollisionSystem _collisionSystem;
         private readonly PlayerMovementSystem _movementSystem;
+        private readonly List<PlayerController> _playerQueryBuffer = new();
 
         public PlayerJumpSystem(PlayerContext context, PlayerStatResolver statResolver, PlayerCollisionSystem collisionSystem, PlayerMovementSystem movementSystem)
         {
@@ -166,30 +169,80 @@ namespace ProjectPVP.Gameplay
                 new Vector2(selfBounds.min.x, selfBounds.min.y),
                 new Vector2(selfBounds.size.x, Mathf.Max(10f, selfBounds.size.y * 0.2f)));
 
-            PlayerController[] players = Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
-            foreach (PlayerController other in players)
+            bool appliedStomp = false;
+            PlayerController.CopyActivePlayers(_playerQueryBuffer);
+            if (_playerQueryBuffer.Count > 0)
             {
-                if (other == null || other == _context.Controller || other.IsDead || other.bodyCollider == null)
+                for (int index = 0; index < _playerQueryBuffer.Count; index += 1)
                 {
-                    continue;
+                    if (TryApplyHeadStompReaction(_playerQueryBuffer[index], selfFeetRect))
+                    {
+                        appliedStomp = true;
+                        break;
+                    }
                 }
-
-                Bounds otherBounds = other.bodyCollider.bounds;
-                float headHeight = Mathf.Max(12f, otherBounds.size.y * 0.25f);
-                Rect otherHeadRect = PlayerCollisionSystem.BuildRect(
-                    new Vector2(otherBounds.min.x, otherBounds.max.y - headHeight),
-                    new Vector2(otherBounds.size.x, headHeight));
-
-                if (!selfFeetRect.Overlaps(otherHeadRect))
+            }
+            else
+            {
+                PlayerController[] players = Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+                foreach (PlayerController other in players)
                 {
-                    continue;
+                    if (TryApplyHeadStompReaction(other, selfFeetRect))
+                    {
+                        appliedStomp = true;
+                        break;
+                    }
                 }
+            }
 
-                other.Kill();
+            _playerQueryBuffer.Clear();
+            if (appliedStomp)
+            {
                 _context.body.linearVelocity = new Vector2(_context.body.linearVelocity.x, _statResolver.ResolveJumpVelocity() * 0.8f);
                 TriggerJumpStartAnimation();
-                break;
             }
+        }
+
+        private bool TryApplyHeadStompReaction(PlayerController target, Rect selfFeetRect)
+        {
+            if (target == null || target == _context.Controller || target.IsDead || target.bodyCollider == null)
+            {
+                return false;
+            }
+
+            Bounds targetBounds = target.bodyCollider.bounds;
+            float headHeight = Mathf.Max(12f, targetBounds.size.y * 0.25f);
+            Rect targetHeadRect = PlayerCollisionSystem.BuildRect(
+                new Vector2(targetBounds.min.x, targetBounds.max.y - headHeight),
+                new Vector2(targetBounds.size.x, headHeight));
+
+            if (!selfFeetRect.Overlaps(targetHeadRect))
+            {
+                return false;
+            }
+
+            ApplyHeadStompReaction(target);
+            return true;
+        }
+
+        private void ApplyHeadStompReaction(PlayerController target)
+        {
+            CharacterDefinition sourceDefinition = _context.characterDefinition;
+            Vector2 hitDirection = target.RootPosition - _context.Controller.RootPosition;
+            if (hitDirection.sqrMagnitude <= 0.01f)
+            {
+                hitDirection = Vector2.down;
+            }
+
+            float hitstunDuration = sourceDefinition != null
+                ? sourceDefinition.meleeHitstunDuration
+                : 0.1f;
+            float knockbackForce = sourceDefinition != null
+                ? sourceDefinition.meleeKnockbackForce
+                : 400f;
+
+            target.ApplyHitstun(hitstunDuration);
+            target.ApplyKnockback(hitDirection, knockbackForce, 0.2f);
         }
     }
 }

@@ -33,25 +33,7 @@ namespace ProjectPVP.Match
         }
     }
 
-    [Serializable]
-    internal sealed class RuntimeBotMenuSlotAssignment
-    {
-        public int slotId;
-        public bool enabled;
-        public string botId = string.Empty;
-        public string displayName = string.Empty;
-        public string provider = string.Empty;
-        public string model = string.Empty;
-    }
-
-    [Serializable]
-    internal sealed class RuntimeBotMenuAssignmentsFile
-    {
-        public string updatedAt = string.Empty;
-        public List<RuntimeBotMenuSlotAssignment> slots = new List<RuntimeBotMenuSlotAssignment>();
-    }
-
-    public sealed class MatchController : MonoBehaviour
+    public sealed class MatchController : MonoBehaviour, IAiArenaArenaSnapshotSource
     {
         public ArenaDefinitionAsset arenaDefinition;
         [SerializeField] private MatchRoster roster = new MatchRoster();
@@ -62,6 +44,7 @@ namespace ProjectPVP.Match
         [SerializeField] private PlayerController legacySlotTwoController;
         public bool useScenePlayerPositionsAsSpawn = true;
         public bool wrapEnabled = true;
+        public bool verticalRingOutEnabled = true;
         public int maxWins = 5;
         public float roundResetDelay = 1.25f;
         public float respawnFreezeDuration = 0.5f;
@@ -75,22 +58,19 @@ namespace ProjectPVP.Match
         [Header("Debug Shortcuts")]
         public bool enableDebugShortcuts = true;
         public bool autoEnableSlotTwoDebugBotOnPlay = true;
-        public bool autoForceCodexBrokerForSlotTwoOnPlay = true;
+        public bool autoForceCodexBrokerForSlotTwoOnPlay = false;
         public AiBrainKind slotTwoDebugAiBrain = AiBrainKind.LocalHeuristic;
 
         private AudioSource _musicSource;
         [SerializeField] private int[] slotWins = new int[2];
         private Coroutine _roundResetRoutine;
-        private readonly Dictionary<CombatantSlotId, CombatantSlotProfile> _runtimeOriginalProfiles = new Dictionary<CombatantSlotId, CombatantSlotProfile>();
-        private readonly Dictionary<CombatantSlotId, CombatantSlotProfile> _runtimeOverrideProfiles = new Dictionary<CombatantSlotId, CombatantSlotProfile>();
+        private readonly RuntimeBotAssignmentService _runtimeBotAssignments = new RuntimeBotAssignmentService();
+        private readonly RoundTimerService _roundTimers = new RoundTimerService();
         private CombatantSlotProfile _slotTwoOriginalProfile;
         private CombatantSlotProfile _slotTwoRuntimeBotProfile;
         private bool _slotTwoBotShortcutEnabled;
         private CombatantSlotId _pendingRoundWinnerSlot = CombatantSlotId.None;
         private CombatantSlotId _pendingChampionSlot = CombatantSlotId.None;
-        private float _respawnFreezeTimeLeft;
-        private CombatantSlotId _championAnnouncementSlot = CombatantSlotId.None;
-        private float _championAnnouncementTimeLeft;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void BootstrapSlotTwoCodexBot()
@@ -110,8 +90,8 @@ namespace ProjectPVP.Match
                     continue;
                 }
 
-                Debug.Log($"[CodexBot] Bootstrap forcing runtime bot assignments on MatchController instance {controller.name}.");
-                controller.ForceCodexBotsReadyForPlay();
+                Debug.Log($"[CodexBot] Bootstrap applying runtime bot automation on MatchController instance {controller.name}.");
+                controller.ApplyCodexBotAutomationForPlay();
             }
         }
 
@@ -124,14 +104,14 @@ namespace ProjectPVP.Match
         public int PlayerTwoWins => GetWins(CombatantSlotId.SlotTwo);
         public int RoundsToChampion => Mathf.Max(1, maxWins);
         public bool IsRoundResetPending => _roundResetRoutine != null;
-        public bool IsRespawnFreezeActive => _respawnFreezeTimeLeft > 0f;
+        public bool IsRespawnFreezeActive => _roundTimers.IsRespawnFreezeActive;
         public int CurrentRespawnSeedIndex => NormalizeRespawnSeedIndex(currentRespawnSeedIndex);
         public string CurrentRespawnSeedLabel => TryGetRespawnSeed(CurrentRespawnSeedIndex, out RoundRespawnSeed seed)
             ? seed.ResolveLabel(CurrentRespawnSeedIndex + 1)
             : "Fallback";
         public CombatantSlotId PendingRoundWinnerSlot => _pendingRoundWinnerSlot;
         public CombatantSlotId PendingChampionSlot => _pendingChampionSlot;
-        public CombatantSlotId ChampionAnnouncementSlot => _championAnnouncementTimeLeft > 0f ? _championAnnouncementSlot : CombatantSlotId.None;
+        public CombatantSlotId ChampionAnnouncementSlot => _roundTimers.ChampionAnnouncementSlot;
         public Rect ActiveWrapBounds => arenaDefinition != null ? arenaDefinition.wrapBounds : defaultWrapBounds;
         public Vector2 PlayerOneSpawnPoint => GetSpawnPoint(CombatantSlotId.SlotOne);
         public Vector2 PlayerTwoSpawnPoint => GetSpawnPoint(CombatantSlotId.SlotTwo);
@@ -142,6 +122,21 @@ namespace ProjectPVP.Match
         public PlayerController playerOne => PlayerOneController;
         public PlayerController playerTwo => PlayerTwoController;
 #pragma warning restore IDE1006
+
+        public AiArenaArenaSnapshot BuildAiArenaArenaSnapshot()
+        {
+            return MatchArenaSnapshotService.Build(new MatchArenaSnapshotState(
+                wrapBounds: ActiveWrapBounds,
+                roundResetPending: IsRoundResetPending,
+                roundsToChampion: RoundsToChampion,
+                playerOneWins: PlayerOneWins,
+                playerTwoWins: PlayerTwoWins,
+                currentRespawnSeedIndex: CurrentRespawnSeedIndex,
+                currentRespawnSeedLabel: CurrentRespawnSeedLabel,
+                pendingRoundWinnerSlot: PendingRoundWinnerSlot,
+                pendingChampionSlot: PendingChampionSlot,
+                championAnnouncementSlot: ChampionAnnouncementSlot));
+        }
 
         private void Awake()
         {
@@ -161,18 +156,23 @@ namespace ProjectPVP.Match
             SyncRosterAliases();
             EnsureRespawnSeedConfiguration();
             SubscribePlayers();
+            if (Application.isPlaying)
+            {
+                AiArenaSnapshotSourceRegistry.Register(this);
+            }
         }
 
         private void OnDisable()
         {
+            AiArenaSnapshotSourceRegistry.Unregister(this);
             UnsubscribePlayers();
         }
 
         private void Start()
         {
             SyncRosterAliases();
-            Debug.Log($"[CodexBot] MatchController.Start forcing runtime bot assignments auto-play={autoEnableSlotTwoDebugBotOnPlay} forceBrain={autoForceCodexBrokerForSlotTwoOnPlay}");
-            ForceCodexBotsReadyForPlay();
+            Debug.Log($"[CodexBot] MatchController.Start applying runtime bot automation auto-play={autoEnableSlotTwoDebugBotOnPlay} forceBrain={autoForceCodexBrokerForSlotTwoOnPlay}");
+            ApplyCodexBotAutomationForPlay();
             EnsureRoundHudOverlay();
             CacheSceneSpawnPoints();
             EnsureMusicSource();
@@ -275,13 +275,7 @@ namespace ProjectPVP.Match
 
         public int GetWins(CombatantSlotId slotId)
         {
-            int slotIndex = slotId.ToIndex();
-            if (slotIndex < 0 || slotWins == null || slotIndex >= slotWins.Length)
-            {
-                return 0;
-            }
-
-            return slotWins[slotIndex];
+            return RoundFlowService.GetWins(slotWins, slotId);
         }
 
         public Vector2 GetSpawnPoint(CombatantSlotId slotId)
@@ -424,14 +418,24 @@ namespace ProjectPVP.Match
 
             if (enabled)
             {
-                _slotTwoOriginalProfile = slot.playerProfile;
-                _slotTwoRuntimeBotProfile = CreateRuntimeControlOverrideProfile(slot.ResolvePlayerProfile(), CombatantSlotId.SlotTwo, CombatantControlMode.AI, slotTwoDebugAiBrain);
+                if (!_slotTwoBotShortcutEnabled)
+                {
+                    _slotTwoOriginalProfile = slot.playerProfile;
+                }
+
+                _slotTwoRuntimeBotProfile = RuntimeBotAssignmentService.CreateRuntimeControlOverrideProfile(
+                    slot.ResolvePlayerProfile(),
+                    CombatantSlotId.SlotTwo,
+                    CombatantControlMode.AI,
+                    slotTwoDebugAiBrain);
                 slot.playerProfile = _slotTwoRuntimeBotProfile;
                 _slotTwoBotShortcutEnabled = true;
             }
             else
             {
                 slot.playerProfile = _slotTwoOriginalProfile;
+                _slotTwoOriginalProfile = null;
+                _slotTwoRuntimeBotProfile = null;
                 _slotTwoBotShortcutEnabled = false;
             }
 
@@ -442,16 +446,7 @@ namespace ProjectPVP.Match
 
         private void EnsureSlotTwoCodexBotReadyForPlay()
         {
-            if (!Application.isPlaying)
-            {
-                return;
-            }
-
-            // Existing scene instances may deserialize new flags as false, so force
-            // the intended auto-play behavior in code instead of relying on Inspector state.
-            slotTwoDebugAiBrain = AiBrainKind.CodexBroker;
-            Debug.Log("[CodexBot] Forcing slot 2 into AI + CodexBroker at runtime.");
-            EnsurePlayerTwoDebugBotEnabled(true, forceReapply: true);
+            EnsureSlotTwoDebugBotReadyForPlay(AiBrainKind.CodexBroker, "Forcing slot 2 into AI + CodexBroker at runtime.");
         }
 
         public void ForceSlotTwoCodexBotReadyForPlay()
@@ -467,28 +462,48 @@ namespace ProjectPVP.Match
             }
         }
 
-        private static CombatantSlotProfile CreateRuntimeControlOverrideProfile(
-            CombatantSlotProfile sourceProfile,
-            CombatantSlotId slotId,
-            CombatantControlMode controlMode,
-            AiBrainKind aiBrain)
+        private void ApplyCodexBotAutomationForPlay()
         {
-            CombatantSlotProfile templateProfile = sourceProfile != null
-                ? sourceProfile
-                : CombatantSlotProfile.ResolveRuntimeFallback(slotId);
-            CombatantSlotProfile runtimeProfile = templateProfile != null
-                ? Instantiate(templateProfile)
-                : null;
-
-            if (runtimeProfile == null)
+            if (TryApplyRuntimeBotMenuAssignments())
             {
-                return null;
+                return;
             }
 
-            runtimeProfile.hideFlags = HideFlags.HideAndDontSave;
-            runtimeProfile.controlMode = controlMode;
-            runtimeProfile.aiBrain = aiBrain;
-            return runtimeProfile;
+            if (!ShouldApplySlotTwoBotFallback())
+            {
+                Debug.Log("[CodexBot] No runtime bot menu assignments found and slot 2 auto bot fallback is disabled.");
+                return;
+            }
+
+            EnsureSlotTwoDebugBotReadyForPlay(
+                ResolveSlotTwoAutoBotBrain(),
+                autoForceCodexBrokerForSlotTwoOnPlay
+                    ? "Auto enabling slot 2 as AI + CodexBroker at runtime."
+                    : $"Auto enabling slot 2 as AI + {slotTwoDebugAiBrain} at runtime.");
+        }
+
+        private bool ShouldApplySlotTwoBotFallback()
+        {
+            return autoEnableSlotTwoDebugBotOnPlay;
+        }
+
+        private AiBrainKind ResolveSlotTwoAutoBotBrain()
+        {
+            return autoForceCodexBrokerForSlotTwoOnPlay
+                ? AiBrainKind.CodexBroker
+                : slotTwoDebugAiBrain;
+        }
+
+        private void EnsureSlotTwoDebugBotReadyForPlay(AiBrainKind aiBrain, string logMessage)
+        {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            slotTwoDebugAiBrain = aiBrain;
+            Debug.Log($"[CodexBot] {logMessage}");
+            EnsurePlayerTwoDebugBotEnabled(true, forceReapply: true);
         }
 
         private bool TryApplyRuntimeBotMenuAssignments()
@@ -499,114 +514,50 @@ namespace ProjectPVP.Match
             }
 
             RuntimeBotMenuAssignmentsFile runtimeAssignments = LoadRuntimeBotMenuAssignments();
+            if (!ApplyRuntimeBotMenuAssignments(runtimeAssignments, out bool anyEnabled))
+            {
+                return false;
+            }
+
+            string path = ResolveRuntimeBotMenuAssignmentsPath();
+            if (anyEnabled)
+            {
+                Debug.Log($"[CodexBot] Applied runtime bot menu assignments from {path}");
+            }
+            else
+            {
+                Debug.Log($"[CodexBot] Runtime bot menu assignments from {path} disabled all slots; skipping automatic slot 2 fallback.");
+            }
+
+            return true;
+        }
+
+        private bool ApplyRuntimeBotMenuAssignments(RuntimeBotMenuAssignmentsFile runtimeAssignments, out bool anyEnabled)
+        {
+            anyEnabled = false;
             if (runtimeAssignments == null || runtimeAssignments.slots == null || runtimeAssignments.slots.Count == 0)
             {
                 return false;
             }
 
-            bool anyEnabled = false;
-            for (int index = 0; index < Slots.Count; index += 1)
-            {
-                CombatantSlotConfig slot = Slots[index];
-                if (slot == null)
-                {
-                    continue;
-                }
-
-                RuntimeBotMenuSlotAssignment assignment = FindRuntimeAssignment(runtimeAssignments, slot.slotId);
-                if (assignment != null && assignment.enabled)
-                {
-                    ApplyRuntimeBotAssignment(slot, assignment);
-                    anyEnabled = true;
-                    continue;
-                }
-
-                RestoreRuntimeBotAssignment(slot);
-            }
-
-            if (anyEnabled)
-            {
-                Debug.Log($"[CodexBot] Applied runtime bot menu assignments from {ResolveRuntimeBotMenuAssignmentsPath()}");
-            }
-
-            return anyEnabled;
+            SyncRosterAliases();
+            List<CombatantSlotConfig> changedSlots = new List<CombatantSlotConfig>();
+            bool processed = _runtimeBotAssignments.ApplyAssignments(Slots, runtimeAssignments, out anyEnabled, changedSlots);
+            PrewarmRuntimeAssignmentSlots(changedSlots);
+            return processed;
         }
 
-        private void ApplyRuntimeBotAssignment(CombatantSlotConfig slot, RuntimeBotMenuSlotAssignment assignment)
+        private void PrewarmRuntimeAssignmentSlots(IEnumerable<CombatantSlotConfig> changedSlots)
         {
-            if (slot == null || assignment == null)
+            if (changedSlots == null)
             {
                 return;
             }
 
-            if (!_runtimeOriginalProfiles.ContainsKey(slot.slotId))
+            foreach (CombatantSlotConfig slot in changedSlots)
             {
-                _runtimeOriginalProfiles[slot.slotId] = slot.playerProfile;
+                PrewarmCodexSessionForController(slot != null ? slot.controller : null);
             }
-
-            CombatantSlotProfile overrideProfile = CreateRuntimeControlOverrideProfile(
-                slot.ResolvePlayerProfile(),
-                slot.slotId,
-                CombatantControlMode.AI,
-                AiBrainKind.CodexBroker);
-            if (overrideProfile == null)
-            {
-                return;
-            }
-
-            if (!string.IsNullOrWhiteSpace(assignment.botId))
-            {
-                overrideProfile.botId = assignment.botId.Trim();
-            }
-
-            string resolvedName = !string.IsNullOrWhiteSpace(assignment.displayName)
-                ? assignment.displayName.Trim()
-                : slot.ResolveDisplayName();
-            overrideProfile.botDisplayName = resolvedName;
-            overrideProfile.displayName = resolvedName;
-            slot.playerProfile = overrideProfile;
-            _runtimeOverrideProfiles[slot.slotId] = overrideProfile;
-            slot.ApplySelectionToController();
-            Debug.Log($"[CodexBot] Runtime assignment applied slot={slot.slotId} botId={overrideProfile.botId} display={resolvedName} provider={assignment.provider} model={assignment.model}");
-            PrewarmCodexSessionForController(slot.controller);
-        }
-
-        private void RestoreRuntimeBotAssignment(CombatantSlotConfig slot)
-        {
-            if (slot == null)
-            {
-                return;
-            }
-
-            if (!_runtimeOriginalProfiles.TryGetValue(slot.slotId, out CombatantSlotProfile originalProfile))
-            {
-                return;
-            }
-
-            slot.playerProfile = originalProfile;
-            slot.ApplySelectionToController();
-            _runtimeOriginalProfiles.Remove(slot.slotId);
-            _runtimeOverrideProfiles.Remove(slot.slotId);
-        }
-
-        private static RuntimeBotMenuSlotAssignment FindRuntimeAssignment(RuntimeBotMenuAssignmentsFile runtimeAssignments, CombatantSlotId slotId)
-        {
-            if (runtimeAssignments == null || runtimeAssignments.slots == null)
-            {
-                return null;
-            }
-
-            int slotInt = slotId.ToInt();
-            for (int index = 0; index < runtimeAssignments.slots.Count; index += 1)
-            {
-                RuntimeBotMenuSlotAssignment assignment = runtimeAssignments.slots[index];
-                if (assignment != null && assignment.slotId == slotInt)
-                {
-                    return assignment;
-                }
-            }
-
-            return null;
         }
 
         private static RuntimeBotMenuAssignmentsFile LoadRuntimeBotMenuAssignments()
@@ -642,30 +593,23 @@ namespace ProjectPVP.Match
 
         private void HandlePlayerDeath(PlayerController deadPlayer)
         {
-            if (_roundResetRoutine != null || deadPlayer == null)
+            if (_roundResetRoutine != null)
             {
                 return;
             }
 
-            CombatantSlotId roundWinner = CombatantSlotId.None;
-            for (int index = 0; index < Slots.Count; index += 1)
-            {
-                CombatantSlotConfig slot = Slots[index];
-                if (slot?.controller == null || slot.controller == deadPlayer)
-                {
-                    continue;
-                }
-
-                AddWin(slot.slotId);
-                roundWinner = slot.slotId;
-            }
-
-            if (roundWinner == CombatantSlotId.None)
+            RoundDeathResolution deathResolution = RoundDeathService.ResolveDeath(Slots, deadPlayer);
+            if (!deathResolution.HasWinner)
             {
                 return;
             }
 
-            _pendingRoundWinnerSlot = roundWinner;
+            for (int index = 0; index < deathResolution.WinningSlots.Count; index += 1)
+            {
+                AddWin(deathResolution.WinningSlots[index]);
+            }
+
+            _pendingRoundWinnerSlot = deathResolution.RoundWinnerSlot;
             AdvanceRespawnSeed();
             _pendingChampionSlot = ResolveChampionSlot();
             _roundResetRoutine = StartCoroutine(ResetRoundAfterDelay());
@@ -673,14 +617,8 @@ namespace ProjectPVP.Match
 
         private void AddWin(CombatantSlotId slotId)
         {
-            int slotIndex = slotId.ToIndex();
-            if (slotIndex < 0)
-            {
-                return;
-            }
-
             EnsureSlotWinsCapacity();
-            slotWins[slotIndex] += 1;
+            RoundFlowService.AddWin(slotWins, slotId);
         }
 
         private IEnumerator ResetRoundAfterDelay()
@@ -703,25 +641,13 @@ namespace ProjectPVP.Match
         private void RespawnPlayers(bool applyFreeze = true)
         {
             SyncRosterAliases();
-            ForceCodexBotsReadyForPlay();
+            ApplyCodexBotAutomationForPlay();
 
-            for (int index = 0; index < Slots.Count; index += 1)
-            {
-                CombatantSlotConfig slot = Slots[index];
-                if (slot?.controller == null)
-                {
-                    continue;
-                }
-
-                slot.ApplySelectionToController();
-                if (slot.slotId == CombatantSlotId.SlotTwo)
-                {
-                    Debug.Log($"[CodexBot] Respawn applied slot 2 profileMode={slot.playerProfile?.controlMode} aiBrain={slot.playerProfile?.aiBrain} controller={(slot.controller != null ? slot.controller.name : "<null>")}");
-                }
-                slot.controller.SetSpawnPosition(GetSpawnPoint(slot.slotId));
-                slot.controller.SetExternalControlLock(applyFreeze);
-                PrewarmCodexSessionForController(slot.controller);
-            }
+            List<RespawnSlotCommand> respawnCommands = RespawnService.BuildRespawnCommands(
+                Slots,
+                GetSpawnPoint,
+                applyFreeze);
+            RespawnService.ApplyRespawnCommands(respawnCommands, HandleRespawnCommandApplied);
 
             if (applyFreeze)
             {
@@ -729,9 +655,20 @@ namespace ProjectPVP.Match
             }
             else
             {
-                _respawnFreezeTimeLeft = 0f;
+                _roundTimers.ClearRespawnFreeze();
                 SetPlayersExternalControlLock(false);
             }
+        }
+
+        private void HandleRespawnCommandApplied(RespawnSlotCommand command)
+        {
+            CombatantSlotConfig slot = command.Slot;
+            if (slot != null && slot.slotId == CombatantSlotId.SlotTwo)
+            {
+                Debug.Log($"[CodexBot] Respawn applied slot 2 profileMode={slot.playerProfile?.controlMode} aiBrain={slot.playerProfile?.aiBrain} controller={(slot.controller != null ? slot.controller.name : "<null>")}");
+            }
+
+            PrewarmCodexSessionForController(command.Controller);
         }
 
         private void PrewarmCodexSessions()
@@ -809,19 +746,13 @@ namespace ProjectPVP.Match
 
         private void EnsureSlotWinsCapacity()
         {
-            if (slotWins == null || slotWins.Length < 2)
-            {
-                slotWins = new int[2];
-            }
+            slotWins = RoundFlowService.EnsureSlotWinsCapacity(slotWins);
         }
 
         private void ResetWins()
         {
             EnsureSlotWinsCapacity();
-            for (int index = 0; index < slotWins.Length; index += 1)
-            {
-                slotWins[index] = 0;
-            }
+            RoundFlowService.ResetWins(slotWins);
         }
 
         private void ResetSeriesState()
@@ -832,47 +763,21 @@ namespace ProjectPVP.Match
 
         private void BeginRespawnFreeze()
         {
-            if (respawnFreezeDuration <= 0f)
-            {
-                _respawnFreezeTimeLeft = 0f;
-                SetPlayersExternalControlLock(false);
-                return;
-            }
-
-            _respawnFreezeTimeLeft = respawnFreezeDuration;
-            SetPlayersExternalControlLock(true);
+            SetPlayersExternalControlLock(_roundTimers.BeginRespawnFreeze(respawnFreezeDuration));
         }
 
         private void TickFreezeAndAnnouncements(float deltaTime)
         {
-            if (deltaTime <= 0f)
+            RoundTimerTickResult result = _roundTimers.Tick(deltaTime);
+            if (result.RespawnFreezeEnded)
             {
-                return;
-            }
-
-            if (_respawnFreezeTimeLeft > 0f)
-            {
-                _respawnFreezeTimeLeft = Mathf.Max(0f, _respawnFreezeTimeLeft - deltaTime);
-                if (_respawnFreezeTimeLeft <= 0f)
-                {
-                    SetPlayersExternalControlLock(false);
-                }
-            }
-
-            if (_championAnnouncementTimeLeft > 0f)
-            {
-                _championAnnouncementTimeLeft = Mathf.Max(0f, _championAnnouncementTimeLeft - deltaTime);
-                if (_championAnnouncementTimeLeft <= 0f)
-                {
-                    _championAnnouncementSlot = CombatantSlotId.None;
-                }
+                SetPlayersExternalControlLock(false);
             }
         }
 
         private void ShowChampionAnnouncement(CombatantSlotId championSlot)
         {
-            _championAnnouncementSlot = championSlot;
-            _championAnnouncementTimeLeft = championAnnouncementDuration;
+            _roundTimers.ShowChampionAnnouncement(championSlot, championAnnouncementDuration);
         }
 
         private void SetPlayersExternalControlLock(bool locked)
@@ -888,16 +793,7 @@ namespace ProjectPVP.Match
 
         private CombatantSlotId ResolveChampionSlot()
         {
-            for (int index = 0; index < Slots.Count; index += 1)
-            {
-                CombatantSlotConfig slot = Slots[index];
-                if (slot != null && GetWins(slot.slotId) >= RoundsToChampion)
-                {
-                    return slot.slotId;
-                }
-            }
-
-            return CombatantSlotId.None;
+            return RoundFlowService.ResolveChampionSlot(Slots, slotWins, RoundsToChampion);
         }
 
         private bool TryGetCurrentRespawnSeedPoint(CombatantSlotId slotId, out Vector2 spawnPoint)
@@ -934,33 +830,21 @@ namespace ProjectPVP.Match
 
         private void AdvanceRespawnSeed()
         {
-            if (roundRespawnSeeds == null || roundRespawnSeeds.Count == 0)
-            {
-                currentRespawnSeedIndex = 0;
-                return;
-            }
-
-            currentRespawnSeedIndex = (CurrentRespawnSeedIndex + 1) % roundRespawnSeeds.Count;
+            currentRespawnSeedIndex = RoundFlowService.AdvanceRespawnSeed(
+                currentRespawnSeedIndex,
+                roundRespawnSeeds != null ? roundRespawnSeeds.Count : 0);
         }
 
         private void ResetRespawnSeedCycle()
         {
-            currentRespawnSeedIndex = 0;
+            currentRespawnSeedIndex = RoundFlowService.ResetRespawnSeedCycle();
         }
 
         private int NormalizeRespawnSeedIndex(int seedIndex)
         {
-            if (roundRespawnSeeds == null || roundRespawnSeeds.Count == 0)
-            {
-                return 0;
-            }
-
-            if (seedIndex < 0)
-            {
-                return 0;
-            }
-
-            return seedIndex % roundRespawnSeeds.Count;
+            return RoundFlowService.NormalizeRespawnSeedIndex(
+                seedIndex,
+                roundRespawnSeeds != null ? roundRespawnSeeds.Count : 0);
         }
 
         private Vector2 GetFallbackSpawnPoint(CombatantSlotId slotId)
@@ -1131,7 +1015,7 @@ namespace ProjectPVP.Match
 
         private void ApplyWrap(PlayerController player)
         {
-            if (player == null)
+            if (player == null || player.IsDead)
             {
                 return;
             }
@@ -1139,6 +1023,12 @@ namespace ProjectPVP.Match
             Rect wrapBounds = ActiveWrapBounds;
             Vector2 wrapPadding = GetWrapPadding();
             Vector3 position = player.transform.position;
+            if (verticalRingOutEnabled && position.y < wrapBounds.yMin - wrapPadding.y)
+            {
+                player.Kill();
+                return;
+            }
+
             if (position.x < wrapBounds.xMin - wrapPadding.x)
             {
                 position.x = wrapBounds.xMax + wrapPadding.x;

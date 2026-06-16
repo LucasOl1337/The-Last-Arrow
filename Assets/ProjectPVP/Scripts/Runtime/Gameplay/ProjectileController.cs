@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using ProjectPVP.Data;
+using ProjectPVP.Input;
 
 namespace ProjectPVP.Gameplay
 {
@@ -9,11 +12,11 @@ namespace ProjectPVP.Gameplay
     /// inside that sector, the projectile can bias toward the best trajectory
     /// with a capped turn rate so it remains dodgeable.
     /// </summary>
-    public sealed class ProjectileController : MonoBehaviour
+    public sealed class ProjectileController : MonoBehaviour, IAiArenaProjectileSnapshotSource
     {
         [Header("Physics")]
-        public float baseSpeed = 2800f;
-        public float gravity = 2200f;
+        public float baseSpeed = 1600f;
+        public float gravity = 1500f;
         public float maxLifetime = 2.0f;
         public float maxRange = 1440f;
         public bool rotateWithVelocity = true;
@@ -50,6 +53,15 @@ namespace ProjectPVP.Gameplay
         private float _assistDropoffStartRatioRuntime;
         private float _assistCurrentAngleDeg;
         private float _assistAppliedStrength;
+        private float _gravityDelayRatioRuntime = 0.05f;
+        private float _gravityRampRatioRuntime = 0.2f;
+        private float _gravityMinScaleRuntime = 0.9f;
+        private float _gravityMaxScaleRuntime = 1f;
+        private float _projectileUpwardGravityMultiplierRuntime = 1.6f;
+        private float _projectileUpwardSpeedDecayMultiplierRuntime = 1.3f;
+        private float _projectileMinSpeedRuntime = 720f;
+        private float _projectileSpeedDecayRuntime = 360f;
+        private static readonly List<ProjectileController> s_activeProjectiles = new();
 
         // ── Public state ──────────────────────────────────────────────────────────
         public GameObject SourceObject => _sourceObject;
@@ -66,6 +78,91 @@ namespace ProjectPVP.Gameplay
         public bool AssistTargetLocked => _assistTargetLocked;
         public float AssistCurrentAngleDeg => _assistCurrentAngleDeg;
         public float AssistAppliedStrength => _assistAppliedStrength;
+
+        public static void CopyActiveProjectiles(List<ProjectileController> results)
+        {
+            if (results == null)
+            {
+                throw new ArgumentNullException(nameof(results));
+            }
+
+            results.Clear();
+            PruneDestroyedActiveProjectiles();
+            for (int index = 0; index < s_activeProjectiles.Count; index += 1)
+            {
+                results.Add(s_activeProjectiles[index]);
+            }
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ClearActiveProjectilesForRuntimeLoad()
+        {
+            s_activeProjectiles.Clear();
+        }
+
+        private static void RegisterActiveProjectile(ProjectileController projectile)
+        {
+            if (projectile == null || s_activeProjectiles.Contains(projectile))
+            {
+                return;
+            }
+
+            s_activeProjectiles.Add(projectile);
+        }
+
+        private static void UnregisterActiveProjectile(ProjectileController projectile)
+        {
+            if (projectile == null)
+            {
+                return;
+            }
+
+            s_activeProjectiles.Remove(projectile);
+        }
+
+        private static void PruneDestroyedActiveProjectiles()
+        {
+            for (int index = s_activeProjectiles.Count - 1; index >= 0; index -= 1)
+            {
+                if (s_activeProjectiles[index] == null)
+                {
+                    s_activeProjectiles.RemoveAt(index);
+                }
+            }
+        }
+
+        private static void ClearActiveProjectilesForTests()
+        {
+            s_activeProjectiles.Clear();
+        }
+
+        public AiArenaProjectileSnapshot BuildAiArenaProjectileSnapshot()
+        {
+            int sourceSlotId = 0;
+            if (_sourceObject != null)
+            {
+                PlayerController source = _sourceObject.GetComponentInParent<PlayerController>();
+                if (source != null)
+                {
+                    sourceSlotId = source.slotId;
+                }
+            }
+
+            Vector2 velocity = CurrentVelocity;
+            Vector2 travelDirection = TravelDirection;
+            return new AiArenaProjectileSnapshot
+            {
+                isValid = _launched,
+                sourceSlotId = sourceSlotId,
+                isStuck = _isStuck,
+                isDisarmed = _isDisarmed,
+                position = transform.position,
+                velocity = velocity,
+                travelDirection = travelDirection.sqrMagnitude > 0.001f
+                    ? travelDirection
+                    : (velocity.sqrMagnitude > 0.001f ? velocity.normalized : Vector2.right),
+            };
+        }
 
         // ── Unity lifecycle ───────────────────────────────────────────────────────
         private void Reset()
@@ -91,6 +188,21 @@ namespace ProjectPVP.Gameplay
             ApplyFlightHitbox();
         }
 
+        private void OnEnable()
+        {
+            if (Application.isPlaying)
+            {
+                RegisterActiveProjectile(this);
+                AiArenaSnapshotSourceRegistry.Register(this);
+            }
+        }
+
+        private void OnDisable()
+        {
+            UnregisterActiveProjectile(this);
+            AiArenaSnapshotSourceRegistry.Unregister(this);
+        }
+
         private void FixedUpdate()
         {
             if (!_launched || _isStuck)
@@ -101,9 +213,10 @@ namespace ProjectPVP.Gameplay
             float dt = Time.fixedDeltaTime;
             Vector2 prevPos = body != null ? body.position : (Vector2)transform.position;
 
-            // Gravity applied each frame from the moment of launch — no delay, no ramp.
-            _velocity.y -= gravity * dt;
+            // Gravity starts gently, then ramps to the configured arc so arrows leave the bow cleanly.
+            _velocity.y -= gravity * ResolveGravityScale() * dt;
             ApplyAssistSteering(prevPos, dt);
+            ApplySpeedDecay(dt);
 
             Vector2 nextPos = prevPos + _velocity * dt;
 
@@ -279,6 +392,14 @@ namespace ProjectPVP.Gameplay
             maxRange = definition.projectileMaxRange;
             rotateWithVelocity = definition.projectileRotateWithVelocity;
             collectableWhenStuck = definition.projectileCollectableWhenStuck;
+            _gravityDelayRatioRuntime = Mathf.Clamp01(definition.projectileGravityDelayRatio);
+            _gravityRampRatioRuntime = Mathf.Clamp01(definition.projectileGravityRampRatio);
+            _gravityMinScaleRuntime = Mathf.Max(0f, definition.projectileGravityMinScale);
+            _gravityMaxScaleRuntime = Mathf.Max(0f, definition.projectileGravityMaxScale);
+            _projectileUpwardGravityMultiplierRuntime = Mathf.Max(0f, definition.projectileUpwardGravityMultiplier);
+            _projectileUpwardSpeedDecayMultiplierRuntime = Mathf.Max(0f, definition.projectileUpwardSpeedDecayMultiplier);
+            _projectileMinSpeedRuntime = Mathf.Max(0f, definition.projectileMinSpeed);
+            _projectileSpeedDecayRuntime = Mathf.Max(0f, definition.projectileSpeedDecay);
             flightHitboxSize = definition.projectileFlightHitboxSize;
             flightHitboxOffset = definition.projectileFlightHitboxOffset;
             collectibleHitboxSize = definition.projectileCollectibleHitboxSize;
@@ -385,6 +506,53 @@ namespace ProjectPVP.Gameplay
         private float ResolveTravelHorizontal()
         {
             return Mathf.Abs(_velocity.x) > 0.1f ? _velocity.x : _launchDirection.x;
+        }
+
+        private float ResolveGravityScale()
+        {
+            float lifetime = Mathf.Max(0.0001f, maxLifetime);
+            float elapsedRatio = 1f - Mathf.Clamp01(_lifetimeLeft / lifetime);
+            float delayRatio = Mathf.Clamp01(_gravityDelayRatioRuntime);
+            float rampRatio = Mathf.Max(0.0001f, _gravityRampRatioRuntime);
+            float minScale = Mathf.Min(_gravityMinScaleRuntime, _gravityMaxScaleRuntime);
+            float maxScale = Mathf.Max(_gravityMinScaleRuntime, _gravityMaxScaleRuntime);
+
+            float gravityScale = minScale;
+            if (elapsedRatio > delayRatio)
+            {
+                float rampProgress = Mathf.Clamp01((elapsedRatio - delayRatio) / rampRatio);
+                gravityScale = Mathf.Lerp(minScale, maxScale, rampProgress);
+            }
+
+            if (_velocity.y > 0f)
+            {
+                gravityScale *= _projectileUpwardGravityMultiplierRuntime;
+            }
+
+            return Mathf.Max(0f, gravityScale);
+        }
+
+        private void ApplySpeedDecay(float deltaTime)
+        {
+            if (deltaTime <= 0f || _velocity.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            float currentSpeed = _velocity.magnitude;
+            float decayRate = Mathf.Max(0f, _projectileSpeedDecayRuntime);
+            if (_velocity.y > 0f)
+            {
+                decayRate *= _projectileUpwardSpeedDecayMultiplierRuntime;
+            }
+
+            float nextSpeed = Mathf.Max(_projectileMinSpeedRuntime, currentSpeed - (decayRate * deltaTime));
+            if (Mathf.Approximately(nextSpeed, currentSpeed))
+            {
+                return;
+            }
+
+            _velocity = _velocity.normalized * nextSpeed;
         }
 
         private void DisarmIntoDrop()

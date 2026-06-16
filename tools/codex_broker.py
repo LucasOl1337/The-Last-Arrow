@@ -23,6 +23,7 @@ CODEX_MODEL = os.environ.get("CODEX_MODEL", "")
 REPORT_INTERVAL_SECONDS = float(os.environ.get("CODEX_BROKER_REPORT_INTERVAL_SEC", "1.0"))
 REPORT_HEARTBEAT_SECONDS = float(os.environ.get("CODEX_BROKER_REPORT_HEARTBEAT_SEC", "5.0"))
 REPORT_CLEAR_SCREEN = os.environ.get("CODEX_BROKER_CLEAR_SCREEN", "0") == "1"
+MAX_REQUEST_BODY_BYTES = int(os.environ.get("CODEX_BROKER_MAX_REQUEST_BYTES", str(1024 * 1024)))
 SYSTEM_PROMPT = PROMPT_PATH.read_text(encoding="utf-8").strip()
 
 DEFAULT_INTENT = {
@@ -97,6 +98,32 @@ def log_event(label: str, **fields: Any) -> None:
     parts = [f"{key}={value}" for key, value in fields.items()]
     suffix = f" | {' '.join(parts)}" if parts else ""
     print(f"[broker] {label}{suffix}", flush=True)
+
+
+def parse_content_length(raw_value: str | None) -> int:
+    try:
+        length = int(raw_value or "0")
+    except ValueError as exc:
+        raise ValueError("invalid_content_length") from exc
+
+    if length < 0:
+        raise ValueError("invalid_content_length")
+    if length > MAX_REQUEST_BODY_BYTES:
+        raise ValueError("request_too_large")
+    return length
+
+
+def decode_json_object(raw: bytes) -> dict[str, Any]:
+    try:
+        parsed = json.loads(raw.decode("utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid_json:{exc.msg}") from exc
+    except UnicodeDecodeError as exc:
+        raise ValueError("invalid_json:invalid_utf8") from exc
+
+    if not isinstance(parsed, dict):
+        raise ValueError("invalid_payload")
+    return parsed
 
 
 def validate_intent(candidate: Any) -> dict[str, Any] | None:
@@ -266,6 +293,8 @@ class BrokerSession:
                 "generatedAtUnixMs": self.cached_at_ms,
                 "generatedAtFrame": self.generated_at_frame,
                 "isFresh": True,
+                "hasAgentAction": True,
+                "controllerOwner": "CodexDirect",
                 "intent": deepcopy(self.cached_intent),
                 "error": self.last_error,
             }
@@ -876,16 +905,9 @@ class BrokerHandler(BaseHTTPRequestHandler):
         self._write_json(200, session.state_payload())
 
     def _read_json(self) -> dict[str, Any]:
-        length = int(self.headers.get("Content-Length", "0"))
+        length = parse_content_length(self.headers.get("Content-Length"))
         raw = self.rfile.read(length) if length > 0 else b"{}"
-        try:
-            parsed = json.loads(raw.decode("utf-8"))
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"invalid_json:{exc.msg}") from exc
-
-        if not isinstance(parsed, dict):
-            raise ValueError("invalid_payload")
-        return parsed
+        return decode_json_object(raw)
 
     def _write_json(self, status_code: int, payload: dict[str, Any]) -> None:
         encoded = json.dumps(payload, ensure_ascii=True, separators=(",", ":")).encode("utf-8")

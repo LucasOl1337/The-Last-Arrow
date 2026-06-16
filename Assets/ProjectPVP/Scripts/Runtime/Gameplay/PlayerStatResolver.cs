@@ -273,7 +273,7 @@ namespace ProjectPVP.Gameplay
         public Vector2 ResolveProjectileOriginOffset() => _context.characterDefinition != null ? _context.characterDefinition.projectileOriginOffset : Vector2.zero;
         public ProjectileOriginMode ResolveProjectileOriginMode() => _context.characterDefinition != null ? _context.characterDefinition.projectileOriginMode : ProjectileOriginMode.BowNode;
         public Sprite ResolveProjectileSprite() => _context.characterDefinition != null ? _context.characterDefinition.projectileSprite : null;
-        public bool ResolveProjectileAssistEnabled() => _context.characterDefinition != null ? _context.characterDefinition.projectileAssistEnabled : true;
+        public bool ResolveProjectileAssistEnabled() => _context.characterDefinition != null ? _context.characterDefinition.projectileAssistEnabled : false;
         public float ResolveProjectileAssistStrength() => _context.characterDefinition != null ? _context.characterDefinition.projectileAssistStrength : DefaultProjectileAssistStrength;
         public float ResolveProjectileAssistMaxTurnRateDeg() => _context.characterDefinition != null ? _context.characterDefinition.projectileAssistMaxTurnRateDeg : DefaultProjectileAssistMaxTurnRateDeg;
         public float ResolveProjectileAssistAcquireConeDeg() => _context.characterDefinition != null ? _context.characterDefinition.projectileAssistAcquireConeDeg : DefaultProjectileAssistAcquireConeDeg;

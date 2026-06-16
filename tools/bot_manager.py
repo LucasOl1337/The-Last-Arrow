@@ -45,6 +45,21 @@ def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
         handle.write(json.dumps(payload, ensure_ascii=True) + "\n")
 
 
+def _write_text_atomic(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = path.with_name(f"{path.name}.{time.time_ns()}.tmp")
+    try:
+        temporary_path.write_text(text, encoding="utf-8")
+        temporary_path.replace(path)
+    finally:
+        if temporary_path.exists():
+            temporary_path.unlink()
+
+
+def _write_json_atomic(path: Path, payload: Any) -> None:
+    _write_text_atomic(path, json.dumps(payload, indent=2, ensure_ascii=True) + "\n")
+
+
 def _load_json(path: Path, fallback: Any) -> Any:
     if not path.exists():
         return deepcopy(fallback)
@@ -215,7 +230,7 @@ class GlobalKnowledgeStore:
 
     def _save_index(self) -> None:
         self.index["updatedAt"] = now_iso()
-        GLOBAL_KNOWLEDGE_INDEX.write_text(json.dumps(self.index, indent=2, ensure_ascii=True), encoding="utf-8")
+        _write_json_atomic(GLOBAL_KNOWLEDGE_INDEX, self.index)
 
     @staticmethod
     def _entry_key(category: str, summary: str) -> str:
@@ -283,7 +298,7 @@ class GlobalKnowledgeStore:
                 evidence = compact_line(str(entry.get("evidence", "") or ""))
                 if evidence:
                     lines.append(f"  Evidence: {evidence}")
-        GLOBAL_KNOWLEDGE_SUMMARY.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        _write_text_atomic(GLOBAL_KNOWLEDGE_SUMMARY, "\n".join(lines) + "\n")
 
 
 class BotManager:
@@ -327,7 +342,7 @@ class BotManager:
     def _save_roster(self, roster: dict[str, Any] | None = None) -> None:
         payload = deepcopy(roster or self.roster)
         payload["updatedAt"] = now_iso()
-        ROSTER_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+        _write_json_atomic(ROSTER_PATH, payload)
         self._save_runtime_assignments(payload)
 
     def _save_runtime_assignments(self, roster: dict[str, Any]) -> None:
@@ -360,7 +375,7 @@ class BotManager:
             "updatedAt": now_iso(),
             "slots": slots,
         }
-        RUNTIME_ASSIGNMENTS_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+        _write_json_atomic(RUNTIME_ASSIGNMENTS_PATH, payload)
 
     def reload(self) -> None:
         self.roster = self._load_roster()

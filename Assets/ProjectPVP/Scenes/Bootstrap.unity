@@ -4120,7 +4120,7 @@ MonoBehaviour:
     height: 1440
   defaultWrapPadding: {x: 40, y: 40}
   enableDebugShortcuts: 1
-  slotTwoDebugAiBrain: 1
+  slotTwoDebugAiBrain: 0
   slotWins: 0000000000000000
 --- !u!114 &2041669353
 MonoBehaviour:

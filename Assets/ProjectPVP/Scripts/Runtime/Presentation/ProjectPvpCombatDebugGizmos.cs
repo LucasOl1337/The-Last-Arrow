@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ProjectPVP.Data;
 using ProjectPVP.Gameplay;
 using ProjectPVP.Match;
@@ -39,6 +40,8 @@ namespace ProjectPVP.Presentation
         public float originMarkerRadius = 12f;
 
         private bool _runtimeVisible = true;
+        private readonly List<PlayerController> _playerQueryBuffer = new();
+        private readonly List<ProjectileController> _projectileQueryBuffer = new();
 
         private void OnEnable()
         {
@@ -74,21 +77,33 @@ namespace ProjectPVP.Presentation
             }
             else
             {
-                PlayerController[] players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
-                for (int index = 0; index < players.Length; index += 1)
-                {
-                    if (players[index] == null)
-                    {
-                        continue;
-                    }
-
-                    DrawPlayer(players[index]);
-                }
+                DrawPlayersFromRegistryOrScene();
             }
 
             if (showProjectileHitboxes || showProjectileDirection)
             {
                 DrawProjectiles();
+            }
+        }
+
+        private void DrawPlayersFromRegistryOrScene()
+        {
+            PlayerController.CopyActivePlayers(_playerQueryBuffer);
+            if (_playerQueryBuffer.Count > 0)
+            {
+                for (int index = 0; index < _playerQueryBuffer.Count; index += 1)
+                {
+                    DrawPlayer(_playerQueryBuffer[index]);
+                }
+
+                _playerQueryBuffer.Clear();
+                return;
+            }
+
+            PlayerController[] players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+            for (int index = 0; index < players.Length; index += 1)
+            {
+                DrawPlayer(players[index]);
             }
         }
 
@@ -252,52 +267,68 @@ namespace ProjectPVP.Presentation
 
         private void DrawProjectiles()
         {
+            ProjectileController.CopyActiveProjectiles(_projectileQueryBuffer);
+            if (_projectileQueryBuffer.Count > 0)
+            {
+                for (int index = 0; index < _projectileQueryBuffer.Count; index += 1)
+                {
+                    DrawProjectile(_projectileQueryBuffer[index]);
+                }
+
+                _projectileQueryBuffer.Clear();
+                return;
+            }
+
             ProjectileController[] projectiles = FindObjectsByType<ProjectileController>(FindObjectsSortMode.None);
             for (int index = 0; index < projectiles.Length; index += 1)
             {
-                ProjectileController projectile = projectiles[index];
-                if (projectile == null || !projectile.isActiveAndEnabled)
-                {
-                    continue;
-                }
+                DrawProjectile(projectiles[index]);
+            }
+        }
 
-                PlayerController owner = projectile.SourceObject != null
-                    ? projectile.SourceObject.GetComponentInParent<PlayerController>()
-                    : null;
-                Color tint = owner != null ? ResolvePlayerTint(owner) : new Color(1f, 0.92f, 0.35f, 1f);
-                if (projectile.IsCollectible)
-                {
-                    tint = Color.Lerp(tint, new Color(1f, 0.85f, 0.2f, 1f), 0.45f);
-                }
-                else if (projectile.IsStuck)
-                {
-                    tint = Color.Lerp(tint, new Color(1f, 0.32f, 0.22f, 1f), 0.45f);
-                }
+        private void DrawProjectile(ProjectileController projectile)
+        {
+            if (projectile == null || !projectile.isActiveAndEnabled)
+            {
+                return;
+            }
 
-                if (showProjectileHitboxes)
-                {
-                    if (projectile.hitCollider != null)
-                    {
-                        Gizmos.color = WithAlpha(tint, 0.95f);
-                        Matrix4x4 previousMatrix = Gizmos.matrix;
-                        Gizmos.matrix = projectile.hitCollider.transform.localToWorldMatrix;
-                        Gizmos.DrawWireCube(projectile.hitCollider.offset, projectile.hitCollider.size);
-                        Gizmos.matrix = previousMatrix;
-                    }
-                    else
-                    {
-                        Gizmos.color = WithAlpha(tint, 0.85f);
-                        Gizmos.DrawWireSphere(projectile.transform.position, 10f);
-                    }
-                }
+            PlayerController owner = projectile.SourceObject != null
+                ? projectile.SourceObject.GetComponentInParent<PlayerController>()
+                : null;
+            Color tint = owner != null ? ResolvePlayerTint(owner) : new Color(1f, 0.92f, 0.35f, 1f);
+            if (projectile.IsCollectible)
+            {
+                tint = Color.Lerp(tint, new Color(1f, 0.85f, 0.2f, 1f), 0.45f);
+            }
+            else if (projectile.IsStuck)
+            {
+                tint = Color.Lerp(tint, new Color(1f, 0.32f, 0.22f, 1f), 0.45f);
+            }
 
-                if (showProjectileDirection)
+            if (showProjectileHitboxes)
+            {
+                if (projectile.hitCollider != null)
                 {
-                    Gizmos.color = WithAlpha(tint, 0.72f);
-                    Vector3 origin = projectile.transform.position;
-                    Vector3 direction = projectile.transform.right * ProjectileDirectionLength;
-                    Gizmos.DrawLine(origin, origin + direction);
+                    Gizmos.color = WithAlpha(tint, 0.95f);
+                    Matrix4x4 previousMatrix = Gizmos.matrix;
+                    Gizmos.matrix = projectile.hitCollider.transform.localToWorldMatrix;
+                    Gizmos.DrawWireCube(projectile.hitCollider.offset, projectile.hitCollider.size);
+                    Gizmos.matrix = previousMatrix;
                 }
+                else
+                {
+                    Gizmos.color = WithAlpha(tint, 0.85f);
+                    Gizmos.DrawWireSphere(projectile.transform.position, 10f);
+                }
+            }
+
+            if (showProjectileDirection)
+            {
+                Gizmos.color = WithAlpha(tint, 0.72f);
+                Vector3 origin = projectile.transform.position;
+                Vector3 direction = projectile.transform.right * ProjectileDirectionLength;
+                Gizmos.DrawLine(origin, origin + direction);
             }
         }
 

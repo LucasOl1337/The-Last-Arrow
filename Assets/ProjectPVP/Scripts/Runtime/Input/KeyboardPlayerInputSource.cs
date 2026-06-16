@@ -52,6 +52,7 @@ namespace ProjectPVP.Input
         private bool _latestJumpHeld;
         private bool _latestShootHeld;
         private readonly int[] _connectedGamepadSlots = new int[MaxSupportedGamepads];
+        private readonly int[] _familyMatchedGamepadSlots = new int[MaxSupportedGamepads];
         private static GamepadControlProfileAsset s_defaultGamepadProfile;
 
         public int playerId
@@ -849,27 +850,46 @@ namespace ProjectPVP.Input
                 return -1;
             }
 
+            int matchedCount = 0;
             for (int index = 0; index < connectedCount && index < _connectedGamepadSlots.Length; index += 1)
             {
                 int slot = _connectedGamepadSlots[index];
-                switch (preferredGamepadFamily)
+                if (!MatchesPreferredGamepadFamily(slot))
                 {
-                    case PreferredGamepadFamily.XboxLike:
-                        if (IsXboxProfile(slot))
-                        {
-                            return slot;
-                        }
-                        break;
-                    case PreferredGamepadFamily.DualSense:
-                        if (string.Equals(ResolveGamepadProfileName(slot), GamepadProfileDualSense, StringComparison.OrdinalIgnoreCase))
-                        {
-                            return slot;
-                        }
-                        break;
+                    continue;
                 }
+
+                _familyMatchedGamepadSlots[matchedCount] = slot;
+                matchedCount += 1;
             }
 
-            return -1;
+            return ResolvePreferredSlotFromMatches(_familyMatchedGamepadSlots, matchedCount, preferredGamepadIndex);
+        }
+
+        private bool MatchesPreferredGamepadFamily(int slot)
+        {
+            switch (preferredGamepadFamily)
+            {
+                case PreferredGamepadFamily.XboxLike:
+                    return IsXboxProfile(slot);
+                case PreferredGamepadFamily.DualSense:
+                    return string.Equals(ResolveGamepadProfileName(slot), GamepadProfileDualSense, StringComparison.OrdinalIgnoreCase);
+                default:
+                    return false;
+            }
+        }
+
+        private static int ResolvePreferredSlotFromMatches(int[] matchedSlots, int matchedCount, int preferredIndex)
+        {
+            if (matchedSlots == null || matchedCount <= 0)
+            {
+                return -1;
+            }
+
+            int normalizedIndex = Mathf.Max(0, preferredIndex);
+            return normalizedIndex < matchedCount && normalizedIndex < matchedSlots.Length
+                ? matchedSlots[normalizedIndex]
+                : -1;
         }
 
         private bool IsJoystickConnected(int slot)

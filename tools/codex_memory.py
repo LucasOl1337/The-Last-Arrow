@@ -5,9 +5,27 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from bot_manager import BotManager, GlobalKnowledgeStore, compact_line, now_iso, safe_float, safe_int
+    from bot_manager import (
+        BotManager,
+        GlobalKnowledgeStore,
+        _write_json_atomic,
+        _write_text_atomic,
+        compact_line,
+        now_iso,
+        safe_float,
+        safe_int,
+    )
 except ModuleNotFoundError:
-    from tools.bot_manager import BotManager, GlobalKnowledgeStore, compact_line, now_iso, safe_float, safe_int
+    from tools.bot_manager import (
+        BotManager,
+        GlobalKnowledgeStore,
+        _write_json_atomic,
+        _write_text_atomic,
+        compact_line,
+        now_iso,
+        safe_float,
+        safe_int,
+    )
 
 
 def slot_label(slot_id: int) -> str:
@@ -105,10 +123,11 @@ class MemoryTracker:
 
     def _save_private_profile(self, payload: dict[str, Any]) -> None:
         payload["updatedAt"] = now_iso()
-        self.private_profile_path.write_text(json.dumps(payload, indent=2, ensure_ascii=True), encoding="utf-8")
+        _write_json_atomic(self.private_profile_path, payload)
 
     @staticmethod
     def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, ensure_ascii=True) + "\n")
 
@@ -568,8 +587,8 @@ class MemoryTracker:
         for item in review.get("betterNextRound", []):
             lines.append(f"- {item}")
         markdown = "\n".join(lines) + "\n"
-        report_path.write_text(markdown, encoding="utf-8")
-        self.latest_round_report_path.write_text(markdown, encoding="utf-8")
+        _write_text_atomic(report_path, markdown)
+        _write_text_atomic(self.latest_round_report_path, markdown)
         return report_path
 
     def _detect_series_completion(self, current: dict[str, Any]) -> None:
@@ -835,8 +854,8 @@ class MemoryTracker:
             ]
         )
         markdown = "\n".join(lines)
-        report_path.write_text(markdown, encoding="utf-8")
-        self.latest_series_report_path.write_text(markdown, encoding="utf-8")
+        _write_text_atomic(report_path, markdown)
+        _write_text_atomic(self.latest_series_report_path, markdown)
         return report_path
 
     def _write_plan_markdown(self, review: dict[str, Any]) -> Path:
@@ -862,8 +881,8 @@ class MemoryTracker:
         for item in review.get("gameplayConcerns", []):
             lines.append(f"- {item}")
         markdown = "\n".join(lines) + "\n"
-        plan_path.write_text(markdown, encoding="utf-8")
-        self.latest_series_plan_path.write_text(markdown, encoding="utf-8")
+        _write_text_atomic(plan_path, markdown)
+        _write_text_atomic(self.latest_series_plan_path, markdown)
         return plan_path
 
     def _publish_global_knowledge(self, review: dict[str, Any]) -> None:

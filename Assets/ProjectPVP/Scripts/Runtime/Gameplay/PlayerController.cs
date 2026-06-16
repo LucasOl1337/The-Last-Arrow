@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using ProjectPVP.Audio;
 using ProjectPVP.Data;
 using ProjectPVP.Input;
@@ -10,7 +11,7 @@ using UnityEngine.Serialization;
 
 namespace ProjectPVP.Gameplay
 {
-    public sealed class PlayerController : MonoBehaviour
+    public sealed class PlayerController : MonoBehaviour, IAiArenaControllerSnapshotSource
     {
         [Header("Identity")]
         [FormerlySerializedAs("playerId")]
@@ -38,6 +39,7 @@ namespace ProjectPVP.Gameplay
         public event Action<PlayerController> Died;
 
         private static PhysicsMaterial2D s_runtimeNoFrictionMaterial;
+        private static readonly List<PlayerController> s_activePlayers = new();
 
         private PlayerContext _context;
         private PlayerStatResolver _statResolver;
@@ -60,20 +62,20 @@ namespace ProjectPVP.Gameplay
         public CombatantSlotProfile SlotProfile => slotProfile;
         public string BotId => slotProfile != null ? slotProfile.ResolveBotId(SlotId) : string.Empty;
         public string BotDisplayName => slotProfile != null ? slotProfile.ResolveBotDisplayName(SlotId) : SlotId.ToDisplayName();
-        public int Facing => _context.facing;
-        public int CurrentArrows => _context.arrows;
-        public bool IsDead => _context.isDead;
-        public bool IsGrounded => _context.isGrounded;
-        public bool IsTouchingWall => _context.isTouchingWall;
-        public bool IsDashing => _context.dashTimeLeft > 0f;
-        public bool IsDashAnimationActive => IsDashing || _context.dashAnimationHoldTimeLeft > 0f;
-        public bool IsAimHoldActive => _context.aimHoldActive;
+        public int Facing => _context != null && _context.facing != 0 ? _context.facing : 1;
+        public int CurrentArrows => _context != null ? _context.arrows : 0;
+        public bool IsDead => _context != null && _context.isDead;
+        public bool IsGrounded => _context != null && _context.isGrounded;
+        public bool IsTouchingWall => _context != null && _context.isTouchingWall;
+        public bool IsDashing => _context != null && _context.dashTimeLeft > 0f;
+        public bool IsDashAnimationActive => IsDashing || (_context != null && _context.dashAnimationHoldTimeLeft > 0f);
+        public bool IsAimHoldActive => _context != null && _context.aimHoldActive;
         public bool IsMeleeActive => _context != null && _context.meleeTimeLeft > 0f;
-        public bool IsShootAnimating => _context.shootAnimationTimeLeft > 0f;
-        public bool IsJumpStartActive => _context.jumpStartTimeLeft > 0f;
+        public bool IsShootAnimating => _context != null && _context.shootAnimationTimeLeft > 0f;
+        public bool IsJumpStartActive => _context != null && _context.jumpStartTimeLeft > 0f;
         public bool IsUltimateActive => _context != null && _context.ultimateTimeLeft > 0f;
-        public bool IsHitStunned => _context.hitStunTimeLeft > 0f;
-        public bool IsKnockedBack => _context.knockbackTimeLeft > 0f;
+        public bool IsHitStunned => _context != null && _context.hitStunTimeLeft > 0f;
+        public bool IsKnockedBack => _context != null && _context.knockbackTimeLeft > 0f;
         public bool IsExternallyControlLocked => _externalControlLock;
         public float ShootCooldownLeft => _context != null ? _context.shootCooldownLeft : 0f;
         public float MeleeCooldownLeft => _context != null ? _context.meleeCooldownLeft : 0f;
@@ -83,7 +85,7 @@ namespace ProjectPVP.Gameplay
         public float UltimateCooldownLeft => _context != null ? _context.ultimateCooldownLeft : 0f;
         public float HitStunTimeLeft => _context != null ? _context.hitStunTimeLeft : 0f;
         public float UltimateProjectileBlockTimeLeft => _context != null ? _context.ultimateProjectileBlockTimer : 0f;
-        public Vector2 AimHoldDirection => _context.aimHoldDirection;
+        public Vector2 AimHoldDirection => _context != null ? _context.aimHoldDirection : Vector2.zero;
         public Vector2 CurrentVelocity => body != null ? body.linearVelocity : Vector2.zero;
         public float HorizontalVelocity => body != null ? body.linearVelocity.x : 0f;
         public float VerticalVelocity => body != null ? body.linearVelocity.y : 0f;
@@ -95,19 +97,119 @@ namespace ProjectPVP.Gameplay
         public Vector2 MeleeHitboxSize => _anchorSystem != null ? _anchorSystem.GetMeleeHitboxSize() : Vector2.zero;
         public Vector2 UltimateHitboxCenter => _anchorSystem != null ? _anchorSystem.GetUltimateHitboxCenter() : Vector2.zero;
         public float UltimateHitboxRadius => _statResolver != null ? _statResolver.ResolveUltimateRadius() : 0f;
-        public float ResolvedUltimateDashDistance => _statResolver.ResolveUltimateDashDistance();
-        public float ResolvedUltimateDashDuration => _statResolver.ResolveUltimateDashDuration();
-        public float ResolvedUltimateReplayDelay => _statResolver.ResolveUltimateReplayDelay();
-        public float ResolvedUltimateReplayDuration => _statResolver.ResolveUltimateReplayDuration();
-        public float DashParryTimeLeft => _context.dashParryTimer;
-        public float DashPressTimeLeft => _context.dashPressTimer;
-        public PlayerInputFrame CurrentInputFrame => _context.currentInputFrame;
-        public string CurrentVisualActionKey => _actionLockSystem.CurrentVisualActionKey;
-        public ICombatantInputSource InputSource => _context.RuntimeInputSource;
-        public ProjectileController LastLaunchedProjectile => _context.lastLaunchedProjectile;
+        public float ResolvedUltimateDashDistance => _statResolver != null ? _statResolver.ResolveUltimateDashDistance() : 0f;
+        public float ResolvedUltimateDashDuration => _statResolver != null ? _statResolver.ResolveUltimateDashDuration() : 0f;
+        public float ResolvedUltimateReplayDelay => _statResolver != null ? _statResolver.ResolveUltimateReplayDelay() : 0f;
+        public float ResolvedUltimateReplayDuration => _statResolver != null ? _statResolver.ResolveUltimateReplayDuration() : 0f;
+        public float DashParryTimeLeft => _context != null ? _context.dashParryTimer : 0f;
+        public float DashPressTimeLeft => _context != null ? _context.dashPressTimer : 0f;
+        public PlayerInputFrame CurrentInputFrame => _context != null ? _context.currentInputFrame : default;
+        public string CurrentVisualActionKey => _actionLockSystem != null ? _actionLockSystem.CurrentVisualActionKey : string.Empty;
+        public ICombatantInputSource InputSource => _context != null ? _context.RuntimeInputSource : null;
+        public ProjectileController LastLaunchedProjectile => _context != null ? _context.lastLaunchedProjectile : null;
         public bool CanParryProjectile => _combatSystem != null && _combatSystem.CanParryProjectile();
         public bool CanBlockProjectileWithUltimate => _combatSystem != null && _combatSystem.CanBlockProjectileWithUltimate();
-        public CombatantRuntimeContext RuntimeContext => new CombatantRuntimeContext(SlotId, this, characterDefinition, anchorRig, _context.RuntimeInputSource);
+        public CombatantRuntimeContext RuntimeContext => new CombatantRuntimeContext(SlotId, this, characterDefinition, anchorRig, _context != null ? _context.RuntimeInputSource : null);
+
+        public static void CopyActivePlayers(List<PlayerController> results)
+        {
+            if (results == null)
+            {
+                throw new ArgumentNullException(nameof(results));
+            }
+
+            results.Clear();
+            PruneDestroyedActivePlayers();
+            for (int index = 0; index < s_activePlayers.Count; index += 1)
+            {
+                results.Add(s_activePlayers[index]);
+            }
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ClearActivePlayersForRuntimeLoad()
+        {
+            s_activePlayers.Clear();
+        }
+
+        private static void RegisterActivePlayer(PlayerController player)
+        {
+            if (player == null || s_activePlayers.Contains(player))
+            {
+                return;
+            }
+
+            s_activePlayers.Add(player);
+        }
+
+        private static void UnregisterActivePlayer(PlayerController player)
+        {
+            if (player == null)
+            {
+                return;
+            }
+
+            s_activePlayers.Remove(player);
+        }
+
+        private static void PruneDestroyedActivePlayers()
+        {
+            for (int index = s_activePlayers.Count - 1; index >= 0; index -= 1)
+            {
+                if (s_activePlayers[index] == null)
+                {
+                    s_activePlayers.RemoveAt(index);
+                }
+            }
+        }
+
+        private static void ClearActivePlayersForTests()
+        {
+            s_activePlayers.Clear();
+        }
+
+        public AiArenaControllerSnapshot BuildAiArenaControllerSnapshot(int fallbackSlotId, Vector2 fallbackPosition)
+        {
+            Vector2 position = body != null ? body.position : (Vector2)transform.position;
+            int resolvedSlotId = slotId > 0 ? slotId : fallbackSlotId;
+            int resolvedFacing = _context != null && _context.facing != 0
+                ? _context.facing
+                : (position.x >= fallbackPosition.x ? 1 : -1);
+
+            return new AiArenaControllerSnapshot
+            {
+                isValid = true,
+                slotId = resolvedSlotId,
+                botId = BotId,
+                botDisplayName = BotDisplayName,
+                characterId = characterDefinition != null ? characterDefinition.id : string.Empty,
+                displayName = name,
+                actionKey = _actionLockSystem != null ? _actionLockSystem.CurrentVisualActionKey : string.Empty,
+                isDead = _context != null && _context.isDead,
+                isGrounded = _context == null || _context.isGrounded,
+                isTouchingWall = _context != null && _context.isTouchingWall,
+                isDashing = _context != null && _context.dashTimeLeft > 0f,
+                isMeleeActive = _context != null && _context.meleeTimeLeft > 0f,
+                isShootAnimating = _context != null && _context.shootAnimationTimeLeft > 0f,
+                isUltimateActive = _context != null && _context.ultimateTimeLeft > 0f,
+                isHitStunned = _context != null && _context.hitStunTimeLeft > 0f,
+                canParryProjectile = _combatSystem != null && _combatSystem.CanParryProjectile(),
+                canBlockProjectiles = _combatSystem != null && _combatSystem.CanBlockProjectileWithUltimate(),
+                arrows = _context != null ? _context.arrows : 0,
+                facing = resolvedFacing,
+                shootCooldownLeft = _context != null ? _context.shootCooldownLeft : 0f,
+                meleeCooldownLeft = _context != null ? _context.meleeCooldownLeft : 0f,
+                dashCooldownLeft = _context != null ? Mathf.Min(_context.dashPrimaryCooldownLeft, _context.dashSecondaryCooldownLeft) : 0f,
+                ultimateCooldownLeft = _context != null ? _context.ultimateCooldownLeft : 0f,
+                hitStunTimeLeft = _context != null ? _context.hitStunTimeLeft : 0f,
+                position = position,
+                velocity = body != null ? body.linearVelocity : Vector2.zero,
+                meleeHitboxCenter = _anchorSystem != null ? _anchorSystem.GetMeleeHitboxCenter() : position,
+                meleeHitboxSize = _anchorSystem != null ? _anchorSystem.GetMeleeHitboxSize() : Vector2.zero,
+                ultimateHitboxCenter = _anchorSystem != null ? _anchorSystem.GetUltimateHitboxCenter() : position,
+                ultimateHitboxRadius = _statResolver != null ? _statResolver.ResolveUltimateRadius() : 0f,
+            };
+        }
 
         private void Reset()
         {
@@ -165,6 +267,14 @@ namespace ProjectPVP.Gameplay
             ConfigureInput();
             ConfigureRuntimeBody();
             _anchorSystem.SyncCombatAnchors();
+            RegisterActivePlayer(this);
+            AiArenaSnapshotSourceRegistry.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            UnregisterActivePlayer(this);
+            AiArenaSnapshotSourceRegistry.Unregister(this);
         }
 
         private void InitializeContext()
@@ -332,14 +442,24 @@ namespace ProjectPVP.Gameplay
 
         public void Kill()
         {
+            TryKill();
+        }
+
+        public bool TryKill()
+        {
             EnsureCharacterMechanicsRuntime();
-            _combatSystem.Kill();
+            if (!_combatSystem.Kill())
+            {
+                return false;
+            }
+
             ApplyDefinitionToCollider();
             UpdatePresentationState();
             float deathEventDelay = characterDefinition != null && characterDefinition.HasActionAnimation("death")
                 ? Mathf.Clamp(_statResolver.ResolveActionDuration("death", 0.35f), 0.2f, 0.6f)
                 : 0f;
             StartCoroutine(NotifyDeathAfterDelay(deathEventDelay));
+            return true;
         }
 
         public void ApplyHitstun(float duration)

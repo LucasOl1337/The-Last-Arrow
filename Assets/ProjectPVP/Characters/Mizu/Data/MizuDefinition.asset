@@ -65,6 +65,12 @@ MonoBehaviour:
   meleeCooldown: 0.45
   meleeDuration: 0.3
   meleeCanSeverProjectiles: 1
+  meleeHitstunDuration: 0.1
+  projectileHitstunDuration: 0.08
+  ultimateHitstunDuration: 0.15
+  meleeKnockbackForce: 400
+  projectileKnockbackForce: 300
+  ultimateKnockbackForce: 600
   colliderSize:
     x: 90
     y: 240
@@ -110,7 +116,7 @@ MonoBehaviour:
   projectileBaseSpeed: 1600
   projectileMinSpeed: 720
   projectileSpeedDecay: 360
-  projectileGravity: 800
+  projectileGravity: 1500
   projectileGravityDelayRatio: 0.05
   projectileGravityRampRatio: 0.2
   projectileGravityMinScale: 0.9
@@ -121,7 +127,7 @@ MonoBehaviour:
   projectileMaxRange: 1440
   projectileRotateWithVelocity: 1
   projectileCollectableWhenStuck: 1
-  projectileAssistEnabled: 1
+  projectileAssistEnabled: 0
   projectileAssistStrength: 0.32
   projectileAssistMaxTurnRateDeg: 420
   projectileAssistAcquireConeDeg: 36

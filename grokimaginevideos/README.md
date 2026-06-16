@@ -41,7 +41,6 @@ Auto-generated high-quality marketing videos and motion assets for the 2D person
 - All assets adhere strictly to the The-Last-Arrow visual bible: 2D combat arena with strong character identity and online/local play, "the last arrow" as the final, decisive, skillful moment where every action matters. Strong character silhouettes and personality, clean 2D combat readability, decisive moments, dramatic but not noisy, satisfying competitive depth, elegant 2D craft.
 - Emotional promise: Satisfying, personality-driven 2D fighting with real competitive depth and beautiful characters.
 - These marketing videos and stills are designed for players who love 2D combat prototypes that have soul and are being actively developed with bots and online focus.
-- Existing motion assets in `grokassets/motion/feature-demos/` (decisive-combat and decisive-combat-climax) complement this library for presentations and trailers.
 
 Next execution of the loop will process the next project in the queue (VideoGen).
 

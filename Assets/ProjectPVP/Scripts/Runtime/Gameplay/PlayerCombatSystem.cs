@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using ProjectPVP.Data;
 using ProjectPVP.Input;
 using UnityEngine;
 
@@ -16,6 +18,7 @@ namespace ProjectPVP.Gameplay
         private readonly PlayerStatResolver _statResolver;
         private readonly PlayerAnchorSystem _anchorSystem;
         private readonly PlayerActionLockSystem _actionLockSystem;
+        private readonly List<PlayerController> _playerQueryBuffer = new();
 
         public PlayerCombatSystem(PlayerContext context, PlayerStatResolver statResolver, PlayerAnchorSystem anchorSystem, PlayerActionLockSystem actionLockSystem)
         {
@@ -181,7 +184,7 @@ namespace ProjectPVP.Gameplay
             float arrowSpeed = _context.characterDefinition != null
                 ? _context.characterDefinition.projectileBaseSpeed : 1600f;
             float arrowGrav = _context.characterDefinition != null
-                ? _context.characterDefinition.projectileGravity : 800f;
+                ? _context.characterDefinition.projectileGravity : 1500f;
 
             // ── 2. Find the best enemy inside the aimed cone ──────────────────────────
             // Cone is ±22° — exactly half the gap between the 8 directions (45°/2).
@@ -347,45 +350,85 @@ namespace ProjectPVP.Gameplay
 
             float bestSqrDistance = float.MaxValue;
             PlayerController bestTarget = null;
-            PlayerController[] players = Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
-            for (int index = 0; index < players.Length; index += 1)
+
+            PlayerController.CopyActivePlayers(_playerQueryBuffer);
+            if (_playerQueryBuffer.Count > 0)
             {
-                PlayerController candidate = players[index];
-                if (candidate == null || candidate == _context.Controller || candidate.IsDead)
+                for (int index = 0; index < _playerQueryBuffer.Count; index += 1)
                 {
-                    continue;
+                    EvaluateProjectileAssistCandidate(
+                        _playerQueryBuffer[index],
+                        origin,
+                        selectedSector,
+                        maxRange,
+                        minDistance,
+                        ref bestSqrDistance,
+                        ref bestTarget);
                 }
-
-                if (!TryResolveRequiredAssistSector(origin, candidate, out Vector2 requiredSector, out Vector2 toCandidate))
+            }
+            else
+            {
+                PlayerController[] players = Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+                for (int index = 0; index < players.Length; index += 1)
                 {
-                    continue;
-                }
-
-                float sqrDistance = toCandidate.sqrMagnitude;
-                if (sqrDistance <= 0.0001f)
-                {
-                    continue;
-                }
-
-                float distance = Mathf.Sqrt(sqrDistance);
-                if (distance > maxRange || distance < minDistance)
-                {
-                    continue;
-                }
-
-                if (!IsSameEightDirection(selectedSector, requiredSector))
-                {
-                    continue;
-                }
-
-                if (sqrDistance < bestSqrDistance)
-                {
-                    bestSqrDistance = sqrDistance;
-                    bestTarget = candidate;
+                    EvaluateProjectileAssistCandidate(
+                        players[index],
+                        origin,
+                        selectedSector,
+                        maxRange,
+                        minDistance,
+                        ref bestSqrDistance,
+                        ref bestTarget);
                 }
             }
 
+            _playerQueryBuffer.Clear();
             return bestTarget != null ? bestTarget.transform : null;
+        }
+
+        private void EvaluateProjectileAssistCandidate(
+            PlayerController candidate,
+            Vector2 origin,
+            Vector2 selectedSector,
+            float maxRange,
+            float minDistance,
+            ref float bestSqrDistance,
+            ref PlayerController bestTarget)
+        {
+            if (candidate == null || candidate == _context.Controller || candidate.IsDead)
+            {
+                return;
+            }
+
+            if (!TryResolveRequiredAssistSector(origin, candidate, out Vector2 requiredSector, out Vector2 toCandidate))
+            {
+                return;
+            }
+
+            float sqrDistance = toCandidate.sqrMagnitude;
+            if (sqrDistance <= 0.0001f)
+            {
+                return;
+            }
+
+            float distance = Mathf.Sqrt(sqrDistance);
+            if (distance > maxRange || distance < minDistance)
+            {
+                return;
+            }
+
+            if (!IsSameEightDirection(selectedSector, requiredSector))
+            {
+                return;
+            }
+
+            if (sqrDistance >= bestSqrDistance)
+            {
+                return;
+            }
+
+            bestSqrDistance = sqrDistance;
+            bestTarget = candidate;
         }
 
         private bool TryResolveRequiredAssistSector(
@@ -414,7 +457,7 @@ namespace ProjectPVP.Gameplay
                 : 1600f;
             float arrowGrav = _context.characterDefinition != null
                 ? _context.characterDefinition.projectileGravity
-                : 800f;
+                : 1500f;
 
             if (!TryResolvePreferredBallisticDirection(origin, candidateAimPoint, arrowSpeed, arrowGrav, out Vector2 preferredDirection))
             {
@@ -637,7 +680,7 @@ namespace ProjectPVP.Gameplay
                 return true;
             }
 
-            _context.Controller.Kill();
+            ApplyProjectileHitReaction(projectile);
 
             return true;
         }
@@ -661,6 +704,56 @@ namespace ProjectPVP.Gameplay
         public bool CanParryProjectile()
         {
             return _context.dashParryTimer > 0f || _context.dashPressTimer > 0f;
+        }
+
+        private void ApplyProjectileHitReaction(ProjectileController projectile)
+        {
+            CharacterDefinition sourceDefinition = ResolveProjectileSourceDefinition(projectile);
+            Vector2 hitDirection = ResolveProjectileHitDirection(projectile);
+            float hitstunDuration = sourceDefinition != null
+                ? sourceDefinition.projectileHitstunDuration
+                : 0.08f;
+            float knockbackForce = sourceDefinition != null
+                ? sourceDefinition.projectileKnockbackForce
+                : 300f;
+
+            ApplyHitstun(hitstunDuration);
+            ApplyKnockback(hitDirection, knockbackForce, 0.2f);
+        }
+
+        private CharacterDefinition ResolveProjectileSourceDefinition(ProjectileController projectile)
+        {
+            if (projectile == null || projectile.SourceObject == null)
+            {
+                return null;
+            }
+
+            PlayerController source = projectile.SourceObject.GetComponentInParent<PlayerController>();
+            return source != null ? source.characterDefinition : null;
+        }
+
+        private Vector2 ResolveProjectileHitDirection(ProjectileController projectile)
+        {
+            Vector2 hitDirection = projectile != null ? projectile.TravelDirection : Vector2.zero;
+            if (hitDirection.sqrMagnitude > 0.01f)
+            {
+                return hitDirection.normalized;
+            }
+
+            if (projectile != null && projectile.SourceObject != null)
+            {
+                PlayerController source = projectile.SourceObject.GetComponentInParent<PlayerController>();
+                if (source != null)
+                {
+                    hitDirection = _context.Controller.RootPosition - source.RootPosition;
+                    if (hitDirection.sqrMagnitude > 0.01f)
+                    {
+                        return hitDirection.normalized;
+                    }
+                }
+            }
+
+            return Vector2.right;
         }
 
         public bool CanSeverIncomingProjectile(ProjectileController projectile)
@@ -812,13 +905,14 @@ namespace ProjectPVP.Gameplay
 
                 Vector2 hitDirection = (target.RootPosition - _context.Controller.RootPosition).normalized;
                 float hitstunDuration = _context.characterDefinition != null
-                    ? _context.characterDefinition.meleeHitstunDuration * 1.5f
+                    ? _context.characterDefinition.ultimateHitstunDuration
                     : 0.15f;
                 float knockbackForce = _context.characterDefinition != null
                     ? _context.characterDefinition.ultimateKnockbackForce
                     : 600f;
 
-                target.Kill();
+                target.ApplyHitstun(hitstunDuration);
+                target.ApplyKnockback(hitDirection, knockbackForce, 0.25f);
             }
         }
 
@@ -848,11 +942,11 @@ namespace ProjectPVP.Gameplay
             _context.knockbackTimeLeft = duration;
         }
 
-        public void Kill()
+        public bool Kill()
         {
             if (_context.isDead)
             {
-                return;
+                return false;
             }
 
             _context.isDead = true;
@@ -895,6 +989,8 @@ namespace ProjectPVP.Gameplay
             {
                 _context.body.linearVelocity = Vector2.zero;
             }
+
+            return true;
         }
 
         public void AddArrows(int amount)

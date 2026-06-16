@@ -43,8 +43,6 @@ namespace ProjectPVP.Input
         private float _lastStrategyRequestTime = -999f;
         private float _lastIntentReceivedTime = -999f;
         private string _sessionId = string.Empty;
-        private bool _sessionStartInFlight;
-        private bool _strategyRequestInFlight;
         private string _debugSummary = "AI | Codex pending";
         private CodexStrategyIntent _currentIntent;
         private AiArenaSnapshotEnvelope _previousSnapshot;
@@ -55,8 +53,8 @@ namespace ProjectPVP.Input
         private string _controllerOwner = string.Empty;
         private int _consecutiveBrokerFailures;
         private float _lastBrokerSuccessTime = -999f;
-        private float _sessionStartRequestedTime = -999f;
-        private float _strategyRequestStartedTime = -999f;
+        private CodexBrokerRequestLifecycleState _sessionStartRequest = CodexBrokerRequestLifecycleState.Inactive();
+        private CodexBrokerRequestLifecycleState _strategyRequest = CodexBrokerRequestLifecycleState.Inactive();
 
         public PlayerInputFrame CurrentFrame => _currentFrame;
         public int ActiveGamepadSlot => -1;
@@ -68,8 +66,8 @@ namespace ProjectPVP.Input
         public string CurrentIntentReason => _currentIntent != null ? _currentIntent.reason : string.Empty;
         public bool HasAgentAction => _hasAgentAction;
         public string ControllerOwner => _controllerOwner;
-        public bool IsSessionStarting => _sessionStartInFlight;
-        public bool IsStrategyRequestInFlight => _strategyRequestInFlight;
+        public bool IsSessionStarting => _sessionStartRequest.InFlight;
+        public bool IsStrategyRequestInFlight => _strategyRequest.InFlight;
         public bool HasLiveSession => !string.IsNullOrWhiteSpace(_sessionId);
         public float IntentAgeMs => _currentIntent == null || _lastIntentReceivedTime < 0f
             ? -1f
@@ -141,25 +139,7 @@ namespace ProjectPVP.Input
                 RequestStrategyIfNeeded(snapshot, promptState);
             }
 
-            AiArenaDecisionEnvelope decision;
-            if (HasFreshIntent())
-            {
-                decision = AiArenaStrategicPolicy.Decide(snapshot, _currentIntent);
-                _lastExecutorSource = "codex_live";
-            }
-            else if (HasReusableIntent())
-            {
-                decision = AiArenaStrategicPolicy.Decide(snapshot, _currentIntent);
-                _lastExecutorSource = "codex_stale";
-            }
-            else
-            {
-                decision = new AiArenaDecisionEnvelope
-                {
-                    debugSummary = "AI | Waiting Codex",
-                };
-                _lastExecutorSource = "waiting_for_codex";
-            }
+            AiArenaDecisionEnvelope decision = ResolveDecision(snapshot);
 
             _currentFrame = AiArenaFrameExecutor.BuildFrame(
                 ref _executionState,
@@ -181,7 +161,13 @@ namespace ProjectPVP.Input
 
         public void ConfigureForSlot(CombatantSlotId configuredSlotId)
         {
+            int previousSlotId = slotId;
             slotId = Mathf.Max(1, configuredSlotId.ToInt());
+            if (slotId != previousSlotId)
+            {
+                _sessionId = string.Empty;
+            }
+
             _frameIndex = 0;
             _executionState = default;
             _previousSnapshot = null;
@@ -196,8 +182,8 @@ namespace ProjectPVP.Input
             _debugSummary = "AI | Codex pending";
             _consecutiveBrokerFailures = 0;
             _lastBrokerSuccessTime = -999f;
-            _sessionStartRequestedTime = -999f;
-            _strategyRequestStartedTime = -999f;
+            CodexBrokerRequestLifecycle.Invalidate(ref _sessionStartRequest);
+            CodexBrokerRequestLifecycle.Invalidate(ref _strategyRequest);
             _collector.ForceRefresh();
             _eventMemory.Clear();
         }
@@ -251,19 +237,37 @@ namespace ProjectPVP.Input
             return ageMs <= reusableWindowMs;
         }
 
+        private AiArenaDecisionEnvelope ResolveDecision(AiArenaSnapshotEnvelope snapshot)
+        {
+            if (HasFreshIntent())
+            {
+                _lastExecutorSource = "codex_live";
+                return AiArenaStrategicPolicy.Decide(snapshot, _currentIntent);
+            }
+
+            if (HasReusableIntent())
+            {
+                _lastExecutorSource = "codex_stale";
+                return AiArenaStrategicPolicy.Decide(snapshot, _currentIntent);
+            }
+
+            _lastExecutorSource = "heuristic_fallback";
+            return AiArenaHeuristicPolicy.Decide(snapshot);
+        }
+
         private void EnsureSessionStarted(CodexPromptState promptState)
         {
-            if (!autoStartSession || _sessionStartInFlight || !string.IsNullOrWhiteSpace(_sessionId))
+            if (!autoStartSession || _sessionStartRequest.InFlight || !string.IsNullOrWhiteSpace(_sessionId))
             {
                 return;
             }
 
-            _sessionStartInFlight = true;
-            _sessionStartRequestedTime = Time.realtimeSinceStartup;
+            int requestVersion = BeginSessionStartRequest();
             if (slotId == 2)
             {
-            Debug.Log($"[CodexBot] Starting broker session for slot {slotId} at frame {_frameIndex}.");
+                Debug.Log($"[CodexBot] Starting broker session for slot {slotId} at frame {_frameIndex}.");
             }
+
             var request = new CodexBrokerSessionStartRequest
             {
                 slotId = slotId,
@@ -274,29 +278,36 @@ namespace ProjectPVP.Input
                 JsonUtility.ToJson(request),
                 responseJson =>
                 {
-                    _sessionStartInFlight = false;
-                    _sessionStartRequestedTime = -999f;
+                    if (!TryCompleteSessionStartRequest(requestVersion))
+                    {
+                        return;
+                    }
+
                     if (slotId == 2)
                     {
-                Debug.Log($"[CodexBot] Broker session start response received for slot {slotId}.");
+                        Debug.Log($"[CodexBot] Broker session start response received for slot {slotId}.");
                     }
+
                     ApplyBrokerEnvelope(responseJson);
                 },
                 () =>
                 {
-                    _sessionStartInFlight = false;
-                    _sessionStartRequestedTime = -999f;
+                    if (!TryCompleteSessionStartRequest(requestVersion))
+                    {
+                        return;
+                    }
+
                     _lastExecutorSummary = "AI | Broker session start failed";
                     if (slotId == 2)
                     {
-                Debug.LogWarning($"[CodexBot] Broker session start failed for slot {slotId}.");
+                        Debug.LogWarning($"[CodexBot] Broker session start failed for slot {slotId}.");
                     }
                 }));
         }
 
         private void PushAgentStateIfNeeded(AiArenaSnapshotEnvelope snapshot, CodexPromptState promptState)
         {
-            if (_sessionStartInFlight || _strategyRequestInFlight || string.IsNullOrWhiteSpace(_sessionId))
+            if (_sessionStartRequest.InFlight || _strategyRequest.InFlight || string.IsNullOrWhiteSpace(_sessionId))
             {
                 return;
             }
@@ -308,9 +319,7 @@ namespace ProjectPVP.Input
                 return;
             }
 
-            _strategyRequestInFlight = true;
-            _lastStrategyRequestTime = Time.realtimeSinceStartup;
-            _strategyRequestStartedTime = _lastStrategyRequestTime;
+            int requestVersion = BeginStrategyRequest();
             var request = new CodexAgentStateUpdateRequest
             {
                 sessionId = _sessionId,
@@ -318,7 +327,13 @@ namespace ProjectPVP.Input
                 frame = _frameIndex,
                 forceRefresh = forceRefresh,
                 promptState = promptState,
-                executorFeedback = BuildExecutorFeedback(snapshot),
+                executorFeedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                    _lastExecutorSource,
+                    _lastExecutorSummary,
+                    _currentIntent,
+                    snapshot,
+                    IntentAgeMs,
+                    BuildReportedInput(_lastReportedFrame)),
             };
 
             StartCoroutine(SendJsonRequest(
@@ -326,22 +341,29 @@ namespace ProjectPVP.Input
                 JsonUtility.ToJson(request),
                 responseJson =>
                 {
-                    _strategyRequestInFlight = false;
-                    _strategyRequestStartedTime = -999f;
+                    if (!TryCompleteStrategyRequest(requestVersion))
+                    {
+                        return;
+                    }
+
                     if (slotId == 2)
                     {
-                Debug.Log($"[CodexBot] Broker strategy response received for slot {slotId}.");
+                        Debug.Log($"[CodexBot] Broker strategy response received for slot {slotId}.");
                     }
+
                     ApplyBrokerEnvelope(responseJson);
                 },
                 () =>
                 {
-                    _strategyRequestInFlight = false;
-                    _strategyRequestStartedTime = -999f;
+                    if (!TryCompleteStrategyRequest(requestVersion))
+                    {
+                        return;
+                    }
+
                     HandleBrokerRequestFailure();
                     if (slotId == 2)
                     {
-                Debug.LogWarning($"[CodexBot] Broker strategy request failed for slot {slotId}.");
+                        Debug.LogWarning($"[CodexBot] Broker strategy request failed for slot {slotId}.");
                     }
                 }));
         }
@@ -369,7 +391,7 @@ namespace ProjectPVP.Input
 
         private void RequestStrategyIfNeeded(AiArenaSnapshotEnvelope snapshot, CodexPromptState promptState)
         {
-            if (_sessionStartInFlight || _strategyRequestInFlight || string.IsNullOrWhiteSpace(_sessionId))
+            if (_sessionStartRequest.InFlight || _strategyRequest.InFlight || string.IsNullOrWhiteSpace(_sessionId))
             {
                 return;
             }
@@ -381,9 +403,7 @@ namespace ProjectPVP.Input
                 return;
             }
 
-            _strategyRequestInFlight = true;
-            _lastStrategyRequestTime = Time.realtimeSinceStartup;
-            _strategyRequestStartedTime = _lastStrategyRequestTime;
+            int requestVersion = BeginStrategyRequest();
             var request = new CodexBrokerStrategyTickRequest
             {
                 sessionId = _sessionId,
@@ -391,7 +411,13 @@ namespace ProjectPVP.Input
                 frame = _frameIndex,
                 forceRefresh = forceRefresh,
                 promptState = promptState,
-                executorFeedback = BuildExecutorFeedback(snapshot),
+                executorFeedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                    _lastExecutorSource,
+                    _lastExecutorSummary,
+                    _currentIntent,
+                    snapshot,
+                    IntentAgeMs,
+                    BuildReportedInput(_lastReportedFrame)),
             };
 
             StartCoroutine(SendJsonRequest(
@@ -399,14 +425,20 @@ namespace ProjectPVP.Input
                 JsonUtility.ToJson(request),
                 responseJson =>
                 {
-                    _strategyRequestInFlight = false;
-                    _strategyRequestStartedTime = -999f;
+                    if (!TryCompleteStrategyRequest(requestVersion))
+                    {
+                        return;
+                    }
+
                     ApplyBrokerEnvelope(responseJson);
                 },
                 () =>
                 {
-                    _strategyRequestInFlight = false;
-                    _strategyRequestStartedTime = -999f;
+                    if (!TryCompleteStrategyRequest(requestVersion))
+                    {
+                        return;
+                    }
+
                     HandleBrokerRequestFailure();
                 }));
         }
@@ -416,19 +448,48 @@ namespace ProjectPVP.Input
             float now = Time.realtimeSinceStartup;
             float staleWindowMs = Mathf.Max(brokerRequestTimeoutMs * 4f, 2000f);
 
-            if (_sessionStartInFlight && _sessionStartRequestedTime >= 0f && (now - _sessionStartRequestedTime) * 1000f > staleWindowMs)
+            if (CodexBrokerRequestLifecycle.IsStale(_sessionStartRequest, now, staleWindowMs))
             {
-                _sessionStartInFlight = false;
-                _sessionStartRequestedTime = -999f;
-                _lastExecutorSummary = "AI | Session start watchdog recovered";
+                InvalidateSessionStartRequest("AI | Session start watchdog recovered");
             }
 
-            if (_strategyRequestInFlight && _strategyRequestStartedTime >= 0f && (now - _strategyRequestStartedTime) * 1000f > staleWindowMs)
+            if (CodexBrokerRequestLifecycle.IsStale(_strategyRequest, now, staleWindowMs))
             {
-                _strategyRequestInFlight = false;
-                _strategyRequestStartedTime = -999f;
+                InvalidateStrategyRequest();
                 HandleBrokerRequestFailure();
             }
+        }
+
+        private int BeginSessionStartRequest()
+        {
+            return CodexBrokerRequestLifecycle.Begin(ref _sessionStartRequest, Time.realtimeSinceStartup);
+        }
+
+        private bool TryCompleteSessionStartRequest(int requestVersion)
+        {
+            return CodexBrokerRequestLifecycle.TryComplete(ref _sessionStartRequest, requestVersion);
+        }
+
+        private void InvalidateSessionStartRequest(string executorSummary)
+        {
+            CodexBrokerRequestLifecycle.Invalidate(ref _sessionStartRequest);
+            _lastExecutorSummary = executorSummary;
+        }
+
+        private int BeginStrategyRequest()
+        {
+            _lastStrategyRequestTime = Time.realtimeSinceStartup;
+            return CodexBrokerRequestLifecycle.Begin(ref _strategyRequest, _lastStrategyRequestTime);
+        }
+
+        private bool TryCompleteStrategyRequest(int requestVersion)
+        {
+            return CodexBrokerRequestLifecycle.TryComplete(ref _strategyRequest, requestVersion);
+        }
+
+        private void InvalidateStrategyRequest()
+        {
+            CodexBrokerRequestLifecycle.Invalidate(ref _strategyRequest);
         }
 
         private bool ShouldForceRefresh(AiArenaSnapshotEnvelope snapshot)
@@ -461,193 +522,36 @@ namespace ProjectPVP.Input
 
         private CodexPromptState BuildPromptState(AiArenaSnapshotEnvelope snapshot)
         {
-            var promptState = new CodexPromptState
-            {
-                frame = snapshot != null ? snapshot.frame : _frameIndex,
-                botId = snapshot != null && snapshot.self != null ? snapshot.self.botId : string.Empty,
-                botDisplayName = snapshot != null && snapshot.self != null ? snapshot.self.botDisplayName : string.Empty,
-                self = BuildPromptCombatant(snapshot != null ? snapshot.self : null),
-                target = BuildPromptCombatant(snapshot != null && snapshot.opponents != null && snapshot.opponents.Count > 0 ? snapshot.opponents[0] : null),
-                arena = BuildPromptArena(snapshot),
-            };
-
-            AppendEvents(snapshot, promptState.events);
-            foreach (string memory in _eventMemory)
-            {
-                promptState.memory.Add(memory);
-            }
-
-            if (snapshot != null && snapshot.projectiles != null)
-            {
-                for (int index = 0; index < snapshot.projectiles.Count; index += 1)
-                {
-                    AiArenaProjectileObservation projectile = snapshot.projectiles[index];
-                    if (projectile == null || projectile.isStuck || projectile.isDisarmed)
-                    {
-                        continue;
-                    }
-
-                    float etaSeconds = EstimateProjectileEta(snapshot.self, projectile);
-                    if (etaSeconds < 0f || etaSeconds > 0.5f)
-                    {
-                        continue;
-                    }
-
-                    promptState.dangerousProjectiles.Add(new CodexPromptProjectileThreat
-                    {
-                        sourceSlotId = projectile.sourceSlotId,
-                        etaSeconds = etaSeconds,
-                        position = projectile.position,
-                        travelDirection = projectile.travelDirection,
-                    });
-                }
-            }
-
+            CodexPromptState promptState = CodexPromptStateBuilder.Build(
+                snapshot,
+                _previousSnapshot,
+                snapshot != null ? snapshot.frame : _frameIndex,
+                _eventMemory);
+            RecordPromptEvents(promptState.events);
             return promptState;
         }
 
-        private void AppendEvents(AiArenaSnapshotEnvelope snapshot, List<string> eventSink)
+        private void RecordPromptEvents(List<string> events)
         {
-            if (snapshot == null || snapshot.semantics == null || snapshot.arena == null)
+            if (events == null || events.Count == 0)
             {
                 return;
             }
 
-            if (_previousSnapshot == null || _previousSnapshot.semantics == null || _previousSnapshot.arena == null)
+            for (int index = 0; index < events.Count; index += 1)
             {
-                AddEvent(eventSink, "round_context_initialized");
-                return;
+                string value = events[index];
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    continue;
+                }
+
+                _eventMemory.Enqueue(value);
+                while (_eventMemory.Count > 5)
+                {
+                    _eventMemory.Dequeue();
+                }
             }
-
-            AiArenaSemanticObservation previous = _previousSnapshot.semantics;
-            AiArenaSemanticObservation current = snapshot.semantics;
-            if (_previousSnapshot.arena.roundResetPending != snapshot.arena.roundResetPending && snapshot.arena.roundResetPending)
-            {
-                AddEvent(eventSink, "round_reset_started");
-            }
-
-            if (current.incomingProjectileThreat && !previous.incomingProjectileThreat)
-            {
-                AddEvent(eventSink, "projectile_threat_spiked");
-            }
-
-            if (current.targetUsingUltimate && !previous.targetUsingUltimate)
-            {
-                AddEvent(eventSink, "target_started_ultimate");
-            }
-
-            if (current.selfCornered != previous.selfCornered)
-            {
-                AddEvent(eventSink, current.selfCornered ? "self_cornered" : "self_escaped_corner");
-            }
-
-            if (current.targetCornered != previous.targetCornered)
-            {
-                AddEvent(eventSink, current.targetCornered ? "target_cornered" : "target_left_corner");
-            }
-
-            if (current.targetVulnerable && !previous.targetVulnerable)
-            {
-                AddEvent(eventSink, "target_became_vulnerable");
-            }
-
-            if (!current.hasTarget && previous.hasTarget)
-            {
-                AddEvent(eventSink, "target_lost");
-            }
-        }
-
-        private void AddEvent(List<string> eventSink, string value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return;
-            }
-
-            eventSink.Add(value);
-            _eventMemory.Enqueue(value);
-            while (_eventMemory.Count > 5)
-            {
-                _eventMemory.Dequeue();
-            }
-        }
-
-        private static CodexPromptCombatant BuildPromptCombatant(AiArenaCombatantObservation source)
-        {
-            if (source == null)
-            {
-                return new CodexPromptCombatant();
-            }
-
-            return new CodexPromptCombatant
-            {
-                slotId = source.slotId,
-                botId = source.botId,
-                botDisplayName = source.botDisplayName,
-                displayName = source.displayName,
-                actionKey = source.actionKey,
-                isDead = source.isDead,
-                isGrounded = source.isGrounded,
-                isDashing = source.isDashing,
-                isMeleeActive = source.isMeleeActive,
-                isUltimateActive = source.isUltimateActive,
-                isHitStunned = source.isHitStunned,
-                canParryProjectile = source.canParryProjectile,
-                canBlockProjectiles = source.canBlockProjectiles,
-                arrows = source.arrows,
-                facing = source.facing,
-                shootCooldownLeft = source.shootCooldownLeft,
-                meleeCooldownLeft = source.meleeCooldownLeft,
-                dashCooldownLeft = source.dashCooldownLeft,
-                ultimateCooldownLeft = source.ultimateCooldownLeft,
-                hitStunTimeLeft = source.hitStunTimeLeft,
-                position = source.position,
-                velocity = source.velocity,
-            };
-        }
-
-        private static CodexPromptArena BuildPromptArena(AiArenaSnapshotEnvelope snapshot)
-        {
-            AiArenaSemanticObservation semantics = snapshot != null ? snapshot.semantics : null;
-            AiArenaArenaObservation arena = snapshot != null ? snapshot.arena : null;
-            return new CodexPromptArena
-            {
-                roundResetPending = arena != null && arena.roundResetPending,
-                roundsToChampion = arena != null ? arena.roundsToChampion : 1,
-                playerOneWins = arena != null ? arena.playerOneWins : 0,
-                playerTwoWins = arena != null ? arena.playerTwoWins : 0,
-                currentRespawnSeedIndex = arena != null ? arena.currentRespawnSeedIndex : 0,
-                currentRespawnSeedLabel = arena != null ? arena.currentRespawnSeedLabel : string.Empty,
-                pendingRoundWinnerSlot = arena != null ? arena.pendingRoundWinnerSlot : 0,
-                pendingChampionSlot = arena != null ? arena.pendingChampionSlot : 0,
-                championAnnouncementSlot = arena != null ? arena.championAnnouncementSlot : 0,
-                selfCornered = semantics != null && semantics.selfCornered,
-                targetCornered = semantics != null && semantics.targetCornered,
-                horizontalDistance = semantics != null ? semantics.horizontalDistance : 0f,
-                verticalDistance = semantics != null ? semantics.verticalDistance : 0f,
-                targetInMeleeRange = semantics != null && semantics.targetInMeleeRange,
-                targetInUltimateRange = semantics != null && semantics.targetInUltimateRange,
-                targetInShootRange = semantics != null && semantics.targetInShootRange,
-                targetAbove = semantics != null && semantics.targetAbove,
-                targetBelow = semantics != null && semantics.targetBelow,
-            };
-        }
-
-        private static float EstimateProjectileEta(AiArenaCombatantObservation self, AiArenaProjectileObservation projectile)
-        {
-            if (self == null || projectile == null)
-            {
-                return -1f;
-            }
-
-            Vector2 toSelf = self.position - projectile.position;
-            float speedSqr = projectile.velocity.sqrMagnitude;
-            if (speedSqr <= 1f || Vector2.Dot(toSelf, projectile.velocity) <= 0f)
-            {
-                return -1f;
-            }
-
-            return Mathf.Clamp(Vector2.Dot(toSelf, projectile.velocity) / speedSqr, 0f, 1.5f);
         }
 
         private void ApplyBrokerEnvelope(string responseJson)
@@ -672,22 +576,23 @@ namespace ProjectPVP.Input
                 return;
             }
 
-            if (!string.IsNullOrWhiteSpace(envelope.sessionId))
-            {
-                _sessionId = envelope.sessionId;
-            }
+            CodexBrokerEnvelopeState envelopeState = CodexBrokerEnvelopeStateMapper.Build(
+                envelope,
+                _sessionId,
+                useAgentDrivenMode);
 
+            _sessionId = envelopeState.sessionId;
             _consecutiveBrokerFailures = 0;
             _lastBrokerSuccessTime = Time.realtimeSinceStartup;
-            _hasAgentAction = envelope.hasAgentAction;
-            _controllerOwner = envelope.controllerOwner ?? string.Empty;
+            _hasAgentAction = envelopeState.hasExecutableIntent;
+            _controllerOwner = envelopeState.controllerOwner;
 
-            if (envelope.intent == null)
+            if (!envelopeState.hasIntent)
             {
                 return;
             }
 
-            _currentIntent = envelope.intent;
+            _currentIntent = envelopeState.intent;
             _lastIntentReceivedTime = Time.realtimeSinceStartup;
         }
 
@@ -696,21 +601,11 @@ namespace ProjectPVP.Input
             _consecutiveBrokerFailures += 1;
             _lastExecutorSummary = "AI | Broker retrying";
 
-            if (string.IsNullOrWhiteSpace(_sessionId))
-            {
-                InvalidateBrokerSession();
-                return;
-            }
-
-            if (_consecutiveBrokerFailures < 6)
-            {
-                return;
-            }
-
-            float elapsedSinceSuccessMs = _lastBrokerSuccessTime < 0f
-                ? float.MaxValue
-                : (Time.realtimeSinceStartup - _lastBrokerSuccessTime) * 1000f;
-            if (elapsedSinceSuccessMs < 5000f)
+            if (!CodexBrokerFailurePolicy.ShouldInvalidateSession(
+                _sessionId,
+                _consecutiveBrokerFailures,
+                _lastBrokerSuccessTime,
+                Time.realtimeSinceStartup))
             {
                 return;
             }
@@ -718,24 +613,10 @@ namespace ProjectPVP.Input
             InvalidateBrokerSession();
         }
 
-        private CodexExecutorFeedback BuildExecutorFeedback(AiArenaSnapshotEnvelope snapshot)
-        {
-            return new CodexExecutorFeedback
-            {
-                source = _lastExecutorSource,
-                summary = _lastExecutorSummary,
-                intentMode = _currentIntent != null ? _currentIntent.mode : string.Empty,
-                intentReason = _currentIntent != null ? _currentIntent.reason : string.Empty,
-                projectileThreatActive = snapshot != null && snapshot.semantics != null && snapshot.semantics.incomingProjectileThreat,
-                targetVisible = snapshot != null && snapshot.semantics != null && snapshot.semantics.hasTarget,
-                roundResetPending = snapshot != null && snapshot.arena != null && snapshot.arena.roundResetPending,
-                intentAgeMs = IntentAgeMs,
-                reportedInput = BuildReportedInput(_lastReportedFrame),
-            };
-        }
-
         private void InvalidateBrokerSession()
         {
+            CodexBrokerRequestLifecycle.Invalidate(ref _sessionStartRequest);
+            CodexBrokerRequestLifecycle.Invalidate(ref _strategyRequest);
             _sessionId = string.Empty;
             _currentIntent = null;
             _hasAgentAction = false;
@@ -745,8 +626,6 @@ namespace ProjectPVP.Input
             _lastExecutorSummary = "AI | Broker disconnected";
             _consecutiveBrokerFailures = 0;
             _lastBrokerSuccessTime = -999f;
-            _sessionStartRequestedTime = -999f;
-            _strategyRequestStartedTime = -999f;
         }
 
         private static CodexReportedInputFrame BuildReportedInput(PlayerInputFrame frame)

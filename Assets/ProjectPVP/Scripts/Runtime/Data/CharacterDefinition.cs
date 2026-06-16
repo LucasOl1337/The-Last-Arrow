@@ -110,6 +110,8 @@ namespace ProjectPVP.Data
 
         [Header("Combat Feel")]
         public float meleeHitstunDuration = 0.1f;
+        public float projectileHitstunDuration = 0.08f;
+        public float ultimateHitstunDuration = 0.15f;
         public float meleeKnockbackForce = 400f;
         public float projectileKnockbackForce = 300f;
         public float ultimateKnockbackForce = 600f;
@@ -163,7 +165,7 @@ namespace ProjectPVP.Data
         public float projectileBaseSpeed = 1600f;
         public float projectileMinSpeed = 720f;
         public float projectileSpeedDecay = 360f;
-        public float projectileGravity = 800f;
+        public float projectileGravity = 1500f;
         public float projectileGravityDelayRatio = 0.05f;
         public float projectileGravityRampRatio = 0.2f;
         public float projectileGravityMinScale = 0.9f;

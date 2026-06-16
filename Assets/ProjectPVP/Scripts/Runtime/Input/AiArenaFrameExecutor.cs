@@ -41,6 +41,11 @@ namespace ProjectPVP.Input
             float ultimateInterval,
             ref string debugSummary)
         {
+            if (snapshot != null && snapshot.arena != null && snapshot.arena.roundResetPending)
+            {
+                return BuildFallbackFrame(ref state, self, frameIndex, "AI | Fallback:round_reset", ref debugSummary);
+            }
+
             if (!self.isValid || self.isDead || snapshot == null || snapshot.semantics == null || !snapshot.semantics.hasTarget)
             {
                 return BuildFallbackFrame(ref state, self, frameIndex, "AI | Fallback:no_target", ref debugSummary);

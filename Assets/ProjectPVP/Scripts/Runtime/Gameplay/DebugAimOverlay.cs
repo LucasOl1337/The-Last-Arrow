@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace ProjectPVP.Gameplay
@@ -38,6 +39,7 @@ namespace ProjectPVP.Gameplay
         // ── State ─────────────────────────────────────────────────────────────────
         private bool     _visible;
         private Material _mat;
+        private readonly List<PlayerController> _playerQueryBuffer = new();
 
         // ── Auto-install ──────────────────────────────────────────────────────────
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -88,10 +90,21 @@ namespace ProjectPVP.Gameplay
                 return;
             }
 
-            PlayerController[] players =
-                Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+            PlayerController.CopyActivePlayers(_playerQueryBuffer);
+            if (_playerQueryBuffer.Count == 0)
+            {
+                PlayerController[] players =
+                    Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+                for (int index = 0; index < players.Length; index += 1)
+                {
+                    if (players[index] != null)
+                    {
+                        _playerQueryBuffer.Add(players[index]);
+                    }
+                }
+            }
 
-            if (players.Length == 0)
+            if (_playerQueryBuffer.Count == 0)
             {
                 return;
             }
@@ -102,21 +115,22 @@ namespace ProjectPVP.Gameplay
             GL.LoadProjectionMatrix(cam.projectionMatrix);
             GL.modelview = cam.worldToCameraMatrix;
 
-            foreach (PlayerController player in players)
+            foreach (PlayerController player in _playerQueryBuffer)
             {
                 if (player == null || player.IsDead)
                 {
                     continue;
                 }
 
-                DrawForPlayer(player, players);
+                DrawForPlayer(player, _playerQueryBuffer);
             }
 
             GL.PopMatrix();
+            _playerQueryBuffer.Clear();
         }
 
         // ── Per-player drawing ────────────────────────────────────────────────────
-        private static void DrawForPlayer(PlayerController player, PlayerController[] all)
+        private static void DrawForPlayer(PlayerController player, IReadOnlyList<PlayerController> all)
         {
             Vector2 origin = player.RootPosition;
 
@@ -205,7 +219,7 @@ namespace ProjectPVP.Gameplay
                 }
                 bool assistEnabled = player.characterDefinition != null
                     ? player.characterDefinition.projectileAssistEnabled
-                    : true;
+                    : false;
                 bool sectorMatch = hasAim && assistEnabled && Vector2.Dot(aimDir8.normalized, bestSnap.normalized) >= 0.999f;
 
                 // Green only if the current 1-of-8 direction matches and assist is enabled.
@@ -264,7 +278,7 @@ namespace ProjectPVP.Gameplay
             }
 
             float baseSpeed = player.characterDefinition != null ? player.characterDefinition.projectileBaseSpeed : 1600f;
-            float gravity = player.characterDefinition != null ? player.characterDefinition.projectileGravity : 800f;
+            float gravity = player.characterDefinition != null ? player.characterDefinition.projectileGravity : 1500f;
             if (!TrySolveBallisticArc(origin, target, baseSpeed, gravity, out Vector2 lowArc, out Vector2 highArc))
             {
                 return false;
