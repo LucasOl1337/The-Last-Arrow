@@ -531,6 +531,35 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotCoachHud_AppendsEffectiveInputSummary()
+        {
+            Assert.That(TryBuildBotCoachLineMethod, Is.Not.Null);
+
+            var input = new FeedbackInputSource
+            {
+                Feedback = "punish window available; action AI PUNISH SHOT; improve: convert vulnerability quickly.",
+                Frame = new PlayerInputFrame
+                {
+                    axis = 0.75f,
+                    aim = Vector2.up,
+                    jumpPressed = true,
+                    shootPressed = true,
+                    dashPrimaryPressed = true,
+                },
+            };
+            object[] args = { "Codex", input, 150, null };
+
+            bool built = (bool)TryBuildBotCoachLineMethod.Invoke(null, args);
+
+            Assert.That(built, Is.True);
+            string line = (string)args[3];
+            Assert.That(line, Does.Contain("Codex: punish window available"));
+            Assert.That(line, Does.Contain("input axis +0.75"));
+            Assert.That(line, Does.Contain("aim +0.0,+1.0"));
+            Assert.That(line, Does.Contain("btn jump/shoot/dash"));
+        }
+
+        [Test]
         public void BotCoachHud_IgnoresEmptyBotFeedback()
         {
             Assert.That(TryBuildBotCoachLineMethod, Is.Not.Null);
@@ -1202,7 +1231,8 @@ namespace ProjectPVP.Tests.Editor
         private sealed class FeedbackInputSource : ICombatantInputSource, IBotFeedbackInputSource
         {
             public string Feedback { get; set; } = string.Empty;
-            public PlayerInputFrame CurrentFrame => default;
+            public PlayerInputFrame Frame { get; set; }
+            public PlayerInputFrame CurrentFrame => Frame;
             public int ActiveGamepadSlot => -1;
             public string FaceButtonDebug => "Feedback";
             public string BotFeedback => Feedback;

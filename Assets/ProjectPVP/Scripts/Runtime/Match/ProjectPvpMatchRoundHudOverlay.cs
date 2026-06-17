@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using ProjectPVP.Gameplay;
 using ProjectPVP.Input;
 using UnityEngine;
@@ -281,14 +282,79 @@ namespace ProjectPVP.Match
             }
 
             int safeMax = Mathf.Max(3, maxFeedbackChars);
-            if (feedback.Length > safeMax)
+            string inputSummary = BuildBotInputSummary(inputSource.CurrentFrame);
+            string inputSuffix = string.IsNullOrWhiteSpace(inputSummary)
+                ? string.Empty
+                : " | " + inputSummary;
+            int feedbackMax = Mathf.Max(3, safeMax - inputSuffix.Length);
+            if (feedback.Length > feedbackMax)
             {
-                feedback = feedback.Substring(0, safeMax - 3).TrimEnd() + "...";
+                feedback = feedback.Substring(0, feedbackMax - 3).TrimEnd() + "...";
             }
 
             string label = string.IsNullOrWhiteSpace(displayName) ? "Bot" : displayName.Trim();
-            line = label + ": " + feedback;
+            line = label + ": " + feedback + inputSuffix;
             return true;
+        }
+
+        private static string BuildBotInputSummary(PlayerInputFrame frame)
+        {
+            var tokens = new List<string>(3);
+            if (Mathf.Abs(frame.axis) > 0.1f)
+            {
+                tokens.Add("axis " + frame.axis.ToString("+0.00;-0.00;0.00", CultureInfo.InvariantCulture));
+            }
+
+            if (frame.aim.sqrMagnitude > 0.01f)
+            {
+                tokens.Add("aim "
+                    + frame.aim.x.ToString("+0.0;-0.0;0.0", CultureInfo.InvariantCulture)
+                    + ","
+                    + frame.aim.y.ToString("+0.0;-0.0;0.0", CultureInfo.InvariantCulture));
+            }
+
+            string buttonSummary = BuildBotButtonSummary(frame);
+            if (!string.IsNullOrWhiteSpace(buttonSummary))
+            {
+                tokens.Add("btn " + buttonSummary);
+            }
+
+            return tokens.Count == 0
+                ? string.Empty
+                : "input " + string.Join(" ", tokens);
+        }
+
+        private static string BuildBotButtonSummary(PlayerInputFrame frame)
+        {
+            var buttons = new List<string>(5);
+            if (frame.jumpPressed || frame.jumpHeld)
+            {
+                buttons.Add(frame.jumpPressed ? "jump" : "hold-jump");
+            }
+
+            if (frame.shootPressed || frame.shootHeld)
+            {
+                buttons.Add(frame.shootPressed ? "shoot" : "hold-shot");
+            }
+
+            if (frame.meleePressed)
+            {
+                buttons.Add("melee");
+            }
+
+            if (frame.ultimatePressed)
+            {
+                buttons.Add("ult");
+            }
+
+            if (frame.dashPrimaryPressed || frame.dashSecondaryPressed)
+            {
+                buttons.Add(frame.dashPrimaryPressed ? "dash" : "dash2");
+            }
+
+            return buttons.Count == 0
+                ? string.Empty
+                : string.Join("/", buttons);
         }
 
         private static string NormalizeBotFeedback(string feedback)
