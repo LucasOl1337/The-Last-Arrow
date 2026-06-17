@@ -118,9 +118,9 @@ namespace ProjectPVP.Input
                 AddEvent(eventSink, "round_reset_started");
             }
 
-            if (current.incomingProjectileThreat && !previous.incomingProjectileThreat)
+            if (current.incomingProjectileThreat != previous.incomingProjectileThreat)
             {
-                AddEvent(eventSink, "projectile_threat_spiked");
+                AddEvent(eventSink, current.incomingProjectileThreat ? "projectile_threat_spiked" : "projectile_threat_cleared");
             }
 
             if (current.targetUsingUltimate != previous.targetUsingUltimate)

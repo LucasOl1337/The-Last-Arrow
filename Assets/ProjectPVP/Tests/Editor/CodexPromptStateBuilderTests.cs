@@ -91,6 +91,65 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_AddsProjectileThreatTransitionEvents()
+        {
+            var previousSafeSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 26,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = false,
+                },
+            };
+            var currentThreatSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 27,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = true,
+                },
+            };
+            var previousThreatSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 28,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = true,
+                },
+            };
+            var currentSafeSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 29,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = false,
+                },
+            };
+
+            CodexPromptState threatStartedPrompt = CodexPromptStateBuilder.Build(
+                currentThreatSnapshot,
+                previousSafeSnapshot,
+                fallbackFrame: 0,
+                memoryHistory: null);
+            CodexPromptState threatClearedPrompt = CodexPromptStateBuilder.Build(
+                currentSafeSnapshot,
+                previousThreatSnapshot,
+                fallbackFrame: 0,
+                memoryHistory: null);
+
+            Assert.That(threatStartedPrompt.events, Does.Contain("projectile_threat_spiked"));
+            Assert.That(threatClearedPrompt.events, Does.Contain("projectile_threat_cleared"));
+        }
+
+        [Test]
         public void Build_AddsTargetMeleeTransitionEvents()
         {
             var previousSafeSnapshot = new AiArenaSnapshotEnvelope
