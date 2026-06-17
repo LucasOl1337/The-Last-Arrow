@@ -1975,6 +1975,115 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void HeuristicPolicy_DodgesUltimateBeforeCollectingArrow()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 0,
+                    dashCooldownLeft = 0f,
+                    isDashing = false,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 3,
+                        position = new Vector2(180f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 180f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetUsingUltimate = true,
+                    selfHasArrows = false,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 64f,
+                    collectibleProjectileDirection = Vector2.right,
+                    shouldCollectProjectile = true,
+                },
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaHeuristicPolicy.Decide(snapshot);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI DODGE ULT"));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.moveAxis, Is.LessThan(0f));
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+        }
+
+        [Test]
+        public void StrategicPolicy_DodgesUltimateBeforeCollectingArrow()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 0,
+                    dashCooldownLeft = 0f,
+                    isDashing = false,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 3,
+                        position = new Vector2(180f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 180f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetUsingUltimate = true,
+                    selfHasArrows = false,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 64f,
+                    collectibleProjectileDirection = Vector2.right,
+                    shouldCollectProjectile = true,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "pressure",
+                preferredRange = 260,
+                shootBias = 0.9f,
+                advanceBias = 0.8f,
+                meleeBias = 0.8f,
+                dashBias = 0.8f,
+                antiProjectile = "hold",
+                punishRecovery = false,
+                expiresInMs = 400,
+                reason = "survive ult before arrow pickup",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI DODGE ULT"));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.moveAxis, Is.LessThan(0f));
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+        }
+
+        [Test]
         public void HeuristicPolicy_PrioritizesEvasionOverCollectingWhenThreatIsImminent()
         {
             var snapshot = new AiArenaSnapshotEnvelope

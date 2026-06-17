@@ -85,14 +85,14 @@ namespace ProjectPVP.Input
                     decision.debugSummary = "AI JUMP EVADE";
                 }
             }
-            else if (prioritizeCollection)
+            else if (prioritizeCollection && !semantics.targetUsingUltimate)
             {
                 axis = ResolveCollectionMoveAxis(semantics.collectibleProjectileDirection);
                 useJump = ShouldJumpForCollectible(semantics.collectibleProjectileDirection, self);
                 decision.debugSummary = "AI COLLECT ARROW";
             }
 
-            if (!prioritizeCollection && !useDash && !useJump && !holdProjectileDefense && semantics.targetUsingUltimate)
+            if (!useDash && !useJump && !holdProjectileDefense && semantics.targetUsingUltimate)
             {
                 if (canDash)
                 {
