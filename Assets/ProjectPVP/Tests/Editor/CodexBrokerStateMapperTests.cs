@@ -69,6 +69,8 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(feedback.nearestRecoverableProjectileDistance, Is.EqualTo(48f).Within(0.001f));
             Assert.That(feedback.intentAgeMs, Is.EqualTo(123.4f).Within(0.001f));
             Assert.That(feedback.reportedInput, Is.SameAs(reportedInput));
+            Assert.That(feedback.botFeedback, Does.Contain("projectile threat"));
+            Assert.That(feedback.botFeedback, Does.Contain("AI | Active"));
         }
 
         [Test]
@@ -175,6 +177,72 @@ namespace ProjectPVP.Tests.Editor
 
             Assert.That(agentDrivenOwner, Is.EqualTo("Codex"));
             Assert.That(directOwner, Is.EqualTo("CodexDirect"));
+        }
+
+        [Test]
+        public void BotFeedbackBuilder_PrioritizesProjectileThreatAdvice()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 0,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.12f,
+                    shouldCollectProjectile = true,
+                    collectibleProjectileDistance = 48f,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI PARRY HOLD",
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("projectile threat 0.12s"));
+            Assert.That(feedback, Does.Contain("AI PARRY HOLD"));
+            Assert.That(feedback, Does.Contain("defend before attacking"));
+        }
+
+        [Test]
+        public void BotFeedbackBuilder_ReportsArrowRecoveryAdvice()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 0,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    shouldCollectProjectile = true,
+                    collectibleProjectileDistance = 64f,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI COLLECT ARROW",
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("recover arrow at 64u"));
+            Assert.That(feedback, Does.Contain("recover ammo before forcing trades"));
+        }
+
+        [Test]
+        public void BotFeedbackBuilder_UsesSafeFallbackWhenSnapshotIsMissing()
+        {
+            string feedback = AiArenaBotFeedbackBuilder.Build(null, null);
+
+            Assert.That(feedback, Does.Contain("waiting for arena snapshot"));
+            Assert.That(feedback, Does.Contain("verify bot observation setup"));
         }
     }
 }

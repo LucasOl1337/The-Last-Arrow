@@ -478,6 +478,9 @@ namespace ProjectPVP.Presentation
             string gamepadStatus = !gamepadEnabled ? "Off" : gamepadSlot > 0 ? "On P" + gamepadSlot : "On?";
             Vector2 aimHoldDirection = player.AimHoldDirection;
             string faceButtonDebug = inputSource != null ? inputSource.FaceButtonDebug : "-";
+            string botFeedback = inputSource is IBotFeedbackInputSource botFeedbackSource
+                ? botFeedbackSource.BotFeedback
+                : string.Empty;
             ProjectileController lastProjectile = player.LastLaunchedProjectile;
             string assistEnabled = lastProjectile != null && lastProjectile.AssistEnabledRuntime ? "ON" : "OFF";
             string assistLocked = lastProjectile != null && lastProjectile.AssistTargetLocked ? "Yes" : "No";
@@ -518,6 +521,7 @@ namespace ProjectPVP.Presentation
                 "AimHoldDir: (" + aimHoldDirection.x.ToString("0.00") + ", " + aimHoldDirection.y.ToString("0.00") + ")" + "\n" +
                 "DeathFlash: " + player.DeathFlashTimeLeft.ToString("0.00") + " | ProjAssist: " + assistEnabled + " | Locked: " + assistLocked + " | Angle: " + assistAngle + " | Strength: " + assistAppliedStrength + "\n" +
                 codexStatus +
+                (!string.IsNullOrWhiteSpace(botFeedback) ? "BotFeedback: " + botFeedback + "\n" : string.Empty) +
                 "FaceBtns: " + faceButtonDebug + "\n" +
                 "Jump: " + (frame.jumpPressed ? "Pressed" : "-") + " | Shoot: " + (frame.shootHeld ? "Held" : "-") + " | UltBtn: " + (frame.ultimatePressed ? "Pressed" : "-") + " | DashBtn: " + ((frame.dashPrimaryPressed || frame.dashSecondaryPressed) ? "Pressed" : "-");
         }

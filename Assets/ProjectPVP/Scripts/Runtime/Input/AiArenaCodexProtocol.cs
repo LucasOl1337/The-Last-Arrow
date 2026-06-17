@@ -172,6 +172,7 @@ namespace ProjectPVP.Input
     {
         public string source = "heuristic_fallback";
         public string summary = string.Empty;
+        public string botFeedback = string.Empty;
         public string intentMode = string.Empty;
         public string intentReason = string.Empty;
         public bool projectileThreatActive;

@@ -12,4 +12,9 @@ namespace ProjectPVP.Input
         void ConfigureForSlot(CombatantSlotId slotId);
         void ResetInputState();
     }
+
+    public interface IBotFeedbackInputSource
+    {
+        string BotFeedback { get; }
+    }
 }

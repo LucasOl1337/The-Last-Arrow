@@ -16,6 +16,12 @@ namespace ProjectPVP.Input
             {
                 source = lastExecutorSource,
                 summary = lastExecutorSummary,
+                botFeedback = AiArenaBotFeedbackBuilder.Build(
+                    snapshot,
+                    new AiArenaDecisionEnvelope
+                    {
+                        debugSummary = lastExecutorSummary,
+                    }),
                 intentMode = currentIntent != null ? currentIntent.mode : string.Empty,
                 intentReason = currentIntent != null ? currentIntent.reason : string.Empty,
                 projectileThreatActive = snapshot != null && snapshot.semantics != null && snapshot.semantics.incomingProjectileThreat,

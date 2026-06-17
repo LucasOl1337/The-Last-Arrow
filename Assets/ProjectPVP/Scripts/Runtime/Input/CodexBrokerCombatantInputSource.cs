@@ -8,7 +8,7 @@ using UnityEngine.Networking;
 namespace ProjectPVP.Input
 {
     [DisallowMultipleComponent]
-    public sealed class CodexBrokerCombatantInputSource : MonoBehaviour, ICombatantInputSource
+    public sealed class CodexBrokerCombatantInputSource : MonoBehaviour, ICombatantInputSource, IBotFeedbackInputSource
     {
         [Min(1)] public int slotId = 2;
         [Header("Combat Ranges")]
@@ -48,6 +48,7 @@ namespace ProjectPVP.Input
         private AiArenaSnapshotEnvelope _previousSnapshot;
         private string _lastExecutorSource = "waiting_for_codex";
         private string _lastExecutorSummary = string.Empty;
+        private string _botFeedback = string.Empty;
         private PlayerInputFrame _lastReportedFrame;
         private bool _hasAgentAction;
         private string _controllerOwner = string.Empty;
@@ -62,6 +63,7 @@ namespace ProjectPVP.Input
         public string SessionId => _sessionId;
         public string LastExecutorSource => _lastExecutorSource;
         public string LastExecutorSummary => _lastExecutorSummary;
+        public string BotFeedback => _botFeedback;
         public string CurrentIntentMode => _currentIntent != null ? _currentIntent.mode : string.Empty;
         public string CurrentIntentReason => _currentIntent != null ? _currentIntent.reason : string.Empty;
         public bool HasAgentAction => _hasAgentAction;
@@ -153,6 +155,7 @@ namespace ProjectPVP.Input
                 dashInterval,
                 ultimateInterval,
                 ref _debugSummary);
+            _botFeedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
             _lastReportedFrame = _currentFrame;
             _lastExecutorSummary = _debugSummary;
             _previousSnapshot = snapshot;
@@ -179,6 +182,7 @@ namespace ProjectPVP.Input
             _controllerOwner = string.Empty;
             _lastExecutorSource = "waiting_for_codex";
             _lastExecutorSummary = string.Empty;
+            _botFeedback = string.Empty;
             _debugSummary = "AI | Codex pending";
             _consecutiveBrokerFailures = 0;
             _lastBrokerSuccessTime = -999f;
@@ -198,6 +202,7 @@ namespace ProjectPVP.Input
             _currentIntent = null;
             _lastExecutorSource = "waiting_for_codex";
             _lastExecutorSummary = string.Empty;
+            _botFeedback = string.Empty;
             _controllerOwner = string.Empty;
             _debugSummary = "AI | Codex pending";
         }
@@ -713,6 +718,7 @@ namespace ProjectPVP.Input
             _lastIntentReceivedTime = -999f;
             _lastExecutorSource = "waiting_for_codex";
             _lastExecutorSummary = "AI | Broker disconnected";
+            _botFeedback = "broker disconnected; improve: verify broker process and network path.";
             _consecutiveBrokerFailures = 0;
             _lastBrokerSuccessTime = -999f;
         }

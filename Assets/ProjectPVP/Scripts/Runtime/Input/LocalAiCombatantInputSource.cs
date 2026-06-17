@@ -5,7 +5,7 @@ using UnityEngine;
 namespace ProjectPVP.Input
 {
     [DisallowMultipleComponent]
-    public sealed class LocalAiCombatantInputSource : MonoBehaviour, ICombatantInputSource
+    public sealed class LocalAiCombatantInputSource : MonoBehaviour, ICombatantInputSource, IBotFeedbackInputSource
     {
         [Min(1)] public int slotId = 1;
         [Header("Combat Ranges")]
@@ -34,10 +34,12 @@ namespace ProjectPVP.Input
         private int _frameIndex;
         private AiArenaExecutionState _executionState;
         private string _debugSummary = "AI";
+        private string _botFeedback = string.Empty;
 
         public PlayerInputFrame CurrentFrame => _currentFrame;
         public int ActiveGamepadSlot => -1;
         public string FaceButtonDebug => _debugSummary;
+        public string BotFeedback => _botFeedback;
 
         public void CaptureFrame()
         {
@@ -78,6 +80,7 @@ namespace ProjectPVP.Input
             slotId = Mathf.Max(1, configuredSlotId.ToInt());
             _frameIndex = 0;
             _executionState = default;
+            _botFeedback = string.Empty;
             _collector.ForceRefresh();
         }
 
@@ -87,12 +90,14 @@ namespace ProjectPVP.Input
             _frameIndex = 0;
             _executionState = default;
             _debugSummary = "AI";
+            _botFeedback = string.Empty;
         }
 
         private PlayerInputFrame ResolveFrame(AiArenaTransportResult result, AiArenaControllerSnapshot self, AiArenaSnapshotEnvelope snapshot)
         {
             if (!result.IsSuccess)
             {
+                _botFeedback = "transport " + result.Status + "; improve: verify local AI transport.";
                 return AiArenaFrameExecutor.BuildFallbackFrame(
                     ref _executionState,
                     self,
@@ -113,6 +118,7 @@ namespace ProjectPVP.Input
 
             if (decision == null || decision.schemaVersion != AiArenaDecisionEnvelope.CurrentSchemaVersion)
             {
+                _botFeedback = "invalid decision json; improve: verify local AI policy output.";
                 return AiArenaFrameExecutor.BuildFallbackFrame(
                     ref _executionState,
                     self,
@@ -121,7 +127,7 @@ namespace ProjectPVP.Input
                     ref _debugSummary);
             }
 
-            return AiArenaFrameExecutor.BuildFrame(
+            PlayerInputFrame frame = AiArenaFrameExecutor.BuildFrame(
                 ref _executionState,
                 self,
                 snapshot,
@@ -133,6 +139,8 @@ namespace ProjectPVP.Input
                 dashInterval,
                 ultimateInterval,
                 ref _debugSummary);
+            _botFeedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+            return frame;
         }
     }
 }

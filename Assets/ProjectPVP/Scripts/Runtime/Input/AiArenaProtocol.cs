@@ -146,4 +146,67 @@ namespace ProjectPVP.Input
         public bool dashPrimaryPressed;
         public bool dashSecondaryPressed;
     }
+
+    internal static class AiArenaBotFeedbackBuilder
+    {
+        internal static string Build(AiArenaSnapshotEnvelope snapshot, AiArenaDecisionEnvelope decision)
+        {
+            if (snapshot == null || snapshot.semantics == null)
+            {
+                return "waiting for arena snapshot; improve: verify bot observation setup.";
+            }
+
+            AiArenaSemanticObservation semantics = snapshot.semantics;
+            AiArenaCombatantObservation self = snapshot.self ?? new AiArenaCombatantObservation();
+            string action = ResolveAction(decision);
+
+            if (!semantics.hasTarget)
+            {
+                return "no target visible; improve: verify spawn, camera, or opponent tracking.";
+            }
+
+            if (semantics.incomingProjectileThreat)
+            {
+                string time = semantics.incomingProjectileTime >= 0f
+                    ? semantics.incomingProjectileTime.ToString("0.00") + "s"
+                    : "now";
+                return "projectile threat " + time + "; action " + action + "; improve: defend before attacking.";
+            }
+
+            if (semantics.targetUsingUltimate)
+            {
+                return "enemy ultimate active; action " + action + "; improve: clear danger before pickups or trades.";
+            }
+
+            if (semantics.shouldCollectProjectile || self.arrows <= 0)
+            {
+                string distance = semantics.collectibleProjectileDistance >= 0f
+                    ? semantics.collectibleProjectileDistance.ToString("0") + "u"
+                    : "unknown distance";
+                return "recover arrow at " + distance + "; action " + action + "; improve: recover ammo before forcing trades.";
+            }
+
+            if (semantics.selfCornered)
+            {
+                return "corner pressure detected; action " + action + "; improve: escape corner before committing.";
+            }
+
+            if (semantics.targetVulnerable || semantics.shouldPunish)
+            {
+                return "punish window available; action " + action + "; improve: convert vulnerability quickly.";
+            }
+
+            return "spacing stable at " + semantics.horizontalDistance.ToString("0") + "u; action " + action + "; improve: keep pressure without wasting arrows.";
+        }
+
+        private static string ResolveAction(AiArenaDecisionEnvelope decision)
+        {
+            if (decision == null || string.IsNullOrWhiteSpace(decision.debugSummary))
+            {
+                return "none";
+            }
+
+            return decision.debugSummary;
+        }
+    }
 }
