@@ -734,9 +734,21 @@ namespace ProjectPVP.Gameplay
         private Vector2 ResolveUltimateDashDirection(PlayerInputFrame frame)
         {
             int facingDirection = _context.facing == 0 ? 1 : (_context.facing > 0 ? 1 : -1);
-            Vector2 rawDirection = frame.Movement.sqrMagnitude > 0.01f
-                ? frame.Movement
-                : frame.aim;
+            Vector2 rawDirection = Vector2.zero;
+
+            if (frame.Movement.sqrMagnitude > 0.01f)
+            {
+                rawDirection = frame.Movement;
+            }
+            else if (frame.aim.sqrMagnitude > 0.01f)
+            {
+                rawDirection = frame.aim;
+            }
+            else if (_context.aimHoldActive && _context.aimHoldDirection.sqrMagnitude > 0.01f)
+            {
+                rawDirection = _context.aimHoldDirection;
+            }
+
             Vector2 snappedDirection = PlayerMovementSystem.Snap8Dir(rawDirection);
             return snappedDirection.sqrMagnitude > 0.01f
                 ? snappedDirection
