@@ -214,17 +214,21 @@ namespace ProjectPVP.Input
                 switch (NormalizeAntiProjectile(intent.antiProjectile))
                 {
                     case "dash":
-                        if (!decision.dashPrimaryPressed && self.dashCooldownLeft <= 0.01f && !self.isDashing)
+                        if (self.dashCooldownLeft <= 0.01f && !self.isDashing)
                         {
+                            ClearCombatActions(decision);
                             decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDashAxis(semantics, awayFromTarget);
                             decision.dashPrimaryPressed = true;
+                            decision.debugSummary = "AI PROJECTILE DASH";
                         }
                         break;
                     case "jump":
                         if (self.isGrounded)
                         {
+                            ClearCombatActions(decision);
                             decision.jumpPressed = true;
                             decision.jumpHeld = true;
+                            decision.debugSummary = "AI PROJECTILE JUMP";
                         }
                         break;
                     case "parry_prefer":
