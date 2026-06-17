@@ -56,6 +56,7 @@ namespace ProjectPVP.Input
             bool useDash = false;
             bool holdProjectileDefense = false;
             bool holdUltimateDefense = false;
+            bool holdMeleeDefense = false;
 
             if (semantics.incomingProjectileThreat)
             {
@@ -94,6 +95,13 @@ namespace ProjectPVP.Input
                     decision.debugSummary = "AI PROJECTILE DRIFT";
                 }
             }
+            else if (semantics.targetUsingMelee)
+            {
+                axis = semantics.targetDirection.x >= 0f ? -1f : 1f;
+                useDash = canDash;
+                holdMeleeDefense = !useDash;
+                decision.debugSummary = "AI EVADE MELEE";
+            }
             else if (prioritizeCollection && !semantics.targetUsingUltimate)
             {
                 axis = ResolveCollectionMoveAxis(semantics.collectibleProjectileDirection);
@@ -101,7 +109,7 @@ namespace ProjectPVP.Input
                 decision.debugSummary = "AI COLLECT ARROW";
             }
 
-            if (!useDash && !useJump && !holdProjectileDefense && semantics.targetUsingUltimate)
+            if (!useDash && !useJump && !holdProjectileDefense && !holdMeleeDefense && semantics.targetUsingUltimate)
             {
                 if (canDash)
                 {
@@ -117,7 +125,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!prioritizeCollection && !useDash && !useJump && !holdProjectileDefense && !holdUltimateDefense && semantics.shouldPunish)
+            if (!prioritizeCollection && !useDash && !useJump && !holdProjectileDefense && !holdUltimateDefense && !holdMeleeDefense && semantics.shouldPunish)
             {
                 if (canUltimate && semantics.targetInUltimateRange && !semantics.incomingProjectileThreat)
                 {
@@ -138,7 +146,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!prioritizeCollection && !useDash && !useJump && !useUltimate && !useMelee && !holdProjectileDefense && !holdUltimateDefense)
+            if (!prioritizeCollection && !useDash && !useJump && !useUltimate && !useMelee && !holdProjectileDefense && !holdUltimateDefense && !holdMeleeDefense)
             {
                 if (semantics.shouldAntiAir && canShoot)
                 {
@@ -198,7 +206,7 @@ namespace ProjectPVP.Input
             decision.aimX = aim.x;
             decision.aimY = aim.y;
             decision.jumpPressed = useJump;
-            decision.jumpHeld = useJump || (!holdProjectileDefense && !holdUltimateDefense && semantics.targetAbove && semantics.horizontalDistance < 700f);
+            decision.jumpHeld = useJump || (!holdProjectileDefense && !holdUltimateDefense && !holdMeleeDefense && semantics.targetAbove && semantics.horizontalDistance < 700f);
             decision.shootPressed = useShoot;
             decision.shootHeld = useShoot;
             decision.meleePressed = useMelee;

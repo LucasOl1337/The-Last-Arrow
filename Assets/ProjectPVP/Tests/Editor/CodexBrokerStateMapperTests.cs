@@ -356,6 +356,56 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_TreatsMeleeEvadeAsThreatResponse()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingMelee = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI EVADE MELEE",
+                moveAxis = -1f,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("enemy melee active"));
+            Assert.That(feedback, Does.Contain("AI EVADE MELEE"));
+            Assert.That(feedback, Does.Not.Contain("missed melee escape"));
+        }
+
+        [Test]
+        public void BotFeedbackBuilder_ReportsMissedMeleeEscapeWhenDecisionAttacks()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingMelee = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI PUNISH MELEE",
+                meleePressed = true,
+                moveAxis = -1f,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("missed melee escape"));
+            Assert.That(feedback, Does.Contain("dash or move away"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_ReportsArrowRecoveryAdvice()
         {
             var snapshot = new AiArenaSnapshotEnvelope

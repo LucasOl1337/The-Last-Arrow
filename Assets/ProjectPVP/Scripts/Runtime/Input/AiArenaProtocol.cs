@@ -188,6 +188,16 @@ namespace ProjectPVP.Input
                 return "enemy ultimate active; action " + action + "; improve: clear danger before pickups or trades.";
             }
 
+            if (semantics.targetUsingMelee)
+            {
+                if (!IsMeleeEscapeDecision(semantics, decision))
+                {
+                    return "missed melee escape; action " + action + "; improve: dash or move away before trading into active melee.";
+                }
+
+                return "enemy melee active; action " + action + "; improve: reset spacing before punishing.";
+            }
+
             if (semantics.shouldCollectProjectile || self.arrows <= 0)
             {
                 string distance = semantics.collectibleProjectileDistance >= 0f
@@ -304,6 +314,16 @@ namespace ProjectPVP.Input
 
         private static bool IsUltimateEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
         {
+            return IsNonAttackingEscapeDecision(semantics, decision);
+        }
+
+        private static bool IsMeleeEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
+        {
+            return IsNonAttackingEscapeDecision(semantics, decision);
+        }
+
+        private static bool IsNonAttackingEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
+        {
             if (semantics == null || decision == null)
             {
                 return false;
@@ -322,7 +342,8 @@ namespace ProjectPVP.Input
             if (!string.IsNullOrWhiteSpace(decision.debugSummary)
                 && (decision.debugSummary.IndexOf("evade", StringComparison.OrdinalIgnoreCase) >= 0
                     || decision.debugSummary.IndexOf("dodge", StringComparison.OrdinalIgnoreCase) >= 0
-                    || decision.debugSummary.IndexOf("escape", StringComparison.OrdinalIgnoreCase) >= 0))
+                    || decision.debugSummary.IndexOf("escape", StringComparison.OrdinalIgnoreCase) >= 0
+                    || decision.debugSummary.IndexOf("retreat", StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 return true;
             }

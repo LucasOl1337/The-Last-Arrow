@@ -1431,6 +1431,122 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void HeuristicPolicy_EvadesActiveMeleeThreatInsteadOfTrading()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                    dashCooldownLeft = 0f,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                },
+                opponents = new List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 1,
+                        position = new Vector2(80f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 80f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetUsingMelee = true,
+                    targetPressuring = true,
+                    shouldRetreat = true,
+                    targetInMeleeRange = true,
+                    targetInShootRange = true,
+                    selfHasArrows = true,
+                },
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaHeuristicPolicy.Decide(snapshot);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI EVADE MELEE"));
+            Assert.That(decision.moveAxis, Is.LessThan(0f));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+        }
+
+        [Test]
+        public void StrategicPolicy_EvadesActiveMeleeThreatInsteadOfPressuring()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                    dashCooldownLeft = 0f,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                },
+                opponents = new List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 1,
+                        position = new Vector2(80f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 80f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetUsingMelee = true,
+                    targetPressuring = true,
+                    shouldRetreat = true,
+                    targetInMeleeRange = true,
+                    targetInShootRange = true,
+                    selfHasArrows = true,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "pressure",
+                preferredRange = 220,
+                shootBias = 1f,
+                advanceBias = 1f,
+                meleeBias = 1f,
+                dashBias = 1f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                punishRecovery = true,
+                expiresInMs = 400,
+                reason = "pressure despite melee",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI EVADE MELEE"));
+            Assert.That(decision.moveAxis, Is.LessThan(0f));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+        }
+
+        [Test]
         public void LocalTransport_PressesVisibleMidRangeTargetForward()
         {
             var snapshot = new AiArenaSnapshotEnvelope

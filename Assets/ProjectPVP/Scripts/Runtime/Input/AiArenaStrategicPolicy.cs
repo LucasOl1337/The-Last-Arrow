@@ -220,6 +220,14 @@ namespace ProjectPVP.Input
                 }
             }
 
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && semantics.targetUsingMelee)
+            {
+                ClearCombatActions(decision);
+                decision.moveAxis = awayFromTarget;
+                decision.dashPrimaryPressed = canDash;
+                decision.debugSummary = "AI EVADE MELEE";
+            }
+
             if (semantics.incomingProjectileThreat)
             {
                 if (self.canBlockProjectiles)
