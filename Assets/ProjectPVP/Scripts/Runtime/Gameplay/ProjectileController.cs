@@ -32,6 +32,7 @@ namespace ProjectPVP.Gameplay
         public Rigidbody2D body;
         public BoxCollider2D hitCollider;
         public SpriteRenderer spriteRenderer;
+        public TrailRenderer trailRenderer;
 
         private GameObject _sourceObject;
         private Vector2 _velocity;
@@ -63,6 +64,7 @@ namespace ProjectPVP.Gameplay
         private float _projectileMinSpeedRuntime = 720f;
         private float _projectileSpeedDecayRuntime = 360f;
         private static readonly List<ProjectileController> s_activeProjectiles = new();
+        private static Material s_flightTrailMaterial;
 
         // ── Public state ──────────────────────────────────────────────────────────
         public GameObject SourceObject => _sourceObject;
@@ -80,6 +82,7 @@ namespace ProjectPVP.Gameplay
         public bool AssistTargetLocked => _assistTargetLocked;
         public float AssistCurrentAngleDeg => _assistCurrentAngleDeg;
         public float AssistAppliedStrength => _assistAppliedStrength;
+        public TrailRenderer TrailRenderer => trailRenderer;
 
         public static void CopyActiveProjectiles(List<ProjectileController> results)
         {
@@ -243,6 +246,7 @@ namespace ProjectPVP.Gameplay
             body = GetComponent<Rigidbody2D>();
             hitCollider = GetComponent<BoxCollider2D>();
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            trailRenderer = GetComponent<TrailRenderer>();
             ApplyFlightHitbox();
         }
 
@@ -256,6 +260,11 @@ namespace ProjectPVP.Gameplay
             if (hitCollider == null)
             {
                 hitCollider = GetComponent<BoxCollider2D>();
+            }
+
+            if (trailRenderer == null)
+            {
+                trailRenderer = GetComponent<TrailRenderer>();
             }
 
             ApplyFlightHitbox();
@@ -460,6 +469,8 @@ namespace ProjectPVP.Gameplay
                 ApplyFlightHitbox();
                 hitCollider.enabled = true;
             }
+
+            EnableFlightTrail();
         }
 
         // ── Definition ────────────────────────────────────────────────────────────
@@ -519,6 +530,8 @@ namespace ProjectPVP.Gameplay
             {
                 hitCollider.enabled = false;
             }
+
+            DisableFlightTrail();
         }
 
         // ── State transitions ─────────────────────────────────────────────────────
@@ -544,6 +557,7 @@ namespace ProjectPVP.Gameplay
                 body.linearVelocity = Vector2.zero;
             }
 
+            DisableFlightTrail();
             ApplyCollectibleHitbox();
         }
 
@@ -568,6 +582,7 @@ namespace ProjectPVP.Gameplay
                 body.linearVelocity = Vector2.zero;
             }
 
+            DisableFlightTrail();
             ApplyCollectibleHitbox();
         }
 
@@ -601,6 +616,7 @@ namespace ProjectPVP.Gameplay
                 hitCollider.enabled = false;
             }
 
+            DisableFlightTrail();
             UnregisterActiveProjectile(this);
             return true;
         }
@@ -684,6 +700,8 @@ namespace ProjectPVP.Gameplay
                 ApplyFlightHitbox();
                 hitCollider.enabled = true;
             }
+
+            EnableFlightTrail();
         }
 
         internal bool ConsumeParryEvent()
@@ -783,7 +801,111 @@ namespace ProjectPVP.Gameplay
                 body.linearVelocity = Vector2.zero;
             }
 
+            DisableFlightTrail();
             ApplyCollectibleHitbox();
+        }
+
+        private void EnableFlightTrail()
+        {
+            EnsureFlightTrail();
+            if (trailRenderer == null)
+            {
+                return;
+            }
+
+            trailRenderer.enabled = true;
+            trailRenderer.emitting = true;
+            trailRenderer.Clear();
+        }
+
+        private void DisableFlightTrail()
+        {
+            if (trailRenderer == null)
+            {
+                return;
+            }
+
+            trailRenderer.emitting = false;
+            trailRenderer.Clear();
+            trailRenderer.enabled = false;
+        }
+
+        private void EnsureFlightTrail()
+        {
+            if (trailRenderer == null)
+            {
+                trailRenderer = GetComponent<TrailRenderer>();
+            }
+
+            if (trailRenderer == null)
+            {
+                trailRenderer = gameObject.AddComponent<TrailRenderer>();
+            }
+
+            trailRenderer.time = 0.1f;
+            trailRenderer.minVertexDistance = 4f;
+            trailRenderer.widthMultiplier = 8f;
+            trailRenderer.widthCurve = new AnimationCurve(
+                new Keyframe(0f, 1f),
+                new Keyframe(1f, 0f));
+            trailRenderer.colorGradient = BuildFlightTrailGradient();
+            trailRenderer.alignment = LineAlignment.View;
+            trailRenderer.textureMode = LineTextureMode.Stretch;
+            trailRenderer.numCapVertices = 2;
+            trailRenderer.numCornerVertices = 2;
+            trailRenderer.autodestruct = false;
+            trailRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            trailRenderer.receiveShadows = false;
+            trailRenderer.sortingLayerID = spriteRenderer != null ? spriteRenderer.sortingLayerID : 0;
+            trailRenderer.sortingOrder = spriteRenderer != null ? spriteRenderer.sortingOrder - 1 : 9;
+
+            Material trailMaterial = ResolveFlightTrailMaterial();
+            if (trailMaterial != null)
+            {
+                trailRenderer.sharedMaterial = trailMaterial;
+            }
+        }
+
+        private static Gradient BuildFlightTrailGradient()
+        {
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[]
+                {
+                    new GradientColorKey(new Color(1f, 0.94f, 0.42f), 0f),
+                    new GradientColorKey(new Color(1f, 0.42f, 0.16f), 1f),
+                },
+                new[]
+                {
+                    new GradientAlphaKey(0.62f, 0f),
+                    new GradientAlphaKey(0f, 1f),
+                });
+            return gradient;
+        }
+
+        private static Material ResolveFlightTrailMaterial()
+        {
+            if (s_flightTrailMaterial != null)
+            {
+                return s_flightTrailMaterial;
+            }
+
+            Shader shader = Shader.Find("Sprites/Default");
+            if (shader == null)
+            {
+                shader = Shader.Find("Unlit/Color");
+            }
+
+            if (shader == null)
+            {
+                return null;
+            }
+
+            s_flightTrailMaterial = new Material(shader)
+            {
+                hideFlags = HideFlags.HideAndDontSave,
+            };
+            return s_flightTrailMaterial;
         }
 
         // ── Hitbox helpers ────────────────────────────────────────────────────────

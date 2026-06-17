@@ -274,6 +274,100 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Launch_EnablesReadableFlightTrail()
+        {
+            GameObject root = new GameObject("projectile_flight_trail");
+            ProjectileController controller = root.AddComponent<ProjectileController>();
+
+            try
+            {
+                controller.Launch(
+                    sourceObject: null,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: Vector2.zero,
+                    inheritFactor: 0f,
+                    overrideSprite: null);
+
+                Assert.That(controller.TrailRenderer, Is.Not.Null);
+                Assert.That(controller.TrailRenderer.enabled, Is.True);
+                Assert.That(controller.TrailRenderer.emitting, Is.True);
+                Assert.That(controller.TrailRenderer.time, Is.GreaterThan(0f));
+                Assert.That(controller.TrailRenderer.widthMultiplier, Is.GreaterThan(0f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void ProjectileTrail_DisablesWhenArrowBecomesRecoverable()
+        {
+            Assert.That(DisarmIntoDropMethod, Is.Not.Null);
+
+            GameObject stuckRoot = new GameObject("projectile_stuck_trail");
+            GameObject disarmedRoot = new GameObject("projectile_disarmed_trail");
+            ProjectileController stuckProjectile = stuckRoot.AddComponent<ProjectileController>();
+            ProjectileController disarmedProjectile = disarmedRoot.AddComponent<ProjectileController>();
+
+            try
+            {
+                stuckProjectile.Launch(
+                    sourceObject: null,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: Vector2.zero,
+                    inheritFactor: 0f,
+                    overrideSprite: null);
+                disarmedProjectile.Launch(
+                    sourceObject: null,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: Vector2.zero,
+                    inheritFactor: 0f,
+                    overrideSprite: null);
+
+                stuckProjectile.Stick(true);
+                DisarmIntoDropMethod.Invoke(disarmedProjectile, null);
+
+                Assert.That(stuckProjectile.TrailRenderer.enabled, Is.False);
+                Assert.That(stuckProjectile.TrailRenderer.emitting, Is.False);
+                Assert.That(disarmedProjectile.TrailRenderer.enabled, Is.False);
+                Assert.That(disarmedProjectile.TrailRenderer.emitting, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(stuckRoot);
+                Object.DestroyImmediate(disarmedRoot);
+            }
+        }
+
+        [Test]
         public void ReflectFromParry_RestartsLifetimeAndRangeBudget()
         {
             Assert.That(LifetimeLeftField, Is.Not.Null);
@@ -312,6 +406,8 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That((float)DistanceTravelledField.GetValue(controller), Is.Zero);
                 Assert.That(controller.SourceObject, Is.SameAs(parrySource));
                 Assert.That(controller.CurrentVelocity.x, Is.LessThan(0f));
+                Assert.That(controller.TrailRenderer.enabled, Is.True);
+                Assert.That(controller.TrailRenderer.emitting, Is.True);
             }
             finally
             {
