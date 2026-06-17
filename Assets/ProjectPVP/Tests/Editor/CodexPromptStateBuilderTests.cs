@@ -213,6 +213,65 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_AddsTargetUltimateTransitionEvents()
+        {
+            var previousSafeSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 38,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingUltimate = false,
+                },
+            };
+            var currentUltimateSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 39,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingUltimate = true,
+                },
+            };
+            var previousUltimateSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 40,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingUltimate = true,
+                },
+            };
+            var currentSafeSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 41,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingUltimate = false,
+                },
+            };
+
+            CodexPromptState ultimateStartedPrompt = CodexPromptStateBuilder.Build(
+                currentUltimateSnapshot,
+                previousSafeSnapshot,
+                fallbackFrame: 0,
+                memoryHistory: null);
+            CodexPromptState ultimateEndedPrompt = CodexPromptStateBuilder.Build(
+                currentSafeSnapshot,
+                previousUltimateSnapshot,
+                fallbackFrame: 0,
+                memoryHistory: null);
+
+            Assert.That(ultimateStartedPrompt.events, Does.Contain("target_started_ultimate"));
+            Assert.That(ultimateEndedPrompt.events, Does.Contain("target_stopped_ultimate"));
+        }
+
+        [Test]
         public void Build_FiltersProjectileThreatsByEtaAndLateralDistance()
         {
             var snapshot = new AiArenaSnapshotEnvelope

@@ -123,9 +123,9 @@ namespace ProjectPVP.Input
                 AddEvent(eventSink, "projectile_threat_spiked");
             }
 
-            if (current.targetUsingUltimate && !previous.targetUsingUltimate)
+            if (current.targetUsingUltimate != previous.targetUsingUltimate)
             {
-                AddEvent(eventSink, "target_started_ultimate");
+                AddEvent(eventSink, current.targetUsingUltimate ? "target_started_ultimate" : "target_stopped_ultimate");
             }
 
             if (current.targetUsingMelee != previous.targetUsingMelee)
