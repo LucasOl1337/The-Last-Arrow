@@ -158,6 +158,7 @@ namespace ProjectPVP.Input
 
             AiArenaSemanticObservation semantics = snapshot.semantics;
             AiArenaCombatantObservation self = snapshot.self ?? new AiArenaCombatantObservation();
+            bool isOutOfArrows = snapshot.self != null && self.arrows <= 0;
             string action = ResolveAction(decision);
 
             if (!semantics.hasTarget)
@@ -198,17 +199,20 @@ namespace ProjectPVP.Input
                 return "enemy melee active; action " + action + "; improve: reset spacing before punishing.";
             }
 
-            if (AiArenaHeuristicPolicy.ShouldDeferCollectionForCornerEscape(semantics))
+            if (ShouldPrioritizeCornerEscapeFeedback(semantics, isOutOfArrows))
             {
                 if (!IsCornerEscapeDecision(semantics, decision))
                 {
-                    return "missed corner escape; action " + action + "; improve: move toward center before chasing wall-side arrows.";
+                    string advice = AiArenaHeuristicPolicy.ShouldDeferCollectionForCornerEscape(semantics)
+                        ? "move toward center before chasing wall-side arrows."
+                        : "move toward center before committing.";
+                    return "missed corner escape; action " + action + "; improve: " + advice;
                 }
 
                 return "corner pressure detected; action " + action + "; improve: escape corner before committing.";
             }
 
-            if (semantics.shouldCollectProjectile || self.arrows <= 0)
+            if (semantics.shouldCollectProjectile || isOutOfArrows)
             {
                 string distance = semantics.collectibleProjectileDistance >= 0f
                     ? semantics.collectibleProjectileDistance.ToString("0") + "u"
@@ -396,6 +400,21 @@ namespace ProjectPVP.Input
             }
 
             return false;
+        }
+
+        private static bool ShouldPrioritizeCornerEscapeFeedback(AiArenaSemanticObservation semantics, bool isOutOfArrows)
+        {
+            if (semantics == null || !semantics.selfCornered)
+            {
+                return false;
+            }
+
+            if (AiArenaHeuristicPolicy.ShouldDeferCollectionForCornerEscape(semantics))
+            {
+                return true;
+            }
+
+            return isOutOfArrows && !IsKnownProjectileRecoveryDirection(semantics);
         }
 
         private static bool IsKnownProjectileRecoveryDirection(AiArenaSemanticObservation semantics)

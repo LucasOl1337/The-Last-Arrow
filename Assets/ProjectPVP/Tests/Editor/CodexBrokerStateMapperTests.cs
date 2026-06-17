@@ -489,6 +489,65 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_PrioritizesCornerEscapeWhenOutOfArrowsWithoutKnownRecovery()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 0,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfCornered = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI CORNER ESCAPE",
+                moveAxis = 1f,
+                dashPrimaryPressed = true,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("corner pressure detected"));
+            Assert.That(feedback, Does.Contain("AI CORNER ESCAPE"));
+            Assert.That(feedback, Does.Not.Contain("recover arrow"));
+        }
+
+        [Test]
+        public void BotFeedbackBuilder_ReportsMissedCornerEscapeWhenOutOfArrowsAndMovingIntoWall()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 0,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfCornered = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI ARROW DISADVANTAGE",
+                moveAxis = -1f,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("missed corner escape"));
+            Assert.That(feedback, Does.Contain("move toward center"));
+            Assert.That(feedback, Does.Not.Contain("recover arrow"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_ReportsArrowRecoveryAdvice()
         {
             var snapshot = new AiArenaSnapshotEnvelope
