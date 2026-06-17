@@ -1469,6 +1469,49 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void TryConsumeJump_AllowsWallJumpWhileStillTouchingWallAfterGraceTimerExpires()
+        {
+            Assert.That(AwakeMethod, Is.Not.Null);
+            Assert.That(JumpSystemField, Is.Not.Null);
+            Assert.That(ContextField, Is.Not.Null);
+
+            GameObject root = new GameObject("wall_jump_touching_wall_player");
+            CharacterDefinition definition = ScriptableObject.CreateInstance<CharacterDefinition>();
+
+            try
+            {
+                definition.wallJumpHorizontalForce = 520f;
+                definition.wallJumpVerticalForce = 740f;
+
+                PlayerController player = CreatePlayer(root, 1, definition);
+                InvokeAwake(player);
+
+                PlayerJumpSystem jumpSystem = (PlayerJumpSystem)JumpSystemField.GetValue(player);
+                PlayerContext context = (PlayerContext)ContextField.GetValue(player);
+                context.isGrounded = false;
+                context.coyoteTimeLeft = 0f;
+                context.isTouchingWall = true;
+                context.wallJumpGraceTimer = 0f;
+                context.wallNormal = Vector2.left;
+                context.jumpBufferLeft = 0.12f;
+
+                Vector2 velocity = new Vector2(0f, -80f);
+
+                Assert.That(jumpSystem.TryConsumeJump(ref velocity), Is.True);
+                Assert.That(velocity.x, Is.EqualTo(-definition.wallJumpHorizontalForce).Within(0.0001f));
+                Assert.That(velocity.y, Is.EqualTo(definition.wallJumpVerticalForce).Within(0.0001f));
+                Assert.That(context.jumpBufferLeft, Is.Zero);
+                Assert.That(context.isTouchingWall, Is.False);
+                Assert.That(context.wallDetachIgnoreTimer, Is.GreaterThan(0f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(definition);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void RefreshCollisionState_PreservesWallNormalDuringWallJumpGraceDetach()
         {
             PlayerContext context = new PlayerContext

@@ -16,6 +16,7 @@ namespace ProjectPVP.Gameplay
         private const float ApexVerticalSpeedThreshold = 120f;
         private const float WallImpactCancelUpwardSpeed = 0f;
         private const float WallImpactFallSpeed = 180f;
+        private const float WallJumpDetachIgnoreDuration = 0.14f;
         private const float JumpStartAnimationDuration = 0.12f;
         private const float GroundGraceVerticalVelocityThreshold = 20f;
 
@@ -72,7 +73,7 @@ namespace ProjectPVP.Gameplay
             {
                 velocity.x = 0f;
                 velocity.y = Mathf.Min(velocity.y, -WallImpactFallSpeed);
-                _context.wallDetachIgnoreTimer = 0.14f;
+                _context.wallDetachIgnoreTimer = WallJumpDetachIgnoreDuration;
                 _context.isTouchingWall = false;
             }
 
@@ -117,12 +118,14 @@ namespace ProjectPVP.Gameplay
                 return true;
             }
 
-            if (_context.wallJumpGraceTimer > 0f)
+            if (CanWallJump())
             {
                 velocity.y = _statResolver.ResolveWallJumpVerticalForce();
                 velocity.x = _context.wallNormal.x * _statResolver.ResolveWallJumpHorizontalForce();
                 ConsumeBufferedJump();
                 _context.wallJumpGraceTimer = 0f;
+                _context.wallDetachIgnoreTimer = WallJumpDetachIgnoreDuration;
+                _context.isTouchingWall = false;
                 TriggerJumpStartAnimation();
                 return true;
             }
@@ -133,6 +136,16 @@ namespace ProjectPVP.Gameplay
         public bool HasBufferedJump()
         {
             return _context.jumpBufferLeft > 0f;
+        }
+
+        private bool CanWallJump()
+        {
+            if (_context.wallNormal.sqrMagnitude <= 0.01f)
+            {
+                return false;
+            }
+
+            return _context.wallJumpGraceTimer > 0f || _context.isTouchingWall;
         }
 
         public void ConsumeBufferedJump()
