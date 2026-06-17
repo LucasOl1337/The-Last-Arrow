@@ -272,9 +272,9 @@ namespace ProjectPVP.Gameplay
                 return false;
             }
 
-            float baseSpeed = player.characterDefinition != null ? player.characterDefinition.projectileBaseSpeed : 1600f;
+            float baseSpeed = player.ProjectileBaseSpeed;
             float gravity = player.characterDefinition != null ? player.characterDefinition.projectileGravity : 1500f;
-            float inheritFactor = player.characterDefinition != null ? player.characterDefinition.projectileInheritVelocityFactor : 1f;
+            float inheritFactor = player.ProjectileInheritVelocityFactor;
             Vector2 inheritedVelocity = player.CurrentVelocity * inheritFactor;
             if (!ProjectileTrajectoryMath.TryResolvePreferredTravelDirection(
                     origin,

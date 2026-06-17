@@ -60,6 +60,7 @@ namespace ProjectPVP.Input
         public int facing = 1;
         public int arrows;
         public float projectileInheritVelocityFactor = 1f;
+        public float projectileBaseSpeed = 1600f;
         public float shootCooldownLeft;
         public float meleeCooldownLeft;
         public float dashCooldownLeft;

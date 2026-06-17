@@ -155,6 +155,51 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_UsesProjectileBaseSpeedWhenLeadingMomentumShots()
+        {
+            AiArenaControllerSnapshot fastShot = BuildSelf(Vector2.zero);
+            fastShot.arrows = 3;
+            fastShot.velocity = new Vector2(400f, 0f);
+            fastShot.projectileInheritVelocityFactor = 1f;
+            fastShot.projectileBaseSpeed = 1600f;
+
+            AiArenaControllerSnapshot slowShot = BuildSelf(Vector2.zero);
+            slowShot.arrows = 3;
+            slowShot.velocity = new Vector2(400f, 0f);
+            slowShot.projectileInheritVelocityFactor = 1f;
+            slowShot.projectileBaseSpeed = 800f;
+
+            AiArenaControllerSnapshot target = BuildTarget(new Vector2(200f, 100f));
+
+            AiArenaSemanticObservation fastSemantics = AiArenaSemanticObservationBuilder.Build(
+                fastShot,
+                target,
+                null,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            AiArenaSemanticObservation slowSemantics = AiArenaSemanticObservationBuilder.Build(
+                slowShot,
+                target,
+                null,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(slowSemantics.predictedTargetDirection.x, Is.LessThan(fastSemantics.predictedTargetDirection.x));
+            Assert.That(slowSemantics.predictedTargetDirection.y, Is.GreaterThan(fastSemantics.predictedTargetDirection.y));
+        }
+
+        [Test]
         public void Build_MarksVisibleMidRangeTargetsAsPressureInsteadOfParkingInZone()
         {
             AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
@@ -393,6 +438,7 @@ namespace ProjectPVP.Tests.Editor
                 facing = 1,
                 isGrounded = true,
                 projectileInheritVelocityFactor = 1f,
+                projectileBaseSpeed = 1600f,
                 position = position,
             };
         }

@@ -31,6 +31,7 @@ namespace ProjectPVP.Tests.Editor
                 arrows = 3,
                 facing = -1,
                 projectileInheritVelocityFactor = 0.45f,
+                projectileBaseSpeed = 1234f,
                 shootCooldownLeft = 0.1f,
                 meleeCooldownLeft = 0.2f,
                 dashCooldownLeft = 0.3f,
@@ -65,6 +66,7 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(observation.arrows, Is.EqualTo(3));
             Assert.That(observation.facing, Is.EqualTo(-1));
             Assert.That(observation.projectileInheritVelocityFactor, Is.EqualTo(0.45f).Within(0.001f));
+            Assert.That(observation.projectileBaseSpeed, Is.EqualTo(1234f).Within(0.001f));
             Assert.That(observation.shootCooldownLeft, Is.EqualTo(0.1f).Within(0.001f));
             Assert.That(observation.meleeCooldownLeft, Is.EqualTo(0.2f).Within(0.001f));
             Assert.That(observation.dashCooldownLeft, Is.EqualTo(0.3f).Within(0.001f));

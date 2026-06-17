@@ -32,6 +32,7 @@ namespace ProjectPVP.Tests.Editor
                 source.CurrentArrows = 4;
                 source.Facing = -1;
                 source.ProjectileInheritVelocityFactor = 0.45f;
+                source.ProjectileBaseSpeed = 1234f;
                 source.ShootCooldownLeft = 0.1f;
                 source.MeleeCooldownLeft = 0.2f;
                 source.DashCooldownLeft = 0.3f;
@@ -70,6 +71,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(snapshot.arrows, Is.EqualTo(4));
                 Assert.That(snapshot.facing, Is.EqualTo(-1));
                 Assert.That(snapshot.projectileInheritVelocityFactor, Is.EqualTo(0.45f));
+                Assert.That(snapshot.projectileBaseSpeed, Is.EqualTo(1234f));
                 Assert.That(snapshot.shootCooldownLeft, Is.EqualTo(0.1f));
                 Assert.That(snapshot.meleeCooldownLeft, Is.EqualTo(0.2f));
                 Assert.That(snapshot.dashCooldownLeft, Is.EqualTo(0.3f));
@@ -153,6 +155,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(snapshot.isGrounded, Is.True);
                 Assert.That(snapshot.facing, Is.EqualTo(-1));
                 Assert.That(snapshot.projectileInheritVelocityFactor, Is.EqualTo(1f));
+                Assert.That(snapshot.projectileBaseSpeed, Is.EqualTo(1600f));
                 Assert.That(snapshot.position, Is.EqualTo(new Vector2(3f, 4f)));
                 Assert.That(snapshot.velocity, Is.EqualTo(Vector2.zero));
                 Assert.That(snapshot.meleeHitboxCenter, Is.EqualTo(new Vector2(3f, 4f)));
@@ -199,6 +202,7 @@ namespace ProjectPVP.Tests.Editor
             public int CurrentArrows { get; set; }
             public int Facing { get; set; }
             public float ProjectileInheritVelocityFactor { get; set; }
+            public float ProjectileBaseSpeed { get; set; }
             public float ShootCooldownLeft { get; set; }
             public float MeleeCooldownLeft { get; set; }
             public float DashCooldownLeft { get; set; }

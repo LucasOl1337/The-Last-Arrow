@@ -42,6 +42,7 @@ namespace ProjectPVP.Input
                 arrows = AiArenaReflectionReader.ReadIntProperty(controller, "CurrentArrows", 0),
                 facing = AiArenaReflectionReader.ReadIntProperty(controller, "Facing", position.x >= fallbackPosition.x ? 1 : -1),
                 projectileInheritVelocityFactor = AiArenaReflectionReader.ReadFloatProperty(controller, "ProjectileInheritVelocityFactor", 1f),
+                projectileBaseSpeed = AiArenaReflectionReader.ReadFloatProperty(controller, "ProjectileBaseSpeed", 1600f),
                 shootCooldownLeft = AiArenaReflectionReader.ReadFloatProperty(controller, "ShootCooldownLeft", 0f),
                 meleeCooldownLeft = AiArenaReflectionReader.ReadFloatProperty(controller, "MeleeCooldownLeft", 0f),
                 dashCooldownLeft = AiArenaReflectionReader.ReadFloatProperty(controller, "DashCooldownLeft", 0f),

@@ -44,6 +44,7 @@ namespace ProjectPVP.Input
                 target.velocity,
                 self.velocity,
                 ResolveProjectileInheritVelocityFactor(self),
+                ResolveProjectileBaseSpeed(self),
                 leadTime,
                 direction);
             float selfEdgeDistance = Mathf.Min(
@@ -103,6 +104,7 @@ namespace ProjectPVP.Input
             Vector2 targetVelocity,
             Vector2 selfVelocity,
             float projectileInheritVelocityFactor,
+            float projectileBaseSpeed,
             float leadTime,
             Vector2 fallbackDirection)
         {
@@ -112,7 +114,7 @@ namespace ProjectPVP.Input
                 return fallbackDirection.sqrMagnitude > 0.0001f ? fallbackDirection.normalized : Vector2.right;
             }
 
-            Vector2 compensatedTravel = (predictedOffset.normalized * EstimatedProjectileSpeed)
+            Vector2 compensatedTravel = (predictedOffset.normalized * Mathf.Max(1f, projectileBaseSpeed))
                 - selfVelocity * Mathf.Max(0f, projectileInheritVelocityFactor);
             if (compensatedTravel.sqrMagnitude <= 0.0001f)
             {
@@ -125,6 +127,11 @@ namespace ProjectPVP.Input
         private static float ResolveProjectileInheritVelocityFactor(AiArenaControllerSnapshot self)
         {
             return Mathf.Max(0f, self.projectileInheritVelocityFactor);
+        }
+
+        private static float ResolveProjectileBaseSpeed(AiArenaControllerSnapshot self)
+        {
+            return self.projectileBaseSpeed > 0f ? self.projectileBaseSpeed : EstimatedProjectileSpeed;
         }
 
         private static void PopulateProjectileThreatSemantics(

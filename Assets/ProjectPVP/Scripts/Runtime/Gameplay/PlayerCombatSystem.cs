@@ -342,9 +342,7 @@ namespace ProjectPVP.Gameplay
                 return false;
             }
 
-            float arrowSpeed = _context.characterDefinition != null
-                ? _context.characterDefinition.projectileBaseSpeed
-                : 1600f;
+            float arrowSpeed = _statResolver.ResolveProjectileBaseSpeed();
             float arrowGrav = _context.characterDefinition != null
                 ? _context.characterDefinition.projectileGravity
                 : 1500f;

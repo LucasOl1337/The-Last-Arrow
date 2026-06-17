@@ -56,6 +56,7 @@ namespace ProjectPVP.Tests.Editor
                     botId = "bot-alpha",
                     botDisplayName = "Alpha",
                     projectileInheritVelocityFactor = 0.45f,
+                    projectileBaseSpeed = 1234f,
                     position = new Vector2(32f, 16f),
                 },
                 arena = new AiArenaArenaObservation
@@ -80,6 +81,7 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(prompt.botId, Is.EqualTo("bot-alpha"));
             Assert.That(prompt.botDisplayName, Is.EqualTo("Alpha"));
             Assert.That(prompt.self.projectileInheritVelocityFactor, Is.EqualTo(0.45f).Within(0.001f));
+            Assert.That(prompt.self.projectileBaseSpeed, Is.EqualTo(1234f).Within(0.001f));
             Assert.That(prompt.events, Has.Count.EqualTo(1));
             Assert.That(prompt.events[0], Is.EqualTo("round_context_initialized"));
             Assert.That(prompt.memory, Has.Count.EqualTo(1));
