@@ -609,6 +609,7 @@ namespace ProjectPVP.Input
                 || current.targetCornered != previous.targetCornered
                 || current.targetUsingUltimate != previous.targetUsingUltimate
                 || current.targetUsingMelee != previous.targetUsingMelee
+                || current.targetUsingRanged != previous.targetUsingRanged
                 || current.hasTarget != previous.hasTarget
                 || current.shouldPunish != previous.shouldPunish
                 || current.targetVulnerable != previous.targetVulnerable

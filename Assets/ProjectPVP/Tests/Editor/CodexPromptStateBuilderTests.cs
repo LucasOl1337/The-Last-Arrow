@@ -150,6 +150,69 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_AddsTargetRangedTransitionEvents()
+        {
+            var previousSafeSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 34,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingRanged = false,
+                    targetVulnerable = true,
+                },
+            };
+            var currentRangedSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 35,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingRanged = true,
+                    targetVulnerable = true,
+                },
+            };
+            var previousRangedSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 36,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingRanged = true,
+                    targetVulnerable = true,
+                },
+            };
+            var currentSafeSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 37,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingRanged = false,
+                    targetVulnerable = true,
+                },
+            };
+
+            CodexPromptState rangedStartedPrompt = CodexPromptStateBuilder.Build(
+                currentRangedSnapshot,
+                previousSafeSnapshot,
+                fallbackFrame: 0,
+                memoryHistory: null);
+            CodexPromptState rangedEndedPrompt = CodexPromptStateBuilder.Build(
+                currentSafeSnapshot,
+                previousRangedSnapshot,
+                fallbackFrame: 0,
+                memoryHistory: null);
+
+            Assert.That(rangedStartedPrompt.events, Does.Contain("target_started_ranged"));
+            Assert.That(rangedEndedPrompt.events, Does.Contain("target_stopped_ranged"));
+        }
+
+        [Test]
         public void Build_FiltersProjectileThreatsByEtaAndLateralDistance()
         {
             var snapshot = new AiArenaSnapshotEnvelope
