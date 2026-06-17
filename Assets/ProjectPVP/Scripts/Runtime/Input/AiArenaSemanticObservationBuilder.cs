@@ -161,7 +161,7 @@ namespace ProjectPVP.Input
             for (int index = 0; index < projectiles.Count; index += 1)
             {
                 AiArenaProjectileSnapshot projectile = projectiles[index];
-                if (!projectile.isValid || projectile.isStuck || projectile.isDisarmed)
+                if (!projectile.isValid || projectile.isStuck || projectile.isDisarmed || projectile.isCollectible)
                 {
                     continue;
                 }

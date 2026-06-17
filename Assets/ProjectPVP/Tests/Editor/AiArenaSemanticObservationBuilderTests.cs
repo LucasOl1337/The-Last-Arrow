@@ -364,6 +364,45 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_TreatsCollectibleProjectileAsRecoveryInsteadOfThreat()
+        {
+            AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
+            self.isGrounded = true;
+            self.arrows = 0;
+
+            var projectiles = new List<AiArenaProjectileSnapshot>
+            {
+                new AiArenaProjectileSnapshot
+                {
+                    isValid = true,
+                    sourceSlotId = 2,
+                    isCollectible = true,
+                    position = new Vector2(-20f, 0f),
+                    velocity = new Vector2(100f, 0f),
+                    travelDirection = Vector2.right,
+                },
+            };
+
+            AiArenaSemanticObservation semantics = AiArenaSemanticObservationBuilder.Build(
+                self,
+                BuildTarget(new Vector2(220f, 0f)),
+                projectiles,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 140f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(semantics.incomingProjectileThreat, Is.False);
+            Assert.That(semantics.shouldDashEvade, Is.False);
+            Assert.That(semantics.shouldJumpEvade, Is.False);
+            Assert.That(semantics.hasCollectibleProjectile, Is.True);
+            Assert.That(semantics.shouldCollectProjectile, Is.True);
+        }
+
+        [Test]
         public void Build_AccountsForSelfVelocityWhenEstimatingProjectileThreat()
         {
             AiArenaControllerSnapshot selfStationary = BuildSelf(Vector2.zero);
