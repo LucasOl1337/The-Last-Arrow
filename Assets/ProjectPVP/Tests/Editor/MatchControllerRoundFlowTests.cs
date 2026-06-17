@@ -35,6 +35,8 @@ namespace ProjectPVP.Tests.Editor
             typeof(MatchController).GetMethod("TickFreezeAndAnnouncements", BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly MethodInfo ShouldShowFinalKillInfoMethod =
             typeof(ProjectPvpMatchRoundHudOverlay).GetMethod("ShouldShowFinalKillInfo", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo TryBuildBotCoachLineMethod =
+            typeof(ProjectPvpMatchRoundHudOverlay).GetMethod("TryBuildBotCoachLine", BindingFlags.Static | BindingFlags.NonPublic);
         private static readonly MethodInfo RespawnPlayersMethod =
             typeof(MatchController).GetMethod("RespawnPlayers", BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly MethodInfo MatchAwakeMethod =
@@ -454,6 +456,43 @@ namespace ProjectPVP.Tests.Editor
                 Object.DestroyImmediate(overlayObject);
                 Object.DestroyImmediate(matchObject);
             }
+        }
+
+        [Test]
+        public void BotCoachHud_BuildsCompactLineFromBotFeedback()
+        {
+            Assert.That(TryBuildBotCoachLineMethod, Is.Not.Null);
+
+            var input = new FeedbackInputSource
+            {
+                Feedback = "movement stalled; action: escape jump/dash; improve: replan path instead of holding one axis.",
+            };
+            object[] args = { "Slot 2", input, 52, null };
+
+            bool built = (bool)TryBuildBotCoachLineMethod.Invoke(null, args);
+
+            Assert.That(built, Is.True);
+            string line = (string)args[3];
+            Assert.That(line, Does.StartWith("Slot 2: movement stalled"));
+            Assert.That(line, Does.EndWith("..."));
+            Assert.That(line.Length, Is.LessThanOrEqualTo("Slot 2: ".Length + 52));
+        }
+
+        [Test]
+        public void BotCoachHud_IgnoresEmptyBotFeedback()
+        {
+            Assert.That(TryBuildBotCoachLineMethod, Is.Not.Null);
+
+            var input = new FeedbackInputSource
+            {
+                Feedback = "   ",
+            };
+            object[] args = { "Slot 2", input, 80, null };
+
+            bool built = (bool)TryBuildBotCoachLineMethod.Invoke(null, args);
+
+            Assert.That(built, Is.False);
+            Assert.That((string)args[3], Is.EqualTo(string.Empty));
         }
 
         [Test]
@@ -1106,6 +1145,27 @@ namespace ProjectPVP.Tests.Editor
             fatalSourceField.SetValue(context, source);
             fatalCauseField.SetValue(context, cause);
             fatalPositionField.SetValue(context, player.RootPosition);
+        }
+
+        private sealed class FeedbackInputSource : ICombatantInputSource, IBotFeedbackInputSource
+        {
+            public string Feedback { get; set; } = string.Empty;
+            public PlayerInputFrame CurrentFrame => default;
+            public int ActiveGamepadSlot => -1;
+            public string FaceButtonDebug => "Feedback";
+            public string BotFeedback => Feedback;
+
+            public void CaptureFrame()
+            {
+            }
+
+            public void ConfigureForSlot(CombatantSlotId slotId)
+            {
+            }
+
+            public void ResetInputState()
+            {
+            }
         }
     }
 }
