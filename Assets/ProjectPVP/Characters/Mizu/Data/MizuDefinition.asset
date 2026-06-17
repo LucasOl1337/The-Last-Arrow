@@ -79,7 +79,7 @@ MonoBehaviour:
     y: 0
   wallJumpHorizontalForce: 500
   wallJumpVerticalForce: 720
-  wallSlideSpeed: 60
+  wallSlideSpeed: 180
   wallGravityScale: 0.2
   runtimeMoveScale: 1.24
   runtimeJumpScale: 1.16

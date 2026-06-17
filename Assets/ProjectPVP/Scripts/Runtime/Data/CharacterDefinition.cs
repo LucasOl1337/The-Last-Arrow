@@ -123,7 +123,7 @@ namespace ProjectPVP.Data
         [Header("Movement Defaults")]
         public float wallJumpHorizontalForce = 500f;
         public float wallJumpVerticalForce = 720f;
-        public float wallSlideSpeed = 60f;
+        public float wallSlideSpeed = 180f;
         public float wallGravityScale = 0.2f;
 
         [Header("Unity Runtime Tuning")]

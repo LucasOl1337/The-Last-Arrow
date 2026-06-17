@@ -1600,6 +1600,55 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void HandleJumpAndGravity_UsesCharacterWallSlideTuning()
+        {
+            Assert.That(AwakeMethod, Is.Not.Null);
+            Assert.That(JumpSystemField, Is.Not.Null);
+            Assert.That(ContextField, Is.Not.Null);
+
+            GameObject root = new GameObject("tuned_wall_slide_player");
+            CharacterDefinition definition = ScriptableObject.CreateInstance<CharacterDefinition>();
+
+            try
+            {
+                definition.gravity = 1000f;
+                definition.maxFallSpeed = 1200f;
+                definition.wallSlideSpeed = 72f;
+                definition.wallGravityScale = 0.1f;
+
+                PlayerController player = CreatePlayer(root, 1, definition);
+                InvokeAwake(player);
+
+                PlayerJumpSystem jumpSystem = (PlayerJumpSystem)JumpSystemField.GetValue(player);
+                PlayerContext context = (PlayerContext)ContextField.GetValue(player);
+                context.isGrounded = false;
+                context.coyoteTimeLeft = 0f;
+                context.isTouchingWall = true;
+                context.wallJumpGraceTimer = 0.08f;
+                context.wallNormal = Vector2.right;
+
+                float deltaTime = 0.02f;
+                float expectedVerticalVelocity = -(definition.wallSlideSpeed + definition.gravity * definition.wallGravityScale * deltaTime);
+                Vector2 velocity = new Vector2(-240f, -420f);
+                jumpSystem.HandleJumpAndGravity(new PlayerInputFrame
+                {
+                    axis = -1f,
+                    jumpHeld = false,
+                }, deltaTime, ref velocity);
+
+                Assert.That(context.isTouchingWall, Is.True);
+                Assert.That(context.wallDetachIgnoreTimer, Is.Zero);
+                Assert.That(velocity.x, Is.EqualTo(0f).Within(0.0001f));
+                Assert.That(velocity.y, Is.EqualTo(expectedVerticalVelocity).Within(0.0001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(definition);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void RefreshCollisionState_PreservesWallNormalDuringWallJumpGraceDetach()
         {
             PlayerContext context = new PlayerContext

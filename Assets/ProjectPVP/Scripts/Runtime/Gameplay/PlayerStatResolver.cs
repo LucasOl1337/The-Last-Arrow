@@ -28,7 +28,7 @@ namespace ProjectPVP.Gameplay
         private const float DefaultUltimateProjectileBlockDuration = 0.12f;
         private const float DefaultWallJumpHorizontalForce = 500f;
         private const float DefaultWallJumpVerticalForce = 720f;
-        private const float DefaultWallSlideSpeed = 60f;
+        private const float DefaultWallSlideSpeed = 180f;
         private const float DefaultWallGravityScale = 0.2f;
         private const float DefaultDashMultiplier = 1.8f;
         private const float DefaultDashDuration = 0.12f;

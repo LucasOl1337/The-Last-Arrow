@@ -16,7 +16,6 @@ namespace ProjectPVP.Gameplay
         private const float ApexVerticalSpeedThreshold = 120f;
         private const float WallImpactCancelUpwardSpeed = 0f;
         private const float WallImpactFallSpeed = 180f;
-        private const float WallSlideFallSpeed = 180f;
         private const float WallJumpDetachIgnoreDuration = 0.14f;
         private const float JumpStartAnimationDuration = 0.12f;
         private const float GroundGraceVerticalVelocityThreshold = 20f;
@@ -59,6 +58,7 @@ namespace ProjectPVP.Gameplay
 
             bool pushingIntoWall = _context.isTouchingWall && Mathf.Abs(frame.axis) > 0.01f && Mathf.Sign(frame.axis) == -Mathf.Sign(_context.wallNormal.x);
             bool movingIntoWall = _context.isTouchingWall && Mathf.Abs(velocity.x) > 0.01f && Mathf.Sign(velocity.x) == -Mathf.Sign(_context.wallNormal.x);
+            bool wallSliding = false;
 
             if (movingIntoWall)
             {
@@ -75,7 +75,8 @@ namespace ProjectPVP.Gameplay
                 if (velocity.y <= 0f && (pushingIntoWall || movingIntoWall))
                 {
                     velocity.x = 0f;
-                    velocity.y = Mathf.Max(velocity.y, -WallSlideFallSpeed);
+                    velocity.y = Mathf.Max(velocity.y, -_statResolver.ResolveWallSlideSpeed());
+                    wallSliding = true;
                 }
                 else
                 {
@@ -86,7 +87,9 @@ namespace ProjectPVP.Gameplay
                 }
             }
 
-            float gravityMultiplier = ResolveAirGravityMultiplier(frame, velocity.y);
+            float gravityMultiplier = wallSliding
+                ? _statResolver.ResolveWallGravityScale()
+                : ResolveAirGravityMultiplier(frame, velocity.y);
             velocity.y -= _statResolver.ResolveGravity() * gravityMultiplier * deltaTime;
             velocity.y = Mathf.Max(velocity.y, -_statResolver.ResolveMaxFallSpeed());
         }
