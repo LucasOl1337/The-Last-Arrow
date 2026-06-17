@@ -63,6 +63,9 @@ namespace ProjectPVP.Match
         public bool autoEnableSlotTwoDebugBotOnPlay = true;
         public bool autoForceCodexBrokerForSlotTwoOnPlay = false;
         public AiBrainKind slotTwoDebugAiBrain = AiBrainKind.LocalHeuristic;
+        public global::UnityEngine.KeyCode codexBotReplanKey = global::UnityEngine.KeyCode.F8;
+        public global::UnityEngine.KeyCode codexBotRestartKey = global::UnityEngine.KeyCode.F9;
+        public global::UnityEngine.KeyCode codexBotAgentModeToggleKey = global::UnityEngine.KeyCode.F10;
 
         private AudioSource _musicSource;
         [SerializeField] private int[] slotWins = new int[2];
@@ -213,6 +216,8 @@ namespace ProjectPVP.Match
             {
                 EnsurePlayerTwoDebugBotEnabled(!_slotTwoBotShortcutEnabled);
             }
+
+            HandleCodexBotControlShortcuts();
         }
 
         private void LateUpdate()
@@ -226,6 +231,87 @@ namespace ProjectPVP.Match
             {
                 ApplyWrap(player);
             }
+        }
+
+        private void HandleCodexBotControlShortcuts()
+        {
+            if (codexBotReplanKey != global::UnityEngine.KeyCode.None && RuntimeInput.GetKeyDown(codexBotReplanKey))
+            {
+                RequestCodexBotReplan("shortcut_" + codexBotReplanKey);
+            }
+
+            if (codexBotRestartKey != global::UnityEngine.KeyCode.None && RuntimeInput.GetKeyDown(codexBotRestartKey))
+            {
+                RestartCodexBotSessions("shortcut_" + codexBotRestartKey);
+            }
+
+            if (codexBotAgentModeToggleKey != global::UnityEngine.KeyCode.None && RuntimeInput.GetKeyDown(codexBotAgentModeToggleKey))
+            {
+                ToggleCodexBotAgentMode("shortcut_" + codexBotAgentModeToggleKey);
+            }
+        }
+
+        private int RequestCodexBotReplan(string reason)
+        {
+            return ForEachActiveCodexBrokerInput(reason, input => input.RequestImmediateReplan(reason));
+        }
+
+        private int RestartCodexBotSessions(string reason)
+        {
+            return ForEachActiveCodexBrokerInput(reason, input => input.RestartBrokerSession(reason));
+        }
+
+        private int ToggleCodexBotAgentMode(string reason)
+        {
+            bool enableAgentMode = ShouldEnableCodexAgentModeOnToggle();
+            return ForEachActiveCodexBrokerInput(reason, input => input.SetAgentDrivenMode(enableAgentMode));
+        }
+
+        private bool ShouldEnableCodexAgentModeOnToggle()
+        {
+            SyncRosterAliases();
+            IReadOnlyList<CombatantSlotConfig> slots = Slots;
+            for (int index = 0; index < slots.Count; index += 1)
+            {
+                CodexBrokerCombatantInputSource input = ResolveActiveCodexBrokerInput(slots[index]);
+                if (input != null && !input.useAgentDrivenMode)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private int ForEachActiveCodexBrokerInput(string reason, Action<CodexBrokerCombatantInputSource> command)
+        {
+            SyncRosterAliases();
+            int count = 0;
+            IReadOnlyList<CombatantSlotConfig> slots = Slots;
+            for (int index = 0; index < slots.Count; index += 1)
+            {
+                CodexBrokerCombatantInputSource input = ResolveActiveCodexBrokerInput(slots[index]);
+                if (input == null)
+                {
+                    continue;
+                }
+
+                command(input);
+                count += 1;
+            }
+
+            if (count > 0)
+            {
+                Debug.Log($"[CodexBot] Applied bot control command reason={reason} count={count}.");
+            }
+
+            return count;
+        }
+
+        private static CodexBrokerCombatantInputSource ResolveActiveCodexBrokerInput(CombatantSlotConfig slot)
+        {
+            PlayerController player = slot != null ? slot.controller : null;
+            return player != null ? player.InputSource as CodexBrokerCombatantInputSource : null;
         }
 
         public CombatantSlotConfig GetSlot(CombatantSlotId slotId)

@@ -23,6 +23,12 @@ namespace ProjectPVP.Tests.Editor
             typeof(MatchController).GetMethod("ResolveSlotTwoAutoBotBrain", BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly MethodInfo EnsurePlayerTwoDebugBotEnabledMethod =
             typeof(MatchController).GetMethod("EnsurePlayerTwoDebugBotEnabled", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo RequestCodexBotReplanMethod =
+            typeof(MatchController).GetMethod("RequestCodexBotReplan", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo RestartCodexBotSessionsMethod =
+            typeof(MatchController).GetMethod("RestartCodexBotSessions", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo ToggleCodexBotAgentModeMethod =
+            typeof(MatchController).GetMethod("ToggleCodexBotAgentMode", BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly MethodInfo ResolveDeathSummaryMethod =
             typeof(MatchController).GetMethod("ResolveDeathSummary", BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly MethodInfo ResolveDeathPositionMethod =
@@ -302,6 +308,52 @@ namespace ProjectPVP.Tests.Editor
             finally
             {
                 Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void BotDebugControls_TargetCodexBrokerInputSources()
+        {
+            Assert.That(PlayerAwakeMethod, Is.Not.Null);
+            Assert.That(MatchAwakeMethod, Is.Not.Null);
+            Assert.That(RequestCodexBotReplanMethod, Is.Not.Null);
+            Assert.That(RestartCodexBotSessionsMethod, Is.Not.Null);
+            Assert.That(ToggleCodexBotAgentModeMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerCodexBotControlTests");
+            GameObject playerObject = new GameObject("MatchControllerCodexBotControlPlayer");
+
+            try
+            {
+                MatchController matchController = matchObject.AddComponent<MatchController>();
+                ProjectPVP.Gameplay.PlayerController player = CreatePlayer(playerObject, 2);
+                CodexBrokerCombatantInputSource input = playerObject.AddComponent<CodexBrokerCombatantInputSource>();
+                input.useAgentDrivenMode = true;
+
+                PlayerAwakeMethod.Invoke(player, null);
+                SetPrivateField(matchController, "legacySlotTwoController", player);
+                MatchAwakeMethod.Invoke(matchController, null);
+
+                int replanned = (int)RequestCodexBotReplanMethod.Invoke(matchController, new object[] { "editor_shortcut" });
+                Assert.That(replanned, Is.EqualTo(1));
+                Assert.That(input.ManualForceRefreshPending, Is.True);
+                Assert.That(input.BotFeedback, Does.Contain("manual replan requested"));
+                Assert.That(input.LastExecutorSummary, Does.Contain("editor_shortcut"));
+
+                int restarted = (int)RestartCodexBotSessionsMethod.Invoke(matchController, new object[] { "editor_shortcut" });
+                Assert.That(restarted, Is.EqualTo(1));
+                Assert.That(input.BotFeedback, Does.Contain("broker session restarted"));
+                Assert.That(input.LastExecutorSummary, Does.Contain("editor_shortcut"));
+
+                int toggled = (int)ToggleCodexBotAgentModeMethod.Invoke(matchController, new object[] { "editor_shortcut" });
+                Assert.That(toggled, Is.EqualTo(1));
+                Assert.That(input.useAgentDrivenMode, Is.False);
+                Assert.That(input.BotFeedback, Does.Contain("agent mode changed"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(playerObject);
+                Object.DestroyImmediate(matchObject);
             }
         }
 
