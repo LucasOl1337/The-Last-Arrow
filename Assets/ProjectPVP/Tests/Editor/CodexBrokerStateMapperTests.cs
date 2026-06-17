@@ -827,6 +827,39 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_ReportsVulnerableTargetOutOfPunishRange()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetVulnerable = true,
+                    shouldPunish = false,
+                    targetInMeleeRange = false,
+                    targetInUltimateRange = false,
+                    targetInShootRange = false,
+                    horizontalDistance = 1180f,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI ADVANCE",
+                moveAxis = 1f,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("vulnerable target out of range at 1180u"));
+            Assert.That(feedback, Does.Contain("close distance before spending attacks"));
+            Assert.That(feedback, Does.Not.Contain("missed punish window"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_ReportsMissedPunishWhenDecisionDoesNotAttack()
         {
             var snapshot = new AiArenaSnapshotEnvelope

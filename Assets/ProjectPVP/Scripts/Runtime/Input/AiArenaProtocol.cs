@@ -282,7 +282,7 @@ namespace ProjectPVP.Input
                 return "anti-air opportunity; action " + action + "; improve: challenge vertical approaches before landing.";
             }
 
-            if (semantics.targetVulnerable || semantics.shouldPunish)
+            if (semantics.shouldPunish)
             {
                 if (!IsAttackDecision(decision, trustDebugSummaryForAction))
                 {
@@ -290,6 +290,12 @@ namespace ProjectPVP.Input
                 }
 
                 return "punish window available; action " + action + "; improve: convert vulnerability quickly.";
+            }
+
+            if (semantics.targetVulnerable)
+            {
+                return "vulnerable target out of range at " + semantics.horizontalDistance.ToString("0") + "u; action " + action
+                    + "; improve: close distance before spending attacks.";
             }
 
             return "spacing stable at " + semantics.horizontalDistance.ToString("0") + "u; action " + action + "; improve: keep pressure without wasting arrows.";
