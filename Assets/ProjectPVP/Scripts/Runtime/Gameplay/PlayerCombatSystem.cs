@@ -632,7 +632,7 @@ namespace ProjectPVP.Gameplay
             _context.ultimateTimeLeft = _context.ultimateTotalDuration;
             _context.ultimateAnimationTimeLeft = _context.ultimateTotalDuration;
             _context.ultimateImpactApplied = false;
-            BeginUltimateDash();
+            BeginUltimateDash(frame);
             ProjectPvpAttackCueFx.SpawnUltimate(
                 _anchorSystem.GetUltimateHitboxCenter(),
                 _statResolver.ResolveUltimateRadius(),
@@ -708,7 +708,7 @@ namespace ProjectPVP.Gameplay
             return dashVelocity;
         }
 
-        public void BeginUltimateDash()
+        public void BeginUltimateDash(PlayerInputFrame frame)
         {
             _context.ultimateDashTimeLeft = 0f;
             _context.ultimateDashVelocity = Vector2.zero;
@@ -722,13 +722,25 @@ namespace ProjectPVP.Gameplay
                 return;
             }
 
-            Vector2 dashDirection = new Vector2(_context.facing == 0 ? 1 : (_context.facing > 0 ? 1 : -1), 0f);
+            Vector2 dashDirection = ResolveUltimateDashDirection(frame);
             _context.ultimateDashVelocity = dashDirection * (dashDistance / dashDuration);
             _context.ultimateDashTimeLeft = dashDuration;
             if (_statResolver.ResolveUltimateBlocksProjectiles())
             {
                 _context.ultimateProjectileBlockTimer = _statResolver.ResolveUltimateProjectileBlockDuration();
             }
+        }
+
+        private Vector2 ResolveUltimateDashDirection(PlayerInputFrame frame)
+        {
+            int facingDirection = _context.facing == 0 ? 1 : (_context.facing > 0 ? 1 : -1);
+            Vector2 rawDirection = frame.Movement.sqrMagnitude > 0.01f
+                ? frame.Movement
+                : frame.aim;
+            Vector2 snappedDirection = PlayerMovementSystem.Snap8Dir(rawDirection);
+            return snappedDirection.sqrMagnitude > 0.01f
+                ? snappedDirection
+                : new Vector2(facingDirection, 0f);
         }
 
         public int CollectCurrentUltimateHits(Collider2D[] results)

@@ -2454,6 +2454,51 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void TryUseUltimate_DashesInCurrentInputDirection()
+        {
+            Assert.That(AwakeMethod, Is.Not.Null);
+            Assert.That(CombatSystemField, Is.Not.Null);
+            Assert.That(ContextField, Is.Not.Null);
+
+            GameObject root = new GameObject("directional_ultimate_dash_player");
+            CharacterDefinition definition = ScriptableObject.CreateInstance<CharacterDefinition>();
+
+            try
+            {
+                definition.ultimateDashDistance = 140f;
+                definition.ultimateDashDuration = 0.1f;
+
+                PlayerController player = CreatePlayer(root, 1, definition);
+                InvokeAwake(player);
+
+                PlayerCombatSystem combatSystem = (PlayerCombatSystem)CombatSystemField.GetValue(player);
+                PlayerContext context = (PlayerContext)ContextField.GetValue(player);
+                Assert.That(combatSystem, Is.Not.Null);
+                Assert.That(context, Is.Not.Null);
+
+                context.facing = 1;
+
+                combatSystem.TryUseUltimate(new PlayerInputFrame
+                {
+                    ultimatePressed = true,
+                    aim = Vector2.up,
+                });
+
+                Assert.That(context.ultimateDashVelocity.x, Is.EqualTo(0f).Within(0.0001f));
+                Assert.That(context.ultimateDashVelocity.y, Is.GreaterThan(0f));
+                Assert.That(
+                    context.ultimateDashVelocity.magnitude,
+                    Is.EqualTo(definition.ultimateDashDistance / definition.ultimateDashDuration).Within(0.0001f));
+                Assert.That(context.ultimateDashTimeLeft, Is.EqualTo(definition.ultimateDashDuration).Within(0.0001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(definition);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void TryKill_ReturnsFalseAfterPlayerIsAlreadyDead()
         {
             Assert.That(AwakeMethod, Is.Not.Null);
