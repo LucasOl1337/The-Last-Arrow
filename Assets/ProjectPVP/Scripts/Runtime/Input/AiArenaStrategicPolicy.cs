@@ -93,28 +93,17 @@ namespace ProjectPVP.Input
                         break;
                     case "retreat":
                     case "stabilize":
-                        if (semantics.selfCornered && semantics.horizontalDistance < preferredRange * 0.75f)
+                        decision.moveAxis = semantics.horizontalDistance < preferredRange * 0.75f
+                            ? awayFromTarget * Mathf.Lerp(0.45f, 1f, Mathf.Clamp01(intent.cornerEscapeBias))
+                            : semantics.horizontalDistance > preferredRange * 1.15f
+                                ? towardTarget * Mathf.Lerp(0.2f, 0.55f, Mathf.Clamp01(intent.advanceBias))
+                                : 0f;
+                        decision.meleePressed = canMelee && semantics.targetInMeleeRange && (semantics.targetVulnerable || semantics.shouldPunish) && intent.meleeBias >= 0.22f;
+                        decision.ultimatePressed = false;
+                        if (!decision.meleePressed && canShoot && semantics.targetInShootRange && (intent.shootBias >= 0.2f || semantics.horizontalDistance > preferredRange * 0.6f))
                         {
-                            ClearCombatActions(decision);
-                            decision.moveAxis = towardTarget * Mathf.Lerp(0.55f, 1f, Mathf.Clamp01(intent.cornerEscapeBias));
-                            decision.dashPrimaryPressed = canDash && semantics.horizontalDistance < preferredRange * 0.65f;
-                            decision.debugSummary = "AI CORNER ESCAPE";
-                            escapingCorner = true;
-                        }
-                        else
-                        {
-                            decision.moveAxis = semantics.horizontalDistance < preferredRange * 0.75f
-                                ? awayFromTarget * Mathf.Lerp(0.45f, 1f, Mathf.Clamp01(intent.cornerEscapeBias))
-                                : semantics.horizontalDistance > preferredRange * 1.15f
-                                    ? towardTarget * Mathf.Lerp(0.2f, 0.55f, Mathf.Clamp01(intent.advanceBias))
-                                    : 0f;
-                            decision.meleePressed = canMelee && semantics.targetInMeleeRange && (semantics.targetVulnerable || semantics.shouldPunish) && intent.meleeBias >= 0.22f;
-                            decision.ultimatePressed = false;
-                            if (!decision.meleePressed && canShoot && semantics.targetInShootRange && (intent.shootBias >= 0.2f || semantics.horizontalDistance > preferredRange * 0.6f))
-                            {
-                                decision.shootPressed = true;
-                                decision.shootHeld = true;
-                            }
+                            decision.shootPressed = true;
+                            decision.shootHeld = true;
                         }
                         break;
                     case "punish":
@@ -143,6 +132,19 @@ namespace ProjectPVP.Input
                         }
                         break;
                 }
+            }
+
+            if (!semantics.incomingProjectileThreat
+                && !semantics.targetUsingUltimate
+                && !prioritizeCollection
+                && semantics.selfCornered
+                && semantics.horizontalDistance < preferredRange * 0.75f)
+            {
+                ClearCombatActions(decision);
+                decision.moveAxis = towardTarget * Mathf.Lerp(0.55f, 1f, Mathf.Clamp01(intent.cornerEscapeBias));
+                decision.dashPrimaryPressed = canDash && semantics.horizontalDistance < preferredRange * 0.65f;
+                decision.debugSummary = "AI CORNER ESCAPE";
+                escapingCorner = true;
             }
 
             if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !escapingCorner)
