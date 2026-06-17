@@ -247,6 +247,35 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_ReportsMissedProjectileDefenseWhenDecisionIgnoresThreat()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.16f,
+                    shouldDashEvade = true,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI DRIFT",
+                moveAxis = 0.35f,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("missed projectile defense"));
+            Assert.That(feedback, Does.Contain("dash, jump, parry, or block"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_ReportsArrowRecoveryAdvice()
         {
             var snapshot = new AiArenaSnapshotEnvelope

@@ -170,6 +170,11 @@ namespace ProjectPVP.Input
                 string time = semantics.incomingProjectileTime >= 0f
                     ? semantics.incomingProjectileTime.ToString("0.00") + "s"
                     : "now";
+                if (!IsProjectileDefenseDecision(decision))
+                {
+                    return "missed projectile defense " + time + "; action " + action + "; improve: dash, jump, parry, or block before attacking.";
+                }
+
                 return "projectile threat " + time + "; action " + action + "; improve: defend before attacking.";
             }
 
@@ -226,6 +231,31 @@ namespace ProjectPVP.Input
                 || decision.debugSummary.IndexOf("melee", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("ultimate", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("attack", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool IsProjectileDefenseDecision(AiArenaDecisionEnvelope decision)
+        {
+            if (decision == null)
+            {
+                return false;
+            }
+
+            if (decision.jumpPressed || decision.jumpHeld || decision.dashPrimaryPressed || decision.dashSecondaryPressed)
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(decision.debugSummary))
+            {
+                return false;
+            }
+
+            return decision.debugSummary.IndexOf("parry", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("block", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("evade", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("dodge", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("dash", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("jump", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static string ResolveAction(AiArenaDecisionEnvelope decision)
