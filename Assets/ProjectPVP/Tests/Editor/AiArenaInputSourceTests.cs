@@ -507,7 +507,6 @@ namespace ProjectPVP.Tests.Editor
                         new AiArenaProjectileObservation
                         {
                             isCollectible = true,
-                            isStuck = true,
                             sourceSlotId = 1,
                             position = new Vector2(16f, 0f),
                         },
@@ -555,7 +554,6 @@ namespace ProjectPVP.Tests.Editor
                         new AiArenaProjectileObservation
                         {
                             isCollectible = true,
-                            isStuck = true,
                             sourceSlotId = 1,
                             position = new Vector2(48f, 0f),
                         },
@@ -575,7 +573,6 @@ namespace ProjectPVP.Tests.Editor
                         new AiArenaProjectileObservation
                         {
                             isCollectible = true,
-                            isStuck = true,
                             sourceSlotId = 1,
                             position = new Vector2(120f, 0f),
                         },

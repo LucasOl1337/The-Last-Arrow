@@ -55,7 +55,7 @@ namespace ProjectPVP.Input
             for (int index = 0; index < snapshot.projectiles.Count; index += 1)
             {
                 AiArenaProjectileObservation projectile = snapshot.projectiles[index];
-                if (projectile == null || !projectile.isCollectible || (!projectile.isStuck && !projectile.isDisarmed))
+                if (projectile == null || !projectile.isCollectible)
                 {
                     continue;
                 }
@@ -77,7 +77,7 @@ namespace ProjectPVP.Input
             for (int index = 0; index < snapshot.projectiles.Count; index += 1)
             {
                 AiArenaProjectileObservation projectile = snapshot.projectiles[index];
-                if (projectile == null || !projectile.isCollectible || (!projectile.isStuck && !projectile.isDisarmed))
+                if (projectile == null || !projectile.isCollectible)
                 {
                     continue;
                 }

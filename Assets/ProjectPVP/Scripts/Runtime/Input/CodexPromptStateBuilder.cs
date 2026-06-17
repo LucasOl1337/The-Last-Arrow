@@ -43,7 +43,7 @@ namespace ProjectPVP.Input
                         continue;
                     }
 
-                    if (projectile.isCollectible && (projectile.isStuck || projectile.isDisarmed))
+                    if (projectile.isCollectible)
                     {
                         float distance = EstimateProjectileDistance(snapshot.self, projectile);
                         if (distance >= 0f)
@@ -55,6 +55,15 @@ namespace ProjectPVP.Input
                                 position = projectile.position,
                             });
                         }
+
+                        continue;
+                    }
+
+                    if (projectile.sourceSlotId > 0
+                        && snapshot.self != null
+                        && projectile.sourceSlotId == snapshot.self.slotId)
+                    {
+                        continue;
                     }
 
                     if (projectile.isStuck || projectile.isDisarmed)

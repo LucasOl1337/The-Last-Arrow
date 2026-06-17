@@ -210,6 +210,86 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_IgnoresOwnFlyingProjectilesAsImmediateThreats()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 26,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    position = Vector2.zero,
+                    velocity = Vector2.zero,
+                },
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation(),
+                projectiles = new List<AiArenaProjectileObservation>
+                {
+                    new AiArenaProjectileObservation
+                    {
+                        isStuck = false,
+                        isDisarmed = false,
+                        isCollectible = false,
+                        sourceSlotId = 1,
+                        position = new Vector2(-10f, 0f),
+                        velocity = new Vector2(100f, 0f),
+                        travelDirection = Vector2.right,
+                    },
+                },
+            };
+
+            CodexPromptState prompt = CodexPromptStateBuilder.Build(
+                snapshot,
+                previousSnapshot: null,
+                fallbackFrame: 0,
+                memoryHistory: null);
+
+            Assert.That(prompt.dangerousProjectiles, Is.Empty);
+        }
+
+        [Test]
+        public void Build_TreatsCollectibleFlyingProjectileAsRecoveryInsteadOfImmediateThreat()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 27,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    position = Vector2.zero,
+                    velocity = Vector2.zero,
+                },
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation(),
+                projectiles = new List<AiArenaProjectileObservation>
+                {
+                    new AiArenaProjectileObservation
+                    {
+                        isStuck = false,
+                        isDisarmed = false,
+                        isCollectible = true,
+                        sourceSlotId = 2,
+                        position = new Vector2(-10f, 0f),
+                        velocity = new Vector2(100f, 0f),
+                        travelDirection = Vector2.right,
+                    },
+                },
+            };
+
+            CodexPromptState prompt = CodexPromptStateBuilder.Build(
+                snapshot,
+                previousSnapshot: null,
+                fallbackFrame: 0,
+                memoryHistory: null);
+
+            Assert.That(prompt.recoverableProjectiles, Has.Count.EqualTo(1));
+            Assert.That(prompt.recoverableProjectiles[0].sourceSlotId, Is.EqualTo(2));
+            Assert.That(prompt.recoverableProjectiles[0].distanceToSelf, Is.EqualTo(10f).Within(0.001f));
+            Assert.That(prompt.recoverableProjectiles[0].position, Is.EqualTo(new Vector2(-10f, 0f)));
+            Assert.That(prompt.dangerousProjectiles, Is.Empty);
+        }
+
+        [Test]
         public void Build_UsesRelativeVelocityForProjectileEta()
         {
             var stationarySnapshot = new AiArenaSnapshotEnvelope
