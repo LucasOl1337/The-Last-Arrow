@@ -69,6 +69,16 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertEqual("local-heuristic", codex_live_agent.resolve_agent_model("heuristic"))
         self.assertEqual(codex_live_agent.DISPLAY_MODEL, codex_live_agent.resolve_agent_model("openai_codex"))
 
+    def test_build_tick_prompt_explicitly_uses_bot_feedback(self) -> None:
+        state = _build_base_state()
+        state["executorFeedback"]["botFeedback"] = "projectile threat 0.12s; action AI PARRY HOLD; improve: defend before attacking."
+        payload = codex_live_agent.format_prompt_payload(state, codex_live_agent.MemoryTracker(slot_id=2))
+
+        prompt = codex_live_agent.build_tick_prompt(payload)
+
+        self.assertIn("executorFeedback.botFeedback", prompt)
+        self.assertIn("projectile threat 0.12s", prompt)
+
     def test_build_heuristic_intent_punishes_vulnerable_target(self) -> None:
         state = _build_base_state()
         state["promptState"]["target"] = {

@@ -203,6 +203,7 @@ def build_tick_prompt(prompt_state: dict[str, Any], executor_feedback: dict[str,
     return (
         "You are still controlling the same live fighter in the same ongoing session.\n"
         "Update the tactical intent for the next short horizon.\n"
+        "Treat executorFeedback.botFeedback as the executor's live diagnosis of what just happened; correct the next intent around it.\n"
         "Keep the response as one JSON object only.\n"
         "Live update payload:\n"
         f"{payload}\n"

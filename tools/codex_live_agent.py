@@ -884,6 +884,7 @@ def build_tick_prompt(payload: dict[str, Any]) -> str:
         "If you already lost similar situations recently, change the line now instead of repeating it.\n"
         "If latestRoundReview, latestSeriesReview, latestSeriesPlan, latestMatchReview, or nextMatchPlan exists, treat it as reusable coaching and adapt the next intent around it.\n"
         "Respect botProfile first. Use globalKnowledgeSummary as shared context, but do not let it erase the bot's own style.\n"
+        "Treat executorFeedback.botFeedback as the executor's live diagnosis of what just happened; correct the next intent around it.\n"
         "If the target is visible, there is no round reset, and no immediate projectile threat exists, do not choose stabilize.\n"
         "Return only one JSON object matching the schema.\n"
         "State payload:\n"

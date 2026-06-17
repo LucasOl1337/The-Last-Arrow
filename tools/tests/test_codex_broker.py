@@ -54,6 +54,19 @@ class BrokerSessionSnapshotTestCase(unittest.TestCase):
         self.assertEqual("CodexDirect", snapshot["controllerOwner"])
         self.assertEqual("pressure", snapshot["intent"]["mode"])
 
+    def test_build_tick_prompt_explicitly_uses_bot_feedback(self) -> None:
+        prompt = codex_broker.build_tick_prompt(
+            {"frame": 12},
+            {
+                "summary": "AI PARRY HOLD",
+                "botFeedback": "projectile threat 0.12s; action AI PARRY HOLD; improve: defend before attacking.",
+            },
+            force_refresh=True,
+        )
+
+        self.assertIn("executorFeedback.botFeedback", prompt)
+        self.assertIn("projectile threat 0.12s", prompt)
+
 
 class AgentDrivenSessionReportTestCase(unittest.TestCase):
     def test_report_payload_defaults_to_broker_default_before_first_agent_action(self) -> None:
