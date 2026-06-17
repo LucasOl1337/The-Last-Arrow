@@ -231,6 +231,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(shouldForceRefresh, Is.True);
                 Assert.That(input.BotFeedback, Does.Contain("manual replan requested"));
                 Assert.That(input.FaceButtonDebug, Does.Contain("editor_test"));
+                Assert.That(input.LastExecutorSummary, Does.Contain("editor_test"));
             }
             finally
             {
@@ -272,6 +273,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(input.HasAgentAction, Is.False);
                 Assert.That(input.ManualForceRefreshPending, Is.True);
                 Assert.That(input.BotFeedback, Does.Contain("broker session restarted"));
+                Assert.That(input.LastExecutorSummary, Does.Contain("editor_test"));
             }
             finally
             {
@@ -314,6 +316,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(input.CurrentIntentMode, Is.Empty);
                 Assert.That(input.ManualForceRefreshPending, Is.True);
                 Assert.That(input.BotFeedback, Does.Contain("agent mode changed"));
+                Assert.That(input.LastExecutorSummary, Does.Contain("Agent mode off"));
             }
             finally
             {

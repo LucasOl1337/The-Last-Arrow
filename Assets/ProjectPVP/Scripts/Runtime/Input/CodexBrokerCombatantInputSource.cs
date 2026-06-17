@@ -217,6 +217,7 @@ namespace ProjectPVP.Input
             _manualForceRefresh = true;
             _lastStrategyRequestTime = -999f;
             _debugSummary = "AI | Manual replan:" + normalizedReason;
+            _lastExecutorSummary = _debugSummary;
             _botFeedback = "manual replan requested; improve: reassess current fight state.";
         }
 
@@ -237,8 +238,8 @@ namespace ProjectPVP.Input
             InvalidateBrokerSession();
             _manualForceRefresh = true;
             _lastStrategyRequestTime = -999f;
-            _lastExecutorSummary = "AI | Broker session restarted";
             _debugSummary = "AI | Broker restart:" + normalizedReason;
+            _lastExecutorSummary = _debugSummary;
             _botFeedback = "broker session restarted; improve: rebuild live context before next attack.";
         }
 
@@ -253,6 +254,7 @@ namespace ProjectPVP.Input
             useAgentDrivenMode = enabled;
             RestartBrokerSession("agent mode changed", previousAgentDrivenMode);
             _debugSummary = "AI | Agent mode " + (enabled ? "on" : "off");
+            _lastExecutorSummary = _debugSummary;
             _botFeedback = "agent mode changed; improve: rebuild broker session for the selected control path.";
         }
 
