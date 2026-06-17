@@ -2579,6 +2579,40 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void TryKill_ConsumesShieldWithSubtleImpactFeedback()
+        {
+            Assert.That(AwakeMethod, Is.Not.Null);
+            DestroyKillImpactFxForTests();
+
+            GameObject cameraRoot = new GameObject("shield_absorb_shake_camera");
+            cameraRoot.AddComponent<Camera>();
+            ProjectPvpCameraShake shake = cameraRoot.AddComponent<ProjectPvpCameraShake>();
+            GameObject root = new GameObject("shield_absorb_target");
+
+            try
+            {
+                PlayerController player = CreatePlayer(root, 1, null);
+                InvokeAwake(player);
+                player.SetRoundShield(true);
+                PlayerController.ResolveFatalHitCameraShake("Melee", out float meleeIntensity, out float meleeDuration);
+
+                Assert.That(player.TryKill(null, "Projectile"), Is.False);
+
+                Assert.That(player.IsDead, Is.False);
+                Assert.That(player.HasShield, Is.False);
+                Assert.That(shake.IsShaking, Is.True);
+                Assert.That(shake.ActiveIntensity, Is.LessThan(meleeIntensity));
+                Assert.That(shake.ActiveDuration, Is.LessThan(meleeDuration));
+                Assert.That(Object.FindObjectsByType<ProjectPvpKillImpactFx>(FindObjectsSortMode.None), Is.Empty);
+            }
+            finally
+            {
+                Object.DestroyImmediate(cameraRoot);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void TryKill_TriggersCameraShakeOnAvailableCamera()
         {
             Assert.That(AwakeMethod, Is.Not.Null);

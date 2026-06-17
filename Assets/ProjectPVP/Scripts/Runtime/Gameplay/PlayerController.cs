@@ -24,6 +24,8 @@ namespace ProjectPVP.Gameplay
         private const float RingOutFatalHitShakeDuration = 0.16f;
         private const float UltimateFatalHitShakeIntensity = 0.13f;
         private const float UltimateFatalHitShakeDuration = 0.16f;
+        private const float ShieldAbsorbShakeIntensity = 0.055f;
+        private const float ShieldAbsorbShakeDuration = 0.08f;
         private static readonly Color DeathFlashColor = new Color(1f, 0.58f, 0.26f, 1f);
 
         [Header("Identity")]
@@ -567,6 +569,7 @@ namespace ProjectPVP.Gameplay
             if (CanShieldAbsorbFatalHit(cause))
             {
                 _context.hasShield = false;
+                ProjectPvpCameraShake.TryShakeDefault(ShieldAbsorbShakeIntensity, ShieldAbsorbShakeDuration);
                 UpdatePresentationState();
                 return false;
             }
