@@ -285,6 +285,10 @@ class MemoryTracker:
             "sampleCount": 0,
             "visibleFrames": 0,
             "projectileThreatFrames": 0,
+            "meleeThreatFrames": 0,
+            "rangedThreatFrames": 0,
+            "ultimateThreatFrames": 0,
+            "corneredFrames": 0,
             "fallbackFrames": 0,
             "roundResetFrames": 0,
             "dangerousProjectileFrames": 0,
@@ -313,6 +317,10 @@ class MemoryTracker:
             "sampleCount": 0,
             "visibleFrames": 0,
             "projectileThreatFrames": 0,
+            "meleeThreatFrames": 0,
+            "rangedThreatFrames": 0,
+            "ultimateThreatFrames": 0,
+            "corneredFrames": 0,
             "fallbackFrames": 0,
             "intentCounts": {},
             "sourceCounts": {},
@@ -441,6 +449,18 @@ class MemoryTracker:
         if bool(feedback.get("projectileThreatActive")):
             self.current_match["projectileThreatFrames"] += 1
             self.current_round["projectileThreatFrames"] += 1
+        if bool(feedback.get("targetMeleeThreatActive")):
+            self.current_match["meleeThreatFrames"] += 1
+            self.current_round["meleeThreatFrames"] += 1
+        if bool(feedback.get("targetRangedThreatActive")):
+            self.current_match["rangedThreatFrames"] += 1
+            self.current_round["rangedThreatFrames"] += 1
+        if bool(feedback.get("targetUltimateThreatActive")):
+            self.current_match["ultimateThreatFrames"] += 1
+            self.current_round["ultimateThreatFrames"] += 1
+        if bool(feedback.get("selfCornered")):
+            self.current_match["corneredFrames"] += 1
+            self.current_round["corneredFrames"] += 1
         if bool(feedback.get("roundResetPending")):
             self.current_match["roundResetFrames"] += 1
         if prompt.get("dangerousProjectiles"):
@@ -507,9 +527,10 @@ class MemoryTracker:
         horizontal_distance = abs(safe_float(arena.get("horizontalDistance"), 0.0))
         round_reset = bool(arena.get("roundResetPending")) or bool(feedback.get("roundResetPending"))
         projectile_risk = bool(feedback.get("projectileThreatActive"))
-        target_melee = bool(target.get("isMeleeActive"))
-        target_ultimate = bool(target.get("isUltimateActive"))
-        self_cornered = bool(arena.get("selfCornered"))
+        target_melee = bool(feedback.get("targetMeleeThreatActive")) or bool(target.get("isMeleeActive"))
+        target_ranged = bool(feedback.get("targetRangedThreatActive"))
+        target_ultimate = bool(feedback.get("targetUltimateThreatActive")) or bool(target.get("isUltimateActive"))
+        self_cornered = bool(feedback.get("selfCornered")) or bool(arena.get("selfCornered"))
         target_visible = bool(feedback.get("targetVisible"))
 
         category = "generic"
@@ -518,6 +539,9 @@ class MemoryTracker:
         if round_reset:
             category, cause = "round_reset", "died_during_round_reset_context"
             better = "Bloquear punish e pressure durante round reset e resetar posicionamento antes de voltar a atacar."
+        elif target_ranged:
+            category, cause = "projectile", "ranged_startup_not_respected"
+            better = "Dodge, quebrar linha ou interromper startup ranged antes de perseguir pickup ou trade."
         elif projectile_risk or target_ultimate:
             category, cause = "projectile", "projectile_threat_not_respected"
             better = "Subir o peso de antiProjectile e reagir antes ao startup do tiro ou ultimate."
@@ -613,6 +637,10 @@ class MemoryTracker:
             "sampleCount": safe_int(round_state.get("sampleCount"), 0),
             "visibleFrames": safe_int(round_state.get("visibleFrames"), 0),
             "projectileThreatFrames": safe_int(round_state.get("projectileThreatFrames"), 0),
+            "meleeThreatFrames": safe_int(round_state.get("meleeThreatFrames"), 0),
+            "rangedThreatFrames": safe_int(round_state.get("rangedThreatFrames"), 0),
+            "ultimateThreatFrames": safe_int(round_state.get("ultimateThreatFrames"), 0),
+            "corneredFrames": safe_int(round_state.get("corneredFrames"), 0),
             "fallbackFrames": safe_int(round_state.get("fallbackFrames"), 0),
             "dominantIntent": dominant_intent[0] if dominant_intent else "-",
             "dominantSource": dominant_source[0] if dominant_source else "-",
@@ -626,11 +654,21 @@ class MemoryTracker:
         adjustments: list[str] = []
         visible_frames = safe_int(round_state.get("visibleFrames"), 0)
         projectile_frames = safe_int(round_state.get("projectileThreatFrames"), 0)
+        melee_frames = safe_int(round_state.get("meleeThreatFrames"), 0)
+        ranged_frames = safe_int(round_state.get("rangedThreatFrames"), 0)
+        ultimate_frames = safe_int(round_state.get("ultimateThreatFrames"), 0)
+        cornered_frames = safe_int(round_state.get("corneredFrames"), 0)
         fallback_frames = safe_int(round_state.get("fallbackFrames"), 0)
         intent_counts = round_state.get("intentCounts", {}) or {}
 
         if safe_int(category_counts.get("projectile"), 0) > 0 or projectile_frames > max(4, visible_frames // 3):
             adjustments.append("Abrir o proximo round respeitando mais startup de projetil e ultimate.")
+        if ranged_frames > max(4, visible_frames // 4):
+            adjustments.append("Responder a startup ranged com dodge, line break ou interrupt antes de perseguir pickup.")
+        if melee_frames > max(4, visible_frames // 4) or ultimate_frames > max(2, visible_frames // 6):
+            adjustments.append("Recuar de melee/ultimate ativo antes de tentar trade ou punish.")
+        if cornered_frames > max(4, visible_frames // 4):
+            adjustments.append("Sair do canto mais cedo; corner pressure esta consumindo muitos frames do round.")
         if safe_int(category_counts.get("corner"), 0) > 0:
             adjustments.append("Nao aceitar ficar fixo no canto; escapar antes de retomar pressure.")
         if fallback_frames > max(4, safe_int(round_state.get("sampleCount"), 0) // 4):
@@ -666,6 +704,10 @@ class MemoryTracker:
             f"- Dominant source: {review.get('dominantSource', '-')}",
             f"- Visible frames: {safe_int(review.get('visibleFrames'), 0)}",
             f"- Projectile threat frames: {safe_int(review.get('projectileThreatFrames'), 0)}",
+            f"- Melee threat frames: {safe_int(review.get('meleeThreatFrames'), 0)}",
+            f"- Ranged threat frames: {safe_int(review.get('rangedThreatFrames'), 0)}",
+            f"- Ultimate threat frames: {safe_int(review.get('ultimateThreatFrames'), 0)}",
+            f"- Cornered frames: {safe_int(review.get('corneredFrames'), 0)}",
             f"- Fallback frames: {safe_int(review.get('fallbackFrames'), 0)}",
             f"- Key events: {', '.join(review.get('keyEvents', [])) or '-'}",
             f"- Death categories: {json.dumps(review.get('deathCategories', {}), ensure_ascii=True, sort_keys=True)}",
@@ -765,6 +807,10 @@ class MemoryTracker:
             "sampleCount": sample_count,
             "visibleFrames": safe_int(match.get("visibleFrames"), 0),
             "projectileThreatFrames": safe_int(match.get("projectileThreatFrames"), 0),
+            "meleeThreatFrames": safe_int(match.get("meleeThreatFrames"), 0),
+            "rangedThreatFrames": safe_int(match.get("rangedThreatFrames"), 0),
+            "ultimateThreatFrames": safe_int(match.get("ultimateThreatFrames"), 0),
+            "corneredFrames": safe_int(match.get("corneredFrames"), 0),
             "fallbackFrames": fallback_frames,
             "fallbackFrameRatio": round(fallback_ratio, 4),
             "roundResetFrames": safe_int(match.get("roundResetFrames"), 0),
@@ -904,6 +950,10 @@ class MemoryTracker:
             f"- Samples observed: {safe_int(review.get('sampleCount'), 0)}",
             f"- Target visible frames: {safe_int(review.get('visibleFrames'), 0)}",
             f"- Projectile threat frames: {safe_int(review.get('projectileThreatFrames'), 0)}",
+            f"- Melee threat frames: {safe_int(review.get('meleeThreatFrames'), 0)}",
+            f"- Ranged threat frames: {safe_int(review.get('rangedThreatFrames'), 0)}",
+            f"- Ultimate threat frames: {safe_int(review.get('ultimateThreatFrames'), 0)}",
+            f"- Cornered frames: {safe_int(review.get('corneredFrames'), 0)}",
             f"- Fallback frames: {safe_int(review.get('fallbackFrames'), 0)}",
             f"- Fallback frame ratio: {safe_float(review.get('fallbackFrameRatio'), 0.0):.3f}",
             f"- Round reset frames: {safe_int(review.get('roundResetFrames'), 0)}",

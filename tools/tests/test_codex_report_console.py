@@ -85,6 +85,9 @@ class CodexReportConsoleViewTestCase(unittest.TestCase):
                 "controllerSource": "codex_agent",
                 "targetVisible": True,
                 "projectileThreatActive": True,
+                "targetRangedThreatActive": True,
+                "targetUltimateThreatActive": True,
+                "selfCornered": True,
                 "lastInputSummary": "axis=+0.00",
                 "feedbackIntentReason": "hold parry",
                 "agentThinking": False,
@@ -97,6 +100,8 @@ class CodexReportConsoleViewTestCase(unittest.TestCase):
 
         self.assertIn("Bot feedback", view)
         self.assertIn("projectile threat 0.12s", view)
+        self.assertIn("Threats", view)
+        self.assertIn("projectile, ranged, ultimate, cornered", view)
 
 
 class _DummyMemory:

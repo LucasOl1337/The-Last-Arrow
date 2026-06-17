@@ -79,6 +79,104 @@ class MemoryTrackerPersistenceTestCase(unittest.TestCase):
             )
             self.assertEqual([], list(report_path.parent.glob("*.tmp")))
 
+    def test_observe_match_counts_structured_combat_threat_frames(self) -> None:
+        tracker = object.__new__(codex_memory.MemoryTracker)
+        tracker.current_match = {
+            "sampleCount": 0,
+            "visibleFrames": 0,
+            "projectileThreatFrames": 0,
+            "meleeThreatFrames": 0,
+            "rangedThreatFrames": 0,
+            "ultimateThreatFrames": 0,
+            "corneredFrames": 0,
+            "roundResetFrames": 0,
+            "dangerousProjectileFrames": 0,
+            "fallbackFrames": 0,
+            "intentCounts": {},
+            "sourceCounts": {},
+            "eventCounts": {},
+            "seedLabels": [],
+        }
+        tracker.current_round = {
+            "sampleCount": 0,
+            "visibleFrames": 0,
+            "projectileThreatFrames": 0,
+            "meleeThreatFrames": 0,
+            "rangedThreatFrames": 0,
+            "ultimateThreatFrames": 0,
+            "corneredFrames": 0,
+            "fallbackFrames": 0,
+            "intentCounts": {},
+            "sourceCounts": {},
+            "eventCounts": {},
+        }
+        current = {
+            "lastIntent": {"mode": "retreat"},
+            "executorFeedback": {
+                "source": "codex_live",
+                "intentMode": "retreat",
+                "targetVisible": True,
+                "projectileThreatActive": True,
+                "targetMeleeThreatActive": True,
+                "targetRangedThreatActive": True,
+                "targetUltimateThreatActive": True,
+                "selfCornered": True,
+            },
+            "promptState": {
+                "arena": {"currentRespawnSeedLabel": "Seed X"},
+                "events": [],
+                "dangerousProjectiles": [{"etaSeconds": 0.2}],
+            },
+        }
+
+        tracker._observe_match(current)
+
+        self.assertEqual(1, tracker.current_match["projectileThreatFrames"])
+        self.assertEqual(1, tracker.current_match["meleeThreatFrames"])
+        self.assertEqual(1, tracker.current_match["rangedThreatFrames"])
+        self.assertEqual(1, tracker.current_match["ultimateThreatFrames"])
+        self.assertEqual(1, tracker.current_match["corneredFrames"])
+        self.assertEqual(1, tracker.current_round["rangedThreatFrames"])
+
+    def test_build_death_review_uses_ranged_threat_feedback(self) -> None:
+        tracker = object.__new__(codex_memory.MemoryTracker)
+        tracker.bot_id = "bot-test"
+        tracker.bot_profile = {"displayName": "Bot Test"}
+        tracker.slot_id = 2
+        tracker.current_match = {"opponentSlotId": 1}
+        tracker.current_round = {"roundNumber": 1}
+        current = {
+            "sessionId": "session-ranged",
+            "frame": 144,
+            "slotId": 2,
+            "executorFeedback": {
+                "intentMode": "pressure",
+                "intentReason": "forced trade",
+                "summary": "AI COLLECT ARROW",
+                "targetVisible": True,
+                "targetRangedThreatActive": True,
+            },
+            "promptState": {
+                "arena": {
+                    "horizontalDistance": 260.0,
+                    "playerOneWins": 0,
+                    "playerTwoWins": 0,
+                    "currentRespawnSeedLabel": "Seed R",
+                },
+                "target": {
+                    "slotId": 1,
+                    "isMeleeActive": False,
+                    "isUltimateActive": False,
+                },
+            },
+        }
+
+        review = tracker._build_death_review(current)
+
+        self.assertEqual("projectile", review["category"])
+        self.assertEqual("ranged_startup_not_respected", review["likelyCause"])
+        self.assertIn("interromper startup ranged", review["betterResponse"])
+
     def test_observe_records_changed_bot_feedback_once(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             tracker = object.__new__(codex_memory.MemoryTracker)
