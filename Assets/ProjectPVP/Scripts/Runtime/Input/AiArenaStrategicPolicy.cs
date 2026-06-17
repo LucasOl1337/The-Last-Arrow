@@ -18,8 +18,8 @@ namespace ProjectPVP.Input
             AiArenaCombatantObservation target = snapshot.opponents != null && snapshot.opponents.Count > 0 && snapshot.opponents[0] != null
                 ? snapshot.opponents[0]
                 : new AiArenaCombatantObservation();
-            bool targetCanParryProjectile = target.canParryProjectile && !target.isDead;
-            bool canShoot = self.arrows > 0 && self.shootCooldownLeft <= 0.01f && !targetCanParryProjectile;
+            bool targetCanStopProjectile = !target.isDead && (target.canParryProjectile || target.canBlockProjectiles);
+            bool canShoot = self.arrows > 0 && self.shootCooldownLeft <= 0.01f && !targetCanStopProjectile;
             bool canMelee = self.meleeCooldownLeft <= 0.01f && !self.isMeleeActive;
             bool canUltimate = self.ultimateCooldownLeft <= 0.01f && !self.isUltimateActive;
             bool canDash = self.dashCooldownLeft <= 0.01f && !self.isDashing;

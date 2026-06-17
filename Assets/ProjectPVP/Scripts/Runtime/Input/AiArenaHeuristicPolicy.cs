@@ -28,7 +28,7 @@ namespace ProjectPVP.Input
                 : new AiArenaCombatantObservation();
             int selfArrows = Mathf.Max(0, self.arrows);
             int targetArrows = Mathf.Max(0, target.arrows);
-            bool targetCanParryProjectile = target.canParryProjectile && !target.isDead;
+            bool targetCanStopProjectile = !target.isDead && (target.canParryProjectile || target.canBlockProjectiles);
 
             if (!semantics.hasTarget || self.isDead)
             {
@@ -37,7 +37,7 @@ namespace ProjectPVP.Input
                 return decision;
             }
 
-            bool canShoot = semantics.selfHasArrows && self.shootCooldownLeft <= 0.01f && !targetCanParryProjectile;
+            bool canShoot = semantics.selfHasArrows && self.shootCooldownLeft <= 0.01f && !targetCanStopProjectile;
             bool canMelee = self.meleeCooldownLeft <= 0.01f && !self.isMeleeActive;
             bool canDash = self.dashCooldownLeft <= 0.01f && !self.isDashing;
             bool canUltimate = self.ultimateCooldownLeft <= 0.01f && !self.isUltimateActive;
