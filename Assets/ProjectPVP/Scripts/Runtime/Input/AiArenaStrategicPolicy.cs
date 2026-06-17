@@ -251,9 +251,26 @@ namespace ProjectPVP.Input
                             }
                             break;
                         case "parry_prefer":
-                            decision.moveAxis = 0f;
-                            ClearCombatActions(decision);
-                            decision.debugSummary = "AI PARRY HOLD";
+                            if (self.canParryProjectile)
+                            {
+                                decision.moveAxis = 0f;
+                                ClearCombatActions(decision);
+                                decision.debugSummary = "AI PARRY HOLD";
+                            }
+                            else if (canDash)
+                            {
+                                ClearCombatActions(decision);
+                                decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDashAxis(semantics, awayFromTarget);
+                                decision.dashPrimaryPressed = true;
+                                decision.debugSummary = "AI PROJECTILE DASH";
+                            }
+                            else if (self.isGrounded)
+                            {
+                                ClearCombatActions(decision);
+                                decision.jumpPressed = true;
+                                decision.jumpHeld = true;
+                                decision.debugSummary = "AI PROJECTILE JUMP";
+                            }
                             break;
                     }
                 }
