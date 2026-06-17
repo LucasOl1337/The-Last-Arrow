@@ -953,6 +953,42 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CodexBrokerCombatantInputSource_FeedbackNamesStaleCodexControl()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "DecorateBotFeedbackForExecutorSource",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+
+            string feedback = (string)method.Invoke(null, new object[]
+            {
+                "codex_stale",
+                "spacing stable at 320u; action AI HOLD; improve: keep pressure without wasting arrows.",
+            });
+
+            Assert.That(feedback, Does.StartWith("codex stale;"));
+            Assert.That(feedback, Does.Contain("force replan"));
+        }
+
+        [Test]
+        public void CodexBrokerCombatantInputSource_FeedbackNamesHeuristicFallbackControl()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "DecorateBotFeedbackForExecutorSource",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+
+            string feedback = (string)method.Invoke(null, new object[]
+            {
+                "heuristic_fallback",
+                "punish window available; action AI PUNISH SHOT; improve: convert vulnerability quickly.",
+            });
+
+            Assert.That(feedback, Does.StartWith("heuristic fallback;"));
+            Assert.That(feedback, Does.Contain("restore broker or wait for agent intent"));
+        }
+
+        [Test]
         public void CodexBrokerCombatantInputSource_FallsBackWhenIntentAgeExceedsExtendedWindow()
         {
             MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(

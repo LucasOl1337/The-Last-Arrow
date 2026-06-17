@@ -158,7 +158,9 @@ namespace ProjectPVP.Input
                 dashInterval,
                 ultimateInterval,
                 ref _debugSummary);
-            _botFeedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+            _botFeedback = DecorateBotFeedbackForExecutorSource(
+                _lastExecutorSource,
+                AiArenaBotFeedbackBuilder.Build(snapshot, decision));
             _lastExecutorSummary = _debugSummary;
             _currentFrame = ObserveMovementStall(snapshot, _currentFrame);
             _lastReportedFrame = _currentFrame;
@@ -814,6 +816,23 @@ namespace ProjectPVP.Input
         private static string NormalizeDebugReason(string reason)
         {
             return string.IsNullOrWhiteSpace(reason) ? "manual" : reason.Trim();
+        }
+
+        private static string DecorateBotFeedbackForExecutorSource(string executorSource, string feedback)
+        {
+            string normalizedFeedback = string.IsNullOrWhiteSpace(feedback)
+                ? "waiting for bot feedback."
+                : feedback.Trim();
+            string normalizedSource = string.IsNullOrWhiteSpace(executorSource)
+                ? string.Empty
+                : executorSource.Trim();
+
+            return normalizedSource switch
+            {
+                "codex_stale" => "codex stale; control: force replan if this repeats; " + normalizedFeedback,
+                "heuristic_fallback" => "heuristic fallback; control: restore broker or wait for agent intent; " + normalizedFeedback,
+                _ => normalizedFeedback,
+            };
         }
 
         private static CodexReportedInputFrame BuildReportedInput(PlayerInputFrame frame)
