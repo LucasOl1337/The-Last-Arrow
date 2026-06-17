@@ -406,6 +406,56 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_TreatsRangedPressureAsThreatResponse()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingRanged = true,
+                    targetDirection = Vector2.right,
+                    targetInShootRange = true,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI PRESSURE SHOT",
+                shootPressed = true,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("enemy ranged active"));
+            Assert.That(feedback, Does.Contain("AI PRESSURE SHOT"));
+            Assert.That(feedback, Does.Not.Contain("missed ranged response"));
+        }
+
+        [Test]
+        public void BotFeedbackBuilder_ReportsMissedRangedResponseWhenDecisionIgnoresThreat()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingRanged = true,
+                    targetDirection = Vector2.right,
+                    targetInShootRange = true,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI COLLECT ARROW",
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("missed ranged response"));
+            Assert.That(feedback, Does.Contain("dodge, break line, or interrupt"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_TreatsCornerEscapeAsPressureResponse()
         {
             var snapshot = new AiArenaSnapshotEnvelope

@@ -199,6 +199,16 @@ namespace ProjectPVP.Input
                 return "enemy melee active; action " + action + "; improve: reset spacing before punishing.";
             }
 
+            if (semantics.targetUsingRanged)
+            {
+                if (!IsRangedPressureDecision(semantics, decision))
+                {
+                    return "missed ranged response; action " + action + "; improve: dodge, break line, or interrupt before chasing pickups.";
+                }
+
+                return "enemy ranged active; action " + action + "; improve: clear the arrow line before committing.";
+            }
+
             if (ShouldPrioritizeCornerEscapeFeedback(semantics, isOutOfArrows))
             {
                 if (!IsCornerEscapeDecision(semantics, decision))
@@ -339,6 +349,11 @@ namespace ProjectPVP.Input
         private static bool IsMeleeEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
         {
             return IsNonAttackingEscapeDecision(semantics, decision);
+        }
+
+        private static bool IsRangedPressureDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
+        {
+            return IsAttackDecision(decision) || IsNonAttackingEscapeDecision(semantics, decision);
         }
 
         private static bool IsCornerEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
