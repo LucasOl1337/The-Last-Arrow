@@ -16,6 +16,7 @@ namespace ProjectPVP.Gameplay
         private const float ApexVerticalSpeedThreshold = 120f;
         private const float WallImpactCancelUpwardSpeed = 0f;
         private const float WallImpactFallSpeed = 180f;
+        private const float WallSlideFallSpeed = 180f;
         private const float WallJumpDetachIgnoreDuration = 0.14f;
         private const float JumpStartAnimationDuration = 0.12f;
         private const float GroundGraceVerticalVelocityThreshold = 20f;
@@ -71,10 +72,18 @@ namespace ProjectPVP.Gameplay
 
             if (_context.isTouchingWall && !HasBufferedJump())
             {
-                velocity.x = 0f;
-                velocity.y = Mathf.Min(velocity.y, -WallImpactFallSpeed);
-                _context.wallDetachIgnoreTimer = WallJumpDetachIgnoreDuration;
-                _context.isTouchingWall = false;
+                if (velocity.y <= 0f && (pushingIntoWall || movingIntoWall))
+                {
+                    velocity.x = 0f;
+                    velocity.y = Mathf.Max(velocity.y, -WallSlideFallSpeed);
+                }
+                else
+                {
+                    velocity.x = 0f;
+                    velocity.y = Mathf.Min(velocity.y, -WallImpactFallSpeed);
+                    _context.wallDetachIgnoreTimer = WallJumpDetachIgnoreDuration;
+                    _context.isTouchingWall = false;
+                }
             }
 
             float gravityMultiplier = ResolveAirGravityMultiplier(frame, velocity.y);
