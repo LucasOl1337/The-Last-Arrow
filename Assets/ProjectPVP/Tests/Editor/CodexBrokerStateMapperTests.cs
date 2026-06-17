@@ -137,6 +137,43 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_UsesReportedAttackInputForPunishFeedback()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 1,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetVulnerable = true,
+                    shouldPunish = true,
+                    targetInShootRange = true,
+                    horizontalDistance = 220f,
+                },
+            };
+            var reportedInput = new CodexReportedInputFrame
+            {
+                frame = 12,
+                shootPressed = true,
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI | Active",
+                currentIntent: null,
+                snapshot,
+                75f,
+                reportedInput);
+
+            Assert.That(feedback.reportedInput, Is.SameAs(reportedInput));
+            Assert.That(feedback.botFeedback, Does.Contain("punish window available"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("missed punish"));
+        }
+
+        [Test]
         public void ResolveControllerOwner_ReturnsEnvelopeOwnerWhenPresent()
         {
             string owner = CodexBrokerStateMapper.ResolveControllerOwner(
@@ -234,6 +271,35 @@ namespace ProjectPVP.Tests.Editor
 
             Assert.That(feedback, Does.Contain("recover arrow at 64u"));
             Assert.That(feedback, Does.Contain("recover ammo before forcing trades"));
+        }
+
+        [Test]
+        public void BotFeedbackBuilder_ReportsMissedPunishWhenDecisionDoesNotAttack()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetVulnerable = true,
+                    shouldPunish = true,
+                    horizontalDistance = 180f,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI DRIFT",
+                moveAxis = -1f,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("missed punish window"));
+            Assert.That(feedback, Does.Contain("fire, melee, or ultimate"));
         }
 
         [Test]

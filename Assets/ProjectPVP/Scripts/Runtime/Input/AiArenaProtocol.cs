@@ -193,10 +193,39 @@ namespace ProjectPVP.Input
 
             if (semantics.targetVulnerable || semantics.shouldPunish)
             {
+                if (!IsAttackDecision(decision))
+                {
+                    return "missed punish window; action " + action + "; improve: fire, melee, or ultimate before target recovers.";
+                }
+
                 return "punish window available; action " + action + "; improve: convert vulnerability quickly.";
             }
 
             return "spacing stable at " + semantics.horizontalDistance.ToString("0") + "u; action " + action + "; improve: keep pressure without wasting arrows.";
+        }
+
+        private static bool IsAttackDecision(AiArenaDecisionEnvelope decision)
+        {
+            if (decision == null)
+            {
+                return false;
+            }
+
+            if (decision.shootPressed || decision.shootHeld || decision.meleePressed || decision.ultimatePressed)
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(decision.debugSummary))
+            {
+                return false;
+            }
+
+            return decision.debugSummary.IndexOf("shoot", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("fire", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("melee", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("ultimate", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("attack", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static string ResolveAction(AiArenaDecisionEnvelope decision)

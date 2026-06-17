@@ -12,16 +12,15 @@ namespace ProjectPVP.Input
             float intentAgeMs,
             CodexReportedInputFrame reportedInput)
         {
+            CodexReportedInputFrame resolvedReportedInput = reportedInput != null ? reportedInput : new CodexReportedInputFrame();
+
             return new CodexExecutorFeedback
             {
                 source = lastExecutorSource,
                 summary = lastExecutorSummary,
                 botFeedback = AiArenaBotFeedbackBuilder.Build(
                     snapshot,
-                    new AiArenaDecisionEnvelope
-                    {
-                        debugSummary = lastExecutorSummary,
-                    }),
+                    BuildFeedbackDecision(lastExecutorSummary, resolvedReportedInput)),
                 intentMode = currentIntent != null ? currentIntent.mode : string.Empty,
                 intentReason = currentIntent != null ? currentIntent.reason : string.Empty,
                 projectileThreatActive = snapshot != null && snapshot.semantics != null && snapshot.semantics.incomingProjectileThreat,
@@ -31,7 +30,7 @@ namespace ProjectPVP.Input
                 recoverableProjectileCount = CountRecoverableProjectiles(snapshot),
                 nearestRecoverableProjectileDistance = ResolveNearestRecoverableProjectileDistance(snapshot),
                 intentAgeMs = intentAgeMs,
-                reportedInput = reportedInput != null ? reportedInput : new CodexReportedInputFrame(),
+                reportedInput = resolvedReportedInput,
             };
         }
 
@@ -48,6 +47,25 @@ namespace ProjectPVP.Input
             }
 
             return useAgentDrivenMode ? "Codex" : "CodexDirect";
+        }
+
+        private static AiArenaDecisionEnvelope BuildFeedbackDecision(string lastExecutorSummary, CodexReportedInputFrame reportedInput)
+        {
+            return new AiArenaDecisionEnvelope
+            {
+                debugSummary = lastExecutorSummary,
+                moveAxis = reportedInput.axis,
+                aimX = reportedInput.aim.x,
+                aimY = reportedInput.aim.y,
+                jumpPressed = reportedInput.jumpPressed,
+                jumpHeld = reportedInput.jumpHeld,
+                shootPressed = reportedInput.shootPressed,
+                shootHeld = reportedInput.shootHeld,
+                meleePressed = reportedInput.meleePressed,
+                ultimatePressed = reportedInput.ultimatePressed,
+                dashPrimaryPressed = reportedInput.dashPrimaryPressed,
+                dashSecondaryPressed = reportedInput.dashSecondaryPressed,
+            };
         }
 
         private static int CountRecoverableProjectiles(AiArenaSnapshotEnvelope snapshot)
