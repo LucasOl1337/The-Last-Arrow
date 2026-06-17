@@ -531,6 +531,26 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotCoachHud_PrioritizesImproveAdviceWhenFeedbackIsTruncated()
+        {
+            Assert.That(TryBuildBotCoachLineMethod, Is.Not.Null);
+
+            var input = new FeedbackInputSource
+            {
+                Feedback = "movement stalled; action: escape jump/dash; improve: replan path instead of holding one axis.",
+            };
+            object[] args = { "Slot 2", input, 52, null };
+
+            bool built = (bool)TryBuildBotCoachLineMethod.Invoke(null, args);
+
+            Assert.That(built, Is.True);
+            string line = (string)args[3];
+            Assert.That(line, Does.Contain("fix replan"));
+            Assert.That(line, Does.Not.Contain("action:"));
+            Assert.That(line.Length, Is.LessThanOrEqualTo("Slot 2: ".Length + 52));
+        }
+
+        [Test]
         public void BotCoachHud_AppendsEffectiveInputSummary()
         {
             Assert.That(TryBuildBotCoachLineMethod, Is.Not.Null);

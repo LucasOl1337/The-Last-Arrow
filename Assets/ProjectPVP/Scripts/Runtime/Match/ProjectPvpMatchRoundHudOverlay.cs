@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using ProjectPVP.Gameplay;
@@ -287,10 +288,7 @@ namespace ProjectPVP.Match
                 ? string.Empty
                 : " | " + inputSummary;
             int feedbackMax = Mathf.Max(3, safeMax - inputSuffix.Length);
-            if (feedback.Length > feedbackMax)
-            {
-                feedback = feedback.Substring(0, feedbackMax - 3).TrimEnd() + "...";
-            }
+            feedback = CompactBotCoachFeedback(feedback, feedbackMax);
 
             string label = string.IsNullOrWhiteSpace(displayName) ? "Bot" : displayName.Trim();
             line = label + ": " + feedback + inputSuffix;
@@ -369,6 +367,96 @@ namespace ProjectPVP.Match
                 .Replace('\n', ' ')
                 .Replace('\t', ' ')
                 .Trim();
+        }
+
+        private static string CompactBotCoachFeedback(string normalizedFeedback, int maxChars)
+        {
+            int safeMax = Mathf.Max(3, maxChars);
+            if (string.IsNullOrWhiteSpace(normalizedFeedback))
+            {
+                return string.Empty;
+            }
+
+            if (normalizedFeedback.Length <= safeMax)
+            {
+                return normalizedFeedback;
+            }
+
+            string prioritizedFeedback = BuildPrioritizedBotCoachFeedback(normalizedFeedback);
+            return EllipsizeBotCoachFeedback(
+                string.IsNullOrWhiteSpace(prioritizedFeedback) ? normalizedFeedback : prioritizedFeedback,
+                safeMax);
+        }
+
+        private static string BuildPrioritizedBotCoachFeedback(string normalizedFeedback)
+        {
+            string diagnosis = ExtractLeadingBotCoachClause(normalizedFeedback);
+            string control = ExtractLabeledBotCoachClause(normalizedFeedback, "control:");
+            string improve = ExtractLabeledBotCoachClause(normalizedFeedback, "improve:");
+            if (string.IsNullOrWhiteSpace(control) && string.IsNullOrWhiteSpace(improve))
+            {
+                return normalizedFeedback;
+            }
+
+            var parts = new List<string>(3);
+            if (!string.IsNullOrWhiteSpace(diagnosis))
+            {
+                parts.Add(diagnosis);
+            }
+
+            if (!string.IsNullOrWhiteSpace(control))
+            {
+                parts.Add("ctrl " + control);
+            }
+
+            if (!string.IsNullOrWhiteSpace(improve))
+            {
+                parts.Add("fix " + improve);
+            }
+
+            return string.Join(" | ", parts);
+        }
+
+        private static string ExtractLeadingBotCoachClause(string feedback)
+        {
+            int semicolonIndex = feedback.IndexOf(';');
+            return TrimBotCoachClause(semicolonIndex >= 0 ? feedback.Substring(0, semicolonIndex) : feedback);
+        }
+
+        private static string ExtractLabeledBotCoachClause(string feedback, string marker)
+        {
+            int markerIndex = feedback.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (markerIndex < 0)
+            {
+                return string.Empty;
+            }
+
+            int valueStart = markerIndex + marker.Length;
+            int valueEnd = feedback.IndexOf(';', valueStart);
+            if (valueEnd < 0)
+            {
+                valueEnd = feedback.Length;
+            }
+
+            return TrimBotCoachClause(feedback.Substring(valueStart, valueEnd - valueStart));
+        }
+
+        private static string TrimBotCoachClause(string value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? string.Empty
+                : value.Trim().TrimEnd('.');
+        }
+
+        private static string EllipsizeBotCoachFeedback(string feedback, int maxChars)
+        {
+            int safeMax = Mathf.Max(3, maxChars);
+            if (string.IsNullOrEmpty(feedback) || feedback.Length <= safeMax)
+            {
+                return feedback;
+            }
+
+            return feedback.Substring(0, safeMax - 3).TrimEnd() + "...";
         }
 
         private bool ShouldShowFinalKillInfo()
