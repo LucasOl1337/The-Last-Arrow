@@ -126,6 +126,26 @@ def clamp01(value: Any, fallback: float) -> float:
     return max(0.0, min(1.0, number))
 
 
+def has_movement_stall_feedback(state: dict[str, Any]) -> bool:
+    prompt_state_raw = state.get("promptState")
+    feedback_raw = state.get("executorFeedback")
+    prompt_state = prompt_state_raw if isinstance(prompt_state_raw, dict) else {}
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    values: list[str] = [
+        str(feedback.get("botFeedback", "")),
+        str(feedback.get("summary", "")),
+    ]
+    for key in ("events", "memory"):
+        source = prompt_state.get(key)
+        if isinstance(source, list):
+            values.extend(str(item) for item in source)
+        elif source:
+            values.append(str(source))
+
+    combined = " ".join(values).lower()
+    return "movement_stalled" in combined or "movement stalled" in combined
+
+
 def resolve_runtime_provider(selected_provider: str, codex_available: bool) -> str:
     normalized = str(selected_provider or "openai_codex").strip().lower()
     if normalized == HEURISTIC_PROVIDER:
@@ -200,8 +220,29 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     self_arrows = max(0, int(self_state.get("arrows", 0) or 0))
     target_arrows = max(0, int(target.get("arrows", 0) or 0))
     arrow_lead = self_arrows - target_arrows
+    movement_stalled = has_movement_stall_feedback(state)
 
     if round_reset or self_hitstunned:
+        return tuned
+
+    if movement_stalled and target_visible and not projectile_risk:
+        try:
+            dash_cooldown_left = float(self_state.get("dashCooldownLeft", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            dash_cooldown_left = 9999.0
+        can_dash = dash_cooldown_left <= 0.01 and not bool(self_state.get("isDashing"))
+        self_grounded = bool(self_state.get("isGrounded", True))
+
+        tuned["mode"] = "retreat"
+        tuned["preferredRange"] = max(tuned["preferredRange"], 320)
+        tuned["advanceBias"] = min(tuned["advanceBias"], 0.18)
+        tuned["shootBias"] = min(tuned["shootBias"], 0.28)
+        tuned["meleeBias"] = min(tuned["meleeBias"], 0.24)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.92 if can_dash else 0.62)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.78 if self_grounded else 0.28)
+        tuned["antiProjectile"] = "hold"
+        tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.92)
+        tuned["reason"] = "heuristic_movement_stall_escape"
         return tuned
 
     if not target_visible or projectile_risk:
@@ -360,6 +401,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     can_dash = read_float(self_state, "dashCooldownLeft", 0.0) <= 0.01 and not bool(self_state.get("isDashing", False))
     can_ultimate = read_float(self_state, "ultimateCooldownLeft", 0.0) <= 0.01 and not bool(self_state.get("isUltimateActive", False))
     target_vulnerable = bool(target_state.get("isHitStunned", False)) or "target_became_vulnerable" in events
+    movement_stalled = has_movement_stall_feedback(state)
 
     projectile_eta: float | None = None
     for projectile in dangerous_projectiles:
@@ -459,6 +501,21 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
                 "cornerEscapeBias": 0.62,
                 "reason": "heuristic_projectile_hold",
             })
+        return intent
+
+    if movement_stalled:
+        intent.update({
+            "mode": "retreat",
+            "preferredRange": 320,
+            "advanceBias": 0.12,
+            "shootBias": 0.24,
+            "meleeBias": 0.2,
+            "dashBias": 0.94 if can_dash else 0.62,
+            "jumpBias": 0.78 if self_grounded else 0.28,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.92,
+            "reason": "heuristic_movement_stall_escape",
+        })
         return intent
 
     if self_cornered and horizontal_distance < 280:

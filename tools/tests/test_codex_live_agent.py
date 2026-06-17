@@ -133,6 +133,27 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["dashBias"], 0.9)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_heuristic_intent_preserves_movement_stall_escape_after_aggression_bias(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["events"] = ["movement_stalled"]
+        state["promptState"]["memory"] = ["movement_stalled"]
+        state["executorFeedback"]["botFeedback"] = (
+            "movement stalled; action: escape jump/dash; improve: replan path instead of holding one axis."
+        )
+
+        intent = codex_live_agent.apply_aggression_bias(
+            codex_live_agent.build_heuristic_intent(state),
+            state,
+        )
+
+        self.assertEqual("retreat", intent["mode"])
+        self.assertEqual("heuristic_movement_stall_escape", intent["reason"])
+        self.assertLessEqual(intent["advanceBias"], 0.18)
+        self.assertGreaterEqual(intent["dashBias"], 0.9)
+        self.assertGreaterEqual(intent["jumpBias"], 0.75)
+        self.assertGreaterEqual(intent["cornerEscapeBias"], 0.9)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_build_heuristic_intent_pressures_last_arrow_target(self) -> None:
         state = _build_base_state()
         state["promptState"]["self"]["arrows"] = 2
