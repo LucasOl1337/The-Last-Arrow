@@ -42,6 +42,12 @@ namespace ProjectPVP.Tests.Editor
         private static readonly MethodInfo ClearActiveProjectilesForTestsMethod =
             typeof(ProjectileController).GetMethod("ClearActiveProjectilesForTests", BindingFlags.Static | BindingFlags.NonPublic);
 
+        [TearDown]
+        public void TearDown()
+        {
+            DestroyKillImpactFxForTests();
+        }
+
         [Test]
         public void ActivePlayers_CopyDeduplicatesAndUnregisters()
         {
@@ -2652,6 +2658,34 @@ namespace ProjectPVP.Tests.Editor
             }
         }
 
+        [Test]
+        public void TryKill_SpawnsKillImpactFxAtFatalHitPosition()
+        {
+            Assert.That(AwakeMethod, Is.Not.Null);
+            DestroyKillImpactFxForTests();
+
+            GameObject root = new GameObject("kill_impact_fx_player");
+            Vector2 deathPosition = new Vector2(12f, -4f);
+
+            try
+            {
+                PlayerController player = CreatePlayer(root, 1, null);
+                InvokeAwake(player);
+                player.body.position = deathPosition;
+
+                Assert.That(player.TryKill(null, "Projectile"), Is.True);
+
+                ProjectPvpKillImpactFx[] effects = Object.FindObjectsByType<ProjectPvpKillImpactFx>(FindObjectsSortMode.None);
+                Assert.That(effects, Has.Length.EqualTo(1));
+                Assert.That((Vector2)effects[0].transform.position, Is.EqualTo(deathPosition));
+                Assert.That(effects[0].BaseColor, Is.EqualTo(ProjectPvpKillImpactFx.ResolveImpactColor("Projectile")));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
         private static PlayerController CreatePlayer(GameObject root, int slotId, CharacterDefinition definition)
         {
             Rigidbody2D body = root.AddComponent<Rigidbody2D>();
@@ -2668,6 +2702,18 @@ namespace ProjectPVP.Tests.Editor
         private static void InvokeAwake(PlayerController controller)
         {
             AwakeMethod.Invoke(controller, null);
+        }
+
+        private static void DestroyKillImpactFxForTests()
+        {
+            ProjectPvpKillImpactFx[] effects = Object.FindObjectsByType<ProjectPvpKillImpactFx>(FindObjectsSortMode.None);
+            for (int index = 0; index < effects.Length; index += 1)
+            {
+                if (effects[index] != null)
+                {
+                    Object.DestroyImmediate(effects[index].gameObject);
+                }
+            }
         }
     }
 }

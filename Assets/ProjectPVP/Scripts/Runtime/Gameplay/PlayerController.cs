@@ -581,6 +581,7 @@ namespace ProjectPVP.Gameplay
             BeginDeathFlash();
             ResolveFatalHitCameraShake(cause, out float shakeIntensity, out float shakeDuration);
             ProjectPvpCameraShake.TryShakeDefault(shakeIntensity, shakeDuration);
+            ProjectPvpKillImpactFx.SpawnDefault(LastFatalHitPosition, LastFatalHitCause);
             UpdatePresentationState();
             _combatSystem.PlayActionSfx("death");
             float deathEventDelay = characterDefinition != null && characterDefinition.HasActionAnimation("death")
