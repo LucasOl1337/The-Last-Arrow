@@ -1425,6 +1425,73 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_AntiAirDoesNotLayerShotOntoProjectileEvade()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 3,
+                    shootCooldownLeft = 0f,
+                    dashCooldownLeft = 0f,
+                    isDashing = false,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        position = new Vector2(320f, 120f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 320f,
+                    verticalDistance = 120f,
+                    targetDirection = new Vector2(3f, 1f).normalized,
+                    predictedTargetDirection = new Vector2(3f, 1f).normalized,
+                    targetAbove = true,
+                    targetInShootRange = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.12f,
+                    incomingProjectileDirection = Vector2.left,
+                    shouldDashEvade = true,
+                    selfHasArrows = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "zone",
+                preferredRange = 360,
+                shootBias = 0.9f,
+                advanceBias = 0.5f,
+                meleeBias = 0.1f,
+                dashBias = 0.1f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = true,
+                punishRecovery = false,
+                cornerEscapeBias = 0.5f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "evade before anti air",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.debugSummary, Is.EqualTo("AI PARRY DASH"));
+        }
+
+        [Test]
         public void StrategicPolicy_ZoneIntentAtPreferredRangeKeepsForwardDrift()
         {
             var snapshot = new AiArenaSnapshotEnvelope
