@@ -166,6 +166,11 @@ namespace ProjectPVP.Input
                     continue;
                 }
 
+                if (projectile.sourceSlotId > 0 && projectile.sourceSlotId == self.slotId)
+                {
+                    continue;
+                }
+
                 if (!AiArenaProjectileThreatMath.TryEstimateClosestApproach(
                     self.position,
                     self.velocity,

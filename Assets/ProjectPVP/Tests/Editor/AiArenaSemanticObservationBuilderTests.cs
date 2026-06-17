@@ -327,6 +327,43 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_IgnoresOwnFlyingProjectileAsIncomingThreat()
+        {
+            AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
+            self.isGrounded = true;
+            self.slotId = 1;
+
+            var projectiles = new List<AiArenaProjectileSnapshot>
+            {
+                new AiArenaProjectileSnapshot
+                {
+                    isValid = true,
+                    sourceSlotId = 1,
+                    position = new Vector2(-20f, 0f),
+                    velocity = new Vector2(100f, 0f),
+                    travelDirection = Vector2.right,
+                },
+            };
+
+            AiArenaSemanticObservation semantics = AiArenaSemanticObservationBuilder.Build(
+                self,
+                default,
+                projectiles,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 140f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(semantics.hasTarget, Is.False);
+            Assert.That(semantics.incomingProjectileThreat, Is.False);
+            Assert.That(semantics.shouldDashEvade, Is.False);
+            Assert.That(semantics.shouldJumpEvade, Is.False);
+        }
+
+        [Test]
         public void Build_AccountsForSelfVelocityWhenEstimatingProjectileThreat()
         {
             AiArenaControllerSnapshot selfStationary = BuildSelf(Vector2.zero);
