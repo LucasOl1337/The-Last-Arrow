@@ -198,6 +198,16 @@ namespace ProjectPVP.Input
                 return "enemy melee active; action " + action + "; improve: reset spacing before punishing.";
             }
 
+            if (semantics.selfCornered && ShouldDeferArrowRecoveryForCornerEscape(semantics))
+            {
+                if (!IsCornerEscapeDecision(semantics, decision))
+                {
+                    return "missed corner escape; action " + action + "; improve: move toward center before chasing wall-side arrows.";
+                }
+
+                return "corner pressure detected; action " + action + "; improve: escape corner before committing.";
+            }
+
             if (semantics.shouldCollectProjectile || self.arrows <= 0)
             {
                 string distance = semantics.collectibleProjectileDistance >= 0f
@@ -325,6 +335,21 @@ namespace ProjectPVP.Input
         private static bool IsMeleeEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
         {
             return IsNonAttackingEscapeDecision(semantics, decision);
+        }
+
+        private static bool ShouldDeferArrowRecoveryForCornerEscape(AiArenaSemanticObservation semantics)
+        {
+            if (semantics == null || !semantics.selfCornered || !semantics.shouldCollectProjectile)
+            {
+                return false;
+            }
+
+            if (Mathf.Abs(semantics.targetDirection.x) <= 0.1f || Mathf.Abs(semantics.collectibleProjectileDirection.x) <= 0.1f)
+            {
+                return false;
+            }
+
+            return Mathf.Sign(semantics.collectibleProjectileDirection.x) != Mathf.Sign(semantics.targetDirection.x);
         }
 
         private static bool IsCornerEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)

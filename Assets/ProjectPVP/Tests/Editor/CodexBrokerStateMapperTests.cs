@@ -456,6 +456,39 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_PrioritizesCornerEscapeOverWallSideArrowRecovery()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 0,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfCornered = true,
+                    targetDirection = Vector2.right,
+                    shouldCollectProjectile = true,
+                    collectibleProjectileDistance = 72f,
+                    collectibleProjectileDirection = Vector2.left,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI CORNER ESCAPE",
+                moveAxis = 1f,
+                dashPrimaryPressed = true,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("corner pressure detected"));
+            Assert.That(feedback, Does.Contain("AI CORNER ESCAPE"));
+            Assert.That(feedback, Does.Not.Contain("missed arrow recovery"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_ReportsArrowRecoveryAdvice()
         {
             var snapshot = new AiArenaSnapshotEnvelope

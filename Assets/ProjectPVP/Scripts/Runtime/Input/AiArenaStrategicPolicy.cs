@@ -25,8 +25,10 @@ namespace ProjectPVP.Input
             bool canDash = self.dashCooldownLeft <= 0.01f && !self.isDashing;
             int targetArrows = Mathf.Max(0, target.arrows);
             int arrowLead = self.arrows - targetArrows;
+            bool deferCollectionForCornerEscape = ShouldDeferCollectionForCornerEscape(semantics);
             bool prioritizeCollection = semantics.shouldCollectProjectile
-                && (self.arrows <= 1 || targetArrows > self.arrows);
+                && (self.arrows <= 1 || targetArrows > self.arrows)
+                && !deferCollectionForCornerEscape;
 
             float towardTarget = semantics.targetDirection.x >= 0f ? 1f : -1f;
             float awayFromTarget = -towardTarget;
@@ -340,6 +342,24 @@ namespace ProjectPVP.Input
                 "parry_prefer" => "parry_prefer",
                 _ => "hold",
             };
+        }
+
+        private static bool ShouldDeferCollectionForCornerEscape(AiArenaSemanticObservation semantics)
+        {
+            if (semantics == null || !semantics.selfCornered || !semantics.shouldCollectProjectile)
+            {
+                return false;
+            }
+
+            if (Mathf.Abs(semantics.targetDirection.x) <= 0.1f)
+            {
+                return false;
+            }
+
+            float centerAxis = semantics.targetDirection.x >= 0f ? 1f : -1f;
+            float collectionAxis = AiArenaHeuristicPolicy.ResolveCollectionMoveAxis(semantics.collectibleProjectileDirection);
+            return Mathf.Abs(collectionAxis) > 0.1f
+                && Mathf.Sign(collectionAxis) != Mathf.Sign(centerAxis);
         }
 
         private static void ClearCombatActions(AiArenaDecisionEnvelope decision)

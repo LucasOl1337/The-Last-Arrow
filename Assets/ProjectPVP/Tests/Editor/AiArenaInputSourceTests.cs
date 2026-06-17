@@ -2550,6 +2550,75 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_EscapesCornerInsteadOfCollectingWallSideArrow()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 0,
+                    dashCooldownLeft = 0f,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 3,
+                        position = new Vector2(140f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 140f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = true,
+                    selfHasArrows = false,
+                    selfCornered = true,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 72f,
+                    collectibleProjectileDirection = Vector2.left,
+                    shouldCollectProjectile = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "pressure",
+                preferredRange = 360,
+                shootBias = 0.8f,
+                advanceBias = 0.5f,
+                meleeBias = 0.2f,
+                dashBias = 0.8f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = false,
+                punishRecovery = false,
+                cornerEscapeBias = 0.8f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "recover unsafe ammo",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI CORNER ESCAPE"));
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+        }
+
+        [Test]
         public void HeuristicPolicy_CollectsVerticallyAlignedArrowWithoutHorizontalDrift()
         {
             var snapshot = new AiArenaSnapshotEnvelope
