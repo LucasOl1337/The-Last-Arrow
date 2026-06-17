@@ -84,11 +84,11 @@ namespace ProjectPVP.Input
                     useJump = true;
                     decision.debugSummary = "AI JUMP EVADE";
                 }
-                else if (semantics.shouldDashEvade)
+                else
                 {
-                    axis = Mathf.Abs(semantics.incomingProjectileDirection.x) > 0.1f
-                        ? Mathf.Sign(semantics.incomingProjectileDirection.x) * 0.35f
-                        : (semantics.targetDirection.x >= 0f ? -0.35f : 0.35f);
+                    axis = ResolveIncomingProjectileDriftAxis(
+                        semantics,
+                        semantics.targetDirection.x >= 0f ? -1f : 1f) * 0.35f;
                     holdProjectileDefense = true;
                     decision.debugSummary = "AI PROJECTILE DRIFT";
                 }
@@ -285,6 +285,23 @@ namespace ProjectPVP.Input
             if (semantics != null && Mathf.Abs(semantics.incomingProjectileDirection.x) > 0.1f)
             {
                 return semantics.incomingProjectileDirection.x < 0f ? 1f : -1f;
+            }
+
+            if (Mathf.Abs(fallbackAxis) > 0.1f)
+            {
+                return fallbackAxis > 0f ? 1f : -1f;
+            }
+
+            return 0f;
+        }
+
+        internal static float ResolveIncomingProjectileDriftAxis(
+            AiArenaSemanticObservation semantics,
+            float fallbackAxis)
+        {
+            if (semantics != null && Mathf.Abs(semantics.incomingProjectileDirection.x) > 0.1f)
+            {
+                return semantics.incomingProjectileDirection.x > 0f ? 1f : -1f;
             }
 
             if (Mathf.Abs(fallbackAxis) > 0.1f)
