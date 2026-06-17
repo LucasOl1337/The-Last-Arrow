@@ -1901,6 +1901,47 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void TryUseUltimate_NotifiesCharacterMechanicsOnStartAndImpact()
+        {
+            Assert.That(AwakeMethod, Is.Not.Null);
+            Assert.That(CombatSystemField, Is.Not.Null);
+            DestroyAttackCueFxForTests();
+
+            GameObject root = new GameObject("ultimate_mechanics_callback_player");
+            CharacterDefinition definition = ScriptableObject.CreateInstance<CharacterDefinition>();
+            TrackingMechanicsModule mechanicsModule = ScriptableObject.CreateInstance<TrackingMechanicsModule>();
+
+            try
+            {
+                definition.mechanicsModule = mechanicsModule;
+                definition.ultimateReplayDelay = 0.1f;
+
+                PlayerController player = CreatePlayer(root, 1, definition);
+                InvokeAwake(player);
+
+                PlayerCombatSystem combatSystem = (PlayerCombatSystem)CombatSystemField.GetValue(player);
+                Assert.That(combatSystem, Is.Not.Null);
+                Assert.That(mechanicsModule.LastRuntime, Is.Not.Null);
+
+                combatSystem.TryUseUltimate(new PlayerInputFrame { ultimatePressed = true });
+
+                Assert.That(mechanicsModule.LastRuntime.UltimateStartedCount, Is.EqualTo(1));
+                Assert.That(mechanicsModule.LastRuntime.UltimateImpactAppliedCount, Is.EqualTo(0));
+
+                combatSystem.HandleActiveUltimate(1f);
+
+                Assert.That(mechanicsModule.LastRuntime.UltimateStartedCount, Is.EqualTo(1));
+                Assert.That(mechanicsModule.LastRuntime.UltimateImpactAppliedCount, Is.EqualTo(1));
+            }
+            finally
+            {
+                Object.DestroyImmediate(mechanicsModule);
+                Object.DestroyImmediate(definition);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void TryCollectProjectile_RequiresCollectibleProjectileAndFreeArrowSlot()
         {
             Assert.That(AwakeMethod, Is.Not.Null);
@@ -3148,6 +3189,38 @@ namespace ProjectPVP.Tests.Editor
                 {
                     Object.DestroyImmediate(effects[index].gameObject);
                 }
+            }
+        }
+
+        private sealed class TrackingMechanicsModule : CharacterMechanicsModule
+        {
+            public TrackingMechanicsRuntime LastRuntime { get; private set; }
+
+            public override CharacterMechanicsRuntime CreateRuntime(PlayerController player, CharacterDefinition definition)
+            {
+                LastRuntime = new TrackingMechanicsRuntime(player, definition);
+                return LastRuntime;
+            }
+        }
+
+        private sealed class TrackingMechanicsRuntime : CharacterMechanicsRuntime
+        {
+            public TrackingMechanicsRuntime(PlayerController player, CharacterDefinition definition)
+                : base(player, definition)
+            {
+            }
+
+            public int UltimateStartedCount { get; private set; }
+            public int UltimateImpactAppliedCount { get; private set; }
+
+            public override void OnUltimateStarted()
+            {
+                UltimateStartedCount += 1;
+            }
+
+            public override void OnUltimateImpactApplied()
+            {
+                UltimateImpactAppliedCount += 1;
             }
         }
     }

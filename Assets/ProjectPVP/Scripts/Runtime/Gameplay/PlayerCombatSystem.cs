@@ -633,6 +633,7 @@ namespace ProjectPVP.Gameplay
             _context.ultimateAnimationTimeLeft = _context.ultimateTotalDuration;
             _context.ultimateImpactApplied = false;
             BeginUltimateDash(frame);
+            _context.CharacterMechanicsRuntime?.OnUltimateStarted();
             ProjectPvpAttackCueFx.SpawnUltimate(
                 _anchorSystem.GetUltimateHitboxCenter(),
                 _statResolver.ResolveUltimateRadius(),
@@ -683,6 +684,7 @@ namespace ProjectPVP.Gameplay
 
             int hitCount = CollectCurrentUltimateHits(_context.overlapHits);
             ApplyUltimateDamageHits(_context.overlapHits, hitCount);
+            _context.CharacterMechanicsRuntime?.OnUltimateImpactApplied();
         }
 
         public Vector2 UpdateUltimateDashVelocity(float deltaTime)
