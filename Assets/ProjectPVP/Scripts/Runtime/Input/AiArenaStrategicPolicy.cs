@@ -216,7 +216,7 @@ namespace ProjectPVP.Input
                     case "dash":
                         if (!decision.dashPrimaryPressed && self.dashCooldownLeft <= 0.01f && !self.isDashing)
                         {
-                            decision.moveAxis = awayFromTarget;
+                            decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDashAxis(semantics, awayFromTarget);
                             decision.dashPrimaryPressed = true;
                         }
                         break;

@@ -1564,6 +1564,102 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(decision.shootPressed, Is.False);
         }
 
+        [Test]
+        public void HeuristicPolicy_DashParriesTowardIncomingProjectileInsteadOfTarget()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 1,
+                    dashCooldownLeft = 0f,
+                    isDashing = false,
+                },
+                opponents = new List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 2,
+                        position = new Vector2(-240f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 240f,
+                    targetDirection = Vector2.left,
+                    predictedTargetDirection = Vector2.left,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.12f,
+                    incomingProjectileDirection = Vector2.left,
+                    shouldDashEvade = true,
+                    selfHasArrows = true,
+                },
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaHeuristicPolicy.Decide(snapshot);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI PARRY DASH"));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+        }
+
+        [Test]
+        public void StrategicPolicy_DashAntiProjectileUsesIncomingProjectileDirection()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 1,
+                    dashCooldownLeft = 0f,
+                    isDashing = false,
+                },
+                opponents = new List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 2,
+                        position = new Vector2(240f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 240f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.26f,
+                    incomingProjectileDirection = Vector2.left,
+                    selfHasArrows = true,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "stabilize",
+                preferredRange = 360,
+                antiProjectile = "dash",
+                expiresInMs = 400,
+                reason = "dash into parry threat",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+        }
+
         private sealed class SnapshotSourceController : MonoBehaviour, IAiArenaControllerSnapshotSource
         {
             public int slotId = 1;

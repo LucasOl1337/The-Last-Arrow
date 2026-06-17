@@ -62,7 +62,9 @@ namespace ProjectPVP.Input
                 }
                 else if (semantics.shouldDashEvade && canDash)
                 {
-                    axis = semantics.targetDirection.x >= 0f ? 1f : -1f;
+                    axis = ResolveIncomingProjectileDashAxis(
+                        semantics,
+                        semantics.targetDirection.x >= 0f ? 1f : -1f);
                     useDash = true;
                     decision.debugSummary = "AI PARRY DASH";
                 }
@@ -256,6 +258,23 @@ namespace ProjectPVP.Input
             return self != null
                 && self.isGrounded
                 && collectibleDirection.y > 0.35f;
+        }
+
+        internal static float ResolveIncomingProjectileDashAxis(
+            AiArenaSemanticObservation semantics,
+            float fallbackAxis)
+        {
+            if (semantics != null && Mathf.Abs(semantics.incomingProjectileDirection.x) > 0.1f)
+            {
+                return semantics.incomingProjectileDirection.x < 0f ? 1f : -1f;
+            }
+
+            if (Mathf.Abs(fallbackAxis) > 0.1f)
+            {
+                return fallbackAxis > 0f ? 1f : -1f;
+            }
+
+            return 0f;
         }
     }
 }
