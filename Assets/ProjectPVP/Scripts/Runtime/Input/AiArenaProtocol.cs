@@ -180,6 +180,11 @@ namespace ProjectPVP.Input
 
             if (semantics.targetUsingUltimate)
             {
+                if (!IsUltimateEscapeDecision(semantics, decision))
+                {
+                    return "missed ultimate escape; action " + action + "; improve: dash or move away before pickups or trades.";
+                }
+
                 return "enemy ultimate active; action " + action + "; improve: clear danger before pickups or trades.";
             }
 
@@ -295,6 +300,39 @@ namespace ProjectPVP.Input
                 || decision.debugSummary.IndexOf("anti-air", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("climb", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("above", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool IsUltimateEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
+        {
+            if (semantics == null || decision == null)
+            {
+                return false;
+            }
+
+            if (IsAttackDecision(decision))
+            {
+                return false;
+            }
+
+            if (decision.dashPrimaryPressed || decision.dashSecondaryPressed)
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(decision.debugSummary)
+                && (decision.debugSummary.IndexOf("evade", StringComparison.OrdinalIgnoreCase) >= 0
+                    || decision.debugSummary.IndexOf("dodge", StringComparison.OrdinalIgnoreCase) >= 0
+                    || decision.debugSummary.IndexOf("escape", StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                return true;
+            }
+
+            if (Mathf.Abs(semantics.targetDirection.x) > 0.1f && Mathf.Abs(decision.moveAxis) > 0.1f)
+            {
+                return Mathf.Sign(decision.moveAxis) != Mathf.Sign(semantics.targetDirection.x);
+            }
+
+            return false;
         }
 
         private static bool IsKnownProjectileRecoveryDirection(AiArenaSemanticObservation semantics)

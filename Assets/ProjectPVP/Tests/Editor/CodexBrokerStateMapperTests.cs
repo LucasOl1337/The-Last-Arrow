@@ -306,6 +306,56 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_TreatsUltimateEvadeAsDangerResponse()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingUltimate = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI EVADE ULT",
+                moveAxis = -1f,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("enemy ultimate active"));
+            Assert.That(feedback, Does.Contain("AI EVADE ULT"));
+            Assert.That(feedback, Does.Not.Contain("missed ultimate escape"));
+        }
+
+        [Test]
+        public void BotFeedbackBuilder_ReportsMissedUltimateEscapeWhenDecisionAttacks()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingUltimate = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI PUNISH MELEE",
+                meleePressed = true,
+                moveAxis = -1f,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("missed ultimate escape"));
+            Assert.That(feedback, Does.Contain("dash or move away"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_ReportsArrowRecoveryAdvice()
         {
             var snapshot = new AiArenaSnapshotEnvelope
