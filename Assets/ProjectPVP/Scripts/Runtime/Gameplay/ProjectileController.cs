@@ -63,8 +63,12 @@ namespace ProjectPVP.Gameplay
         private float _projectileUpwardSpeedDecayMultiplierRuntime = 1.3f;
         private float _projectileMinSpeedRuntime = 720f;
         private float _projectileSpeedDecayRuntime = 360f;
+        private bool _recoverableCueActive;
+        private bool _hasRecoverableCueBaseColor;
+        private Color _recoverableCueBaseColor = Color.white;
         private static readonly List<ProjectileController> s_activeProjectiles = new();
         private static Material s_flightTrailMaterial;
+        private static readonly Color RecoverableCueColor = new Color(0.46f, 1f, 0.74f, 1f);
 
         // ── Public state ──────────────────────────────────────────────────────────
         public GameObject SourceObject => _sourceObject;
@@ -83,6 +87,7 @@ namespace ProjectPVP.Gameplay
         public float AssistCurrentAngleDeg => _assistCurrentAngleDeg;
         public float AssistAppliedStrength => _assistAppliedStrength;
         public TrailRenderer TrailRenderer => trailRenderer;
+        public bool RecoverableCueActive => _recoverableCueActive;
 
         public static void CopyActiveProjectiles(List<ProjectileController> results)
         {
@@ -454,6 +459,9 @@ namespace ProjectPVP.Gameplay
                 spriteRenderer.sprite = overrideSprite;
             }
 
+            DisableRecoverableCue();
+            CaptureRecoverableCueBaseColor();
+
             if (body != null)
             {
                 body.position = origin;
@@ -532,6 +540,7 @@ namespace ProjectPVP.Gameplay
             }
 
             DisableFlightTrail();
+            DisableRecoverableCue();
         }
 
         // ── State transitions ─────────────────────────────────────────────────────
@@ -558,6 +567,14 @@ namespace ProjectPVP.Gameplay
             }
 
             DisableFlightTrail();
+            if (collectable)
+            {
+                EnableRecoverableCue();
+            }
+            else
+            {
+                DisableRecoverableCue();
+            }
             ApplyCollectibleHitbox();
         }
 
@@ -583,6 +600,7 @@ namespace ProjectPVP.Gameplay
             }
 
             DisableFlightTrail();
+            EnableRecoverableCue();
             ApplyCollectibleHitbox();
         }
 
@@ -617,6 +635,7 @@ namespace ProjectPVP.Gameplay
             }
 
             DisableFlightTrail();
+            DisableRecoverableCue();
             UnregisterActiveProjectile(this);
             return true;
         }
@@ -802,7 +821,72 @@ namespace ProjectPVP.Gameplay
             }
 
             DisableFlightTrail();
+            EnableRecoverableCue();
             ApplyCollectibleHitbox();
+        }
+
+        private void EnableRecoverableCue()
+        {
+            if (spriteRenderer == null)
+            {
+                spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            }
+
+            if (spriteRenderer == null)
+            {
+                _recoverableCueActive = false;
+                return;
+            }
+
+            if (!_recoverableCueActive)
+            {
+                _recoverableCueBaseColor = spriteRenderer.color;
+                _hasRecoverableCueBaseColor = true;
+            }
+
+            _recoverableCueActive = true;
+            spriteRenderer.color = RecoverableCueColor;
+        }
+
+        private void DisableRecoverableCue()
+        {
+            if (!_recoverableCueActive)
+            {
+                CaptureRecoverableCueBaseColor();
+                return;
+            }
+
+            _recoverableCueActive = false;
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            if (_hasRecoverableCueBaseColor)
+            {
+                spriteRenderer.color = _recoverableCueBaseColor;
+            }
+        }
+
+        private void CaptureRecoverableCueBaseColor()
+        {
+            if (_recoverableCueActive)
+            {
+                return;
+            }
+
+            if (spriteRenderer == null)
+            {
+                spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            }
+
+            if (spriteRenderer == null)
+            {
+                return;
+            }
+
+            _recoverableCueBaseColor = spriteRenderer.color;
+            _hasRecoverableCueBaseColor = true;
         }
 
         private void EnableFlightTrail()

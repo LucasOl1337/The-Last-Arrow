@@ -459,6 +459,9 @@ namespace ProjectPVP.Tests.Editor
         {
             GameObject root = new GameObject("projectile_sever_melee");
             ProjectileController controller = root.AddComponent<ProjectileController>();
+            SpriteRenderer spriteRenderer = root.AddComponent<SpriteRenderer>();
+            controller.spriteRenderer = spriteRenderer;
+            spriteRenderer.color = new Color(0.8f, 0.8f, 0.8f, 1f);
 
             try
             {
@@ -485,6 +488,8 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(controller.IsCollectible, Is.True);
                 Assert.That(controller.SourceObject, Is.Null);
                 Assert.That(controller.CurrentVelocity.y, Is.LessThanOrEqualTo(-120f));
+                Assert.That(controller.RecoverableCueActive, Is.True);
+                Assert.That(spriteRenderer.color, Is.Not.EqualTo(new Color(0.8f, 0.8f, 0.8f, 1f)));
             }
             finally
             {
@@ -500,6 +505,8 @@ namespace ProjectPVP.Tests.Editor
 
             GameObject root = new GameObject("projectile_disarm_drop");
             ProjectileController controller = root.AddComponent<ProjectileController>();
+            SpriteRenderer spriteRenderer = root.AddComponent<SpriteRenderer>();
+            controller.spriteRenderer = spriteRenderer;
             GameObject source = new GameObject("projectile_disarm_source");
 
             try
@@ -527,6 +534,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(controller.IsCollectible, Is.True);
                 Assert.That(SourceObjectField.GetValue(controller), Is.Null);
                 Assert.That(controller.CurrentVelocity.y, Is.EqualTo(-40f).Within(0.001f));
+                Assert.That(controller.RecoverableCueActive, Is.True);
             }
             finally
             {
@@ -579,10 +587,131 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(((BoxCollider2D)HitColliderField.GetValue(controller)).enabled, Is.False);
                 Assert.That(controller.CurrentVelocity, Is.EqualTo(Vector2.zero));
                 Assert.That(controller.BuildAiArenaProjectileSnapshot().isValid, Is.False);
+                Assert.That(controller.RecoverableCueActive, Is.False);
             }
             finally
             {
                 Object.DestroyImmediate(source);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void Stick_EnablesRecoverableCueOnlyForCollectibleArrows()
+        {
+            GameObject collectibleRoot = new GameObject("projectile_collectible_cue");
+            GameObject spentRoot = new GameObject("projectile_spent_cue");
+            ProjectileController collectible = collectibleRoot.AddComponent<ProjectileController>();
+            ProjectileController spent = spentRoot.AddComponent<ProjectileController>();
+            SpriteRenderer collectibleSprite = collectibleRoot.AddComponent<SpriteRenderer>();
+            SpriteRenderer spentSprite = spentRoot.AddComponent<SpriteRenderer>();
+            collectible.spriteRenderer = collectibleSprite;
+            spent.spriteRenderer = spentSprite;
+
+            try
+            {
+                collectible.Launch(
+                    sourceObject: null,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: Vector2.zero,
+                    inheritFactor: 0f,
+                    overrideSprite: null);
+                spent.Launch(
+                    sourceObject: null,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: Vector2.zero,
+                    inheritFactor: 0f,
+                    overrideSprite: null);
+
+                collectible.Stick(true);
+                spent.Stick(false);
+
+                Assert.That(collectible.RecoverableCueActive, Is.True);
+                Assert.That(spent.RecoverableCueActive, Is.False);
+                Assert.That(collectibleSprite.color, Is.Not.EqualTo(Color.white));
+                Assert.That(spentSprite.color, Is.EqualTo(Color.white));
+            }
+            finally
+            {
+                Object.DestroyImmediate(collectibleRoot);
+                Object.DestroyImmediate(spentRoot);
+            }
+        }
+
+        [Test]
+        public void LaunchAndTryConsumeCollectible_ClearRecoverableCue()
+        {
+            GameObject root = new GameObject("projectile_recoverable_cue_reset");
+            ProjectileController controller = root.AddComponent<ProjectileController>();
+            SpriteRenderer spriteRenderer = root.AddComponent<SpriteRenderer>();
+            controller.spriteRenderer = spriteRenderer;
+            Color baseColor = new Color(0.75f, 0.8f, 0.9f, 1f);
+            spriteRenderer.color = baseColor;
+
+            try
+            {
+                controller.Launch(
+                    sourceObject: null,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: Vector2.zero,
+                    inheritFactor: 0f,
+                    overrideSprite: null);
+                controller.Stick(true);
+                Assert.That(controller.RecoverableCueActive, Is.True);
+
+                Assert.That(controller.TryConsumeCollectible(), Is.True);
+
+                Assert.That(controller.RecoverableCueActive, Is.False);
+                Assert.That(spriteRenderer.color, Is.EqualTo(baseColor));
+
+                controller.Launch(
+                    sourceObject: null,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: Vector2.zero,
+                    inheritFactor: 0f,
+                    overrideSprite: null);
+
+                Assert.That(controller.RecoverableCueActive, Is.False);
+                Assert.That(spriteRenderer.color, Is.EqualTo(baseColor));
+            }
+            finally
+            {
                 Object.DestroyImmediate(root);
             }
         }
