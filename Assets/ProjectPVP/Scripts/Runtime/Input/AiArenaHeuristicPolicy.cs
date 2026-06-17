@@ -54,14 +54,20 @@ namespace ProjectPVP.Input
             bool useMelee = false;
             bool useUltimate = false;
             bool useDash = false;
-            bool holdProjectileParry = false;
+            bool holdProjectileDefense = false;
 
             if (semantics.incomingProjectileThreat)
             {
-                if (self.canParryProjectile && semantics.incomingProjectileTime <= 0.18f)
+                if (self.canBlockProjectiles)
                 {
                     axis = 0f;
-                    holdProjectileParry = true;
+                    holdProjectileDefense = true;
+                    decision.debugSummary = "AI PROJECTILE BLOCK";
+                }
+                else if (self.canParryProjectile && semantics.incomingProjectileTime <= 0.18f)
+                {
+                    axis = 0f;
+                    holdProjectileDefense = true;
                     decision.debugSummary = "AI PARRY HOLD";
                 }
                 else if (semantics.shouldDashEvade && canDash)
@@ -86,7 +92,7 @@ namespace ProjectPVP.Input
                 decision.debugSummary = "AI COLLECT ARROW";
             }
 
-            if (!prioritizeCollection && !useDash && !useJump && !holdProjectileParry && semantics.targetUsingUltimate)
+            if (!prioritizeCollection && !useDash && !useJump && !holdProjectileDefense && semantics.targetUsingUltimate)
             {
                 if (canDash)
                 {
@@ -100,7 +106,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!prioritizeCollection && !useDash && !useJump && !holdProjectileParry && semantics.shouldPunish)
+            if (!prioritizeCollection && !useDash && !useJump && !holdProjectileDefense && semantics.shouldPunish)
             {
                 if (canUltimate && semantics.targetInUltimateRange && !semantics.incomingProjectileThreat)
                 {
@@ -121,7 +127,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!prioritizeCollection && !useDash && !useJump && !useUltimate && !useMelee && !holdProjectileParry)
+            if (!prioritizeCollection && !useDash && !useJump && !useUltimate && !useMelee && !holdProjectileDefense)
             {
                 if (semantics.shouldAntiAir && canShoot)
                 {

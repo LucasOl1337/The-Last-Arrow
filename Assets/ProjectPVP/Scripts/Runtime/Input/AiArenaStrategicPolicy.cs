@@ -213,31 +213,40 @@ namespace ProjectPVP.Input
 
             if (semantics.incomingProjectileThreat)
             {
-                switch (NormalizeAntiProjectile(intent.antiProjectile))
+                if (self.canBlockProjectiles)
                 {
-                    case "dash":
-                        if (self.dashCooldownLeft <= 0.01f && !self.isDashing)
-                        {
+                    decision.moveAxis = 0f;
+                    ClearCombatActions(decision);
+                    decision.debugSummary = "AI PROJECTILE BLOCK";
+                }
+                else
+                {
+                    switch (NormalizeAntiProjectile(intent.antiProjectile))
+                    {
+                        case "dash":
+                            if (self.dashCooldownLeft <= 0.01f && !self.isDashing)
+                            {
+                                ClearCombatActions(decision);
+                                decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDashAxis(semantics, awayFromTarget);
+                                decision.dashPrimaryPressed = true;
+                                decision.debugSummary = "AI PROJECTILE DASH";
+                            }
+                            break;
+                        case "jump":
+                            if (self.isGrounded)
+                            {
+                                ClearCombatActions(decision);
+                                decision.jumpPressed = true;
+                                decision.jumpHeld = true;
+                                decision.debugSummary = "AI PROJECTILE JUMP";
+                            }
+                            break;
+                        case "parry_prefer":
+                            decision.moveAxis = 0f;
                             ClearCombatActions(decision);
-                            decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDashAxis(semantics, awayFromTarget);
-                            decision.dashPrimaryPressed = true;
-                            decision.debugSummary = "AI PROJECTILE DASH";
-                        }
-                        break;
-                    case "jump":
-                        if (self.isGrounded)
-                        {
-                            ClearCombatActions(decision);
-                            decision.jumpPressed = true;
-                            decision.jumpHeld = true;
-                            decision.debugSummary = "AI PROJECTILE JUMP";
-                        }
-                        break;
-                    case "parry_prefer":
-                        decision.moveAxis = 0f;
-                        ClearCombatActions(decision);
-                        decision.debugSummary = "AI PARRY HOLD";
-                        break;
+                            decision.debugSummary = "AI PARRY HOLD";
+                            break;
+                    }
                 }
             }
 
