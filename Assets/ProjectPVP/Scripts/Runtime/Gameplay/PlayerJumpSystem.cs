@@ -18,7 +18,6 @@ namespace ProjectPVP.Gameplay
         private const float WallImpactFallSpeed = 180f;
         private const float WallJumpDetachIgnoreDuration = 0.14f;
         private const float JumpStartAnimationDuration = 0.12f;
-        private const float GroundGraceVerticalVelocityThreshold = 20f;
 
         private readonly PlayerContext _context;
         private readonly PlayerStatResolver _statResolver;
@@ -46,7 +45,7 @@ namespace ProjectPVP.Gameplay
                 return;
             }
 
-            if (IsEffectivelyGrounded())
+            if (_context.isGrounded)
             {
                 if (velocity.y < 0f)
                 {
@@ -186,21 +185,6 @@ namespace ProjectPVP.Gameplay
 
             float duration = _statResolver.ResolveActionDuration("jump_start", JumpStartAnimationDuration);
             _context.jumpStartTimeLeft = duration;
-        }
-
-        public bool IsEffectivelyGrounded()
-        {
-            if (_context.isGrounded)
-            {
-                return true;
-            }
-
-            if (_context.coyoteTimeLeft <= 0f)
-            {
-                return false;
-            }
-
-            return _context.body == null || _context.body.linearVelocity.y <= GroundGraceVerticalVelocityThreshold;
         }
 
         public void TryCheckHeadStomp()

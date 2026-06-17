@@ -1418,6 +1418,39 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void HandleJumpAndGravity_AppliesGravityDuringCoyoteWithoutBufferedJump()
+        {
+            Assert.That(AwakeMethod, Is.Not.Null);
+            Assert.That(JumpSystemField, Is.Not.Null);
+            Assert.That(ContextField, Is.Not.Null);
+
+            GameObject root = new GameObject("coyote_gravity_player");
+
+            try
+            {
+                PlayerController player = CreatePlayer(root, 1, null);
+                InvokeAwake(player);
+
+                PlayerJumpSystem jumpSystem = (PlayerJumpSystem)JumpSystemField.GetValue(player);
+                PlayerContext context = (PlayerContext)ContextField.GetValue(player);
+                context.isGrounded = false;
+                context.coyoteTimeLeft = 0.12f;
+                context.jumpBufferLeft = 0f;
+                player.body.linearVelocity = Vector2.zero;
+
+                Vector2 velocity = Vector2.zero;
+                jumpSystem.HandleJumpAndGravity(new PlayerInputFrame { jumpHeld = true }, 0.02f, ref velocity);
+
+                Assert.That(velocity.y, Is.LessThan(0f));
+                Assert.That(context.coyoteTimeLeft, Is.EqualTo(0.12f).Within(0.0001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void HandleJumpAndGravity_PreservesWallNormalForGraceWallJumpAfterWallDetach()
         {
             Assert.That(AwakeMethod, Is.Not.Null);
