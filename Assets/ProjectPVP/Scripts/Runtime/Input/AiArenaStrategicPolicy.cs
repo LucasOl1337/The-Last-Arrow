@@ -15,13 +15,15 @@ namespace ProjectPVP.Input
             AiArenaSemanticObservation semantics = snapshot.semantics;
             AiArenaCombatantObservation self = snapshot.self ?? new AiArenaCombatantObservation();
             AiArenaDecisionEnvelope decision = baseline;
-            bool canShoot = self.arrows > 0 && self.shootCooldownLeft <= 0.01f;
+            AiArenaCombatantObservation target = snapshot.opponents != null && snapshot.opponents.Count > 0 && snapshot.opponents[0] != null
+                ? snapshot.opponents[0]
+                : new AiArenaCombatantObservation();
+            bool targetCanParryProjectile = target.canParryProjectile && !target.isDead;
+            bool canShoot = self.arrows > 0 && self.shootCooldownLeft <= 0.01f && !targetCanParryProjectile;
             bool canMelee = self.meleeCooldownLeft <= 0.01f && !self.isMeleeActive;
             bool canUltimate = self.ultimateCooldownLeft <= 0.01f && !self.isUltimateActive;
             bool canDash = self.dashCooldownLeft <= 0.01f && !self.isDashing;
-            int targetArrows = snapshot.opponents != null && snapshot.opponents.Count > 0 && snapshot.opponents[0] != null
-                ? Mathf.Max(0, snapshot.opponents[0].arrows)
-                : 0;
+            int targetArrows = Mathf.Max(0, target.arrows);
             int arrowLead = self.arrows - targetArrows;
             bool prioritizeCollection = semantics.shouldCollectProjectile
                 && (self.arrows <= 1 || targetArrows > self.arrows);

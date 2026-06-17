@@ -1038,6 +1038,51 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void LocalTransport_DoesNotShootIntoProjectileParryWindow()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 3,
+                    shootCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        canParryProjectile = true,
+                        position = new Vector2(320f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    horizontalDistance = 320f,
+                    verticalDistance = 0f,
+                    targetInShootRange = true,
+                    selfHasArrows = true,
+                    shouldZone = true,
+                },
+            };
+
+            AiArenaLocalTransport transport = new AiArenaLocalTransport();
+            AiArenaTransportResult result = transport.RequestDecisionJson(JsonUtility.ToJson(snapshot), 25);
+            AiArenaDecisionEnvelope decision = JsonUtility.FromJson<AiArenaDecisionEnvelope>(result.ResponseJson);
+
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+        }
+
+        [Test]
         public void StrategicPolicy_UsesCodexZoneIntentToPreferShooting()
         {
             var snapshot = new AiArenaSnapshotEnvelope
@@ -1092,6 +1137,66 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(decision.shootPressed, Is.True);
             Assert.That(decision.moveAxis, Is.GreaterThan(0f));
             Assert.That(decision.meleePressed, Is.False);
+        }
+
+        [Test]
+        public void StrategicPolicy_ZoneIntentDoesNotShootIntoProjectileParryWindow()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 3,
+                    shootCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        canParryProjectile = true,
+                        position = new Vector2(420f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 420f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = true,
+                    selfHasArrows = true,
+                    shouldZone = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "zone",
+                preferredRange = 360,
+                shootBias = 0.95f,
+                advanceBias = 0.5f,
+                meleeBias = 0.1f,
+                dashBias = 0.1f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = true,
+                punishRecovery = true,
+                cornerEscapeBias = 0.5f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "respect projectile parry",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
         }
 
         [Test]

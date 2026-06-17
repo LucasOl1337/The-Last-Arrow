@@ -23,11 +23,12 @@ namespace ProjectPVP.Input
 
             AiArenaSemanticObservation semantics = snapshot.semantics ?? new AiArenaSemanticObservation();
             AiArenaCombatantObservation self = snapshot.self ?? new AiArenaCombatantObservation();
-            AiArenaCombatantObservation target = snapshot.opponents != null && snapshot.opponents.Count > 0
+            AiArenaCombatantObservation target = snapshot.opponents != null && snapshot.opponents.Count > 0 && snapshot.opponents[0] != null
                 ? snapshot.opponents[0]
                 : new AiArenaCombatantObservation();
             int selfArrows = Mathf.Max(0, self.arrows);
             int targetArrows = Mathf.Max(0, target.arrows);
+            bool targetCanParryProjectile = target.canParryProjectile && !target.isDead;
 
             if (!semantics.hasTarget || self.isDead)
             {
@@ -36,7 +37,7 @@ namespace ProjectPVP.Input
                 return decision;
             }
 
-            bool canShoot = semantics.selfHasArrows && self.shootCooldownLeft <= 0.01f;
+            bool canShoot = semantics.selfHasArrows && self.shootCooldownLeft <= 0.01f && !targetCanParryProjectile;
             bool canMelee = self.meleeCooldownLeft <= 0.01f && !self.isMeleeActive;
             bool canDash = self.dashCooldownLeft <= 0.01f && !self.isDashing;
             bool canUltimate = self.ultimateCooldownLeft <= 0.01f && !self.isUltimateActive;
