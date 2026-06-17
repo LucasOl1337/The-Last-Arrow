@@ -36,7 +36,7 @@ namespace ProjectPVP.Input
             float distanceError = semantics.horizontalDistance - preferredRange;
             bool escapingCorner = false;
 
-            if (prioritizeCollection && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate)
+            if (prioritizeCollection && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !semantics.targetUsingRanged)
             {
                 decision.shootPressed = false;
                 decision.shootHeld = false;
@@ -239,6 +239,24 @@ namespace ProjectPVP.Input
                 decision.moveAxis = awayFromTarget;
                 decision.dashPrimaryPressed = canDash;
                 decision.debugSummary = "AI EVADE MELEE";
+            }
+
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && semantics.targetUsingRanged && !semantics.targetVulnerable)
+            {
+                ClearCombatActions(decision);
+                if (canShoot && semantics.targetInShootRange)
+                {
+                    decision.moveAxis = Mathf.Clamp(0.2f * towardTarget, -1f, 1f);
+                    decision.shootPressed = true;
+                    decision.shootHeld = true;
+                    decision.debugSummary = "AI RANGED INTERRUPT";
+                }
+                else
+                {
+                    decision.moveAxis = awayFromTarget;
+                    decision.dashPrimaryPressed = canDash;
+                    decision.debugSummary = "AI EVADE RANGED";
+                }
             }
 
             if (semantics.incomingProjectileThreat)
