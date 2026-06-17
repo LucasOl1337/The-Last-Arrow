@@ -184,7 +184,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (intent.antiAir && semantics.targetAbove && semantics.targetInShootRange && self.arrows > 0 && !prioritizeCollection)
+            if (intent.antiAir && semantics.targetAbove && semantics.targetInShootRange && canShoot && !prioritizeCollection)
             {
                 decision.shootPressed = true;
                 decision.shootHeld = true;

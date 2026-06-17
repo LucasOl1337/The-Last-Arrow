@@ -1305,6 +1305,126 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_AntiAirDoesNotBypassProjectileDefense()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 3,
+                    shootCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        canParryProjectile = true,
+                        position = new Vector2(360f, 120f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 360f,
+                    verticalDistance = 120f,
+                    targetDirection = new Vector2(3f, 1f).normalized,
+                    predictedTargetDirection = new Vector2(3f, 1f).normalized,
+                    targetAbove = true,
+                    targetInShootRange = true,
+                    selfHasArrows = true,
+                    shouldZone = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "zone",
+                preferredRange = 360,
+                shootBias = 0.2f,
+                advanceBias = 0.5f,
+                meleeBias = 0.1f,
+                dashBias = 0.1f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = true,
+                punishRecovery = false,
+                cornerEscapeBias = 0.5f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "respect airborne parry",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+        }
+
+        [Test]
+        public void StrategicPolicy_AntiAirRespectsShootCooldown()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 3,
+                    shootCooldownLeft = 0.2f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        position = new Vector2(360f, 120f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 360f,
+                    verticalDistance = 120f,
+                    targetDirection = new Vector2(3f, 1f).normalized,
+                    predictedTargetDirection = new Vector2(3f, 1f).normalized,
+                    targetAbove = true,
+                    targetInShootRange = true,
+                    selfHasArrows = true,
+                    shouldZone = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "zone",
+                preferredRange = 360,
+                shootBias = 0.2f,
+                advanceBias = 0.5f,
+                meleeBias = 0.1f,
+                dashBias = 0.1f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = true,
+                punishRecovery = false,
+                cornerEscapeBias = 0.5f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "respect anti air cooldown",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+        }
+
+        [Test]
         public void StrategicPolicy_ZoneIntentAtPreferredRangeKeepsForwardDrift()
         {
             var snapshot = new AiArenaSnapshotEnvelope
