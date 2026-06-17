@@ -2254,6 +2254,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(context.dashVelocity.x, Is.GreaterThan(0f));
                 Assert.That(context.dashVelocity.y, Is.GreaterThan(0f));
                 Assert.That(context.dashVelocity.y, Is.LessThan(context.dashVelocity.x));
+                Assert.That(context.dashVelocity.magnitude, Is.EqualTo(definition.dashDistance / definition.dashDuration).Within(0.0001f));
                 Assert.That(context.dashTimeLeft, Is.EqualTo(definition.dashDuration).Within(0.0001f));
             }
             finally

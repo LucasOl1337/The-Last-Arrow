@@ -174,12 +174,25 @@ namespace ProjectPVP.Gameplay
                 snappedDirection = new Vector2(facingDirection, 0f);
             }
 
-            if (snappedDirection.y > 0f)
+            return ApplyUpwardDashMultiplier(snappedDirection);
+        }
+
+        private Vector2 ApplyUpwardDashMultiplier(Vector2 direction)
+        {
+            if (direction.y <= 0f)
             {
-                snappedDirection.y *= Mathf.Max(0f, _statResolver.ResolveDashUpwardMultiplier());
+                return direction;
             }
 
-            return snappedDirection;
+            float originalMagnitude = direction.magnitude;
+            direction.y *= Mathf.Max(0f, _statResolver.ResolveDashUpwardMultiplier());
+
+            if (Mathf.Abs(direction.x) > 0.01f && direction.sqrMagnitude > 0.01f)
+            {
+                direction = direction.normalized * originalMagnitude;
+            }
+
+            return direction;
         }
 
         public void ApplyTransientVelocity(ref Vector2 velocity, Vector2 previousVelocity, Vector2 currentVelocity, ref Vector2 lastVelocity)
