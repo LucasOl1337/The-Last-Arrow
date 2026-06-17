@@ -32,6 +32,7 @@ namespace ProjectPVP.Input
             float awayFromTarget = -towardTarget;
             float preferredRange = Mathf.Max(80f, intent.preferredRange);
             float distanceError = semantics.horizontalDistance - preferredRange;
+            bool escapingCorner = false;
 
             if (prioritizeCollection && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate)
             {
@@ -92,21 +93,28 @@ namespace ProjectPVP.Input
                         break;
                     case "retreat":
                     case "stabilize":
-                        decision.moveAxis = semantics.horizontalDistance < preferredRange * 0.75f
-                            ? awayFromTarget * Mathf.Lerp(0.45f, 1f, Mathf.Clamp01(intent.cornerEscapeBias))
-                            : semantics.horizontalDistance > preferredRange * 1.15f
-                                ? towardTarget * Mathf.Lerp(0.2f, 0.55f, Mathf.Clamp01(intent.advanceBias))
-                                : 0f;
-                        decision.meleePressed = canMelee && semantics.targetInMeleeRange && (semantics.targetVulnerable || semantics.shouldPunish) && intent.meleeBias >= 0.22f;
-                        decision.ultimatePressed = false;
-                        if (!decision.meleePressed && canShoot && semantics.targetInShootRange && (intent.shootBias >= 0.2f || semantics.horizontalDistance > preferredRange * 0.6f))
+                        if (semantics.selfCornered && semantics.horizontalDistance < preferredRange * 0.75f)
                         {
-                            decision.shootPressed = true;
-                            decision.shootHeld = true;
+                            ClearCombatActions(decision);
+                            decision.moveAxis = towardTarget * Mathf.Lerp(0.55f, 1f, Mathf.Clamp01(intent.cornerEscapeBias));
+                            decision.dashPrimaryPressed = canDash && semantics.horizontalDistance < preferredRange * 0.65f;
+                            decision.debugSummary = "AI CORNER ESCAPE";
+                            escapingCorner = true;
                         }
-                        if (semantics.selfCornered && canDash && semantics.horizontalDistance < preferredRange * 0.65f)
+                        else
                         {
-                            decision.dashPrimaryPressed = true;
+                            decision.moveAxis = semantics.horizontalDistance < preferredRange * 0.75f
+                                ? awayFromTarget * Mathf.Lerp(0.45f, 1f, Mathf.Clamp01(intent.cornerEscapeBias))
+                                : semantics.horizontalDistance > preferredRange * 1.15f
+                                    ? towardTarget * Mathf.Lerp(0.2f, 0.55f, Mathf.Clamp01(intent.advanceBias))
+                                    : 0f;
+                            decision.meleePressed = canMelee && semantics.targetInMeleeRange && (semantics.targetVulnerable || semantics.shouldPunish) && intent.meleeBias >= 0.22f;
+                            decision.ultimatePressed = false;
+                            if (!decision.meleePressed && canShoot && semantics.targetInShootRange && (intent.shootBias >= 0.2f || semantics.horizontalDistance > preferredRange * 0.6f))
+                            {
+                                decision.shootPressed = true;
+                                decision.shootHeld = true;
+                            }
                         }
                         break;
                     case "punish":
@@ -137,7 +145,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection)
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !escapingCorner)
             {
                 if (targetArrows <= 0 && self.arrows > 0)
                 {
@@ -189,6 +197,7 @@ namespace ProjectPVP.Input
                 && semantics.targetInShootRange
                 && canShoot
                 && !prioritizeCollection
+                && !escapingCorner
                 && !semantics.incomingProjectileThreat
                 && !decision.meleePressed
                 && !decision.ultimatePressed
@@ -199,7 +208,7 @@ namespace ProjectPVP.Input
                 decision.shootHeld = true;
             }
 
-            if (!prioritizeCollection && !decision.shootPressed && !decision.meleePressed && !decision.ultimatePressed && !decision.dashPrimaryPressed)
+            if (!prioritizeCollection && !escapingCorner && !decision.shootPressed && !decision.meleePressed && !decision.ultimatePressed && !decision.dashPrimaryPressed)
             {
                 if (baseline.ultimatePressed && canUltimate && semantics.targetInUltimateRange)
                 {

@@ -2228,6 +2228,72 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_StabilizeEscapesCornerTowardCenter()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 0,
+                    dashCooldownLeft = 0f,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 2,
+                        position = new Vector2(120f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 120f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = true,
+                    selfHasArrows = false,
+                    shouldRetreat = true,
+                    selfCornered = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "stabilize",
+                preferredRange = 360,
+                shootBias = 0.9f,
+                advanceBias = 0.1f,
+                meleeBias = 0.9f,
+                dashBias = 0.8f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = false,
+                punishRecovery = false,
+                cornerEscapeBias = 0.7f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "escape left corner",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI CORNER ESCAPE"));
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+        }
+
+        [Test]
         public void StrategicPolicy_UsesLastArrowPressureToShootWhenTargetIsOutOfAmmo()
         {
             var snapshot = new AiArenaSnapshotEnvelope

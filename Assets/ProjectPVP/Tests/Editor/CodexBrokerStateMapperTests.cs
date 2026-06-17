@@ -406,6 +406,56 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_TreatsCornerEscapeAsPressureResponse()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfCornered = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI CORNER ESCAPE",
+                moveAxis = 1f,
+                dashPrimaryPressed = true,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("corner pressure detected"));
+            Assert.That(feedback, Does.Contain("AI CORNER ESCAPE"));
+            Assert.That(feedback, Does.Not.Contain("missed corner escape"));
+        }
+
+        [Test]
+        public void BotFeedbackBuilder_ReportsMissedCornerEscapeWhenDecisionMovesIntoWall()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfCornered = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI RETREAT",
+                moveAxis = -1f,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("missed corner escape"));
+            Assert.That(feedback, Does.Contain("move toward center"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_ReportsArrowRecoveryAdvice()
         {
             var snapshot = new AiArenaSnapshotEnvelope

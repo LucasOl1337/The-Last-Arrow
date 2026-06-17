@@ -213,6 +213,11 @@ namespace ProjectPVP.Input
 
             if (semantics.selfCornered)
             {
+                if (!IsCornerEscapeDecision(semantics, decision))
+                {
+                    return "missed corner escape; action " + action + "; improve: move toward center before committing.";
+                }
+
                 return "corner pressure detected; action " + action + "; improve: escape corner before committing.";
             }
 
@@ -320,6 +325,33 @@ namespace ProjectPVP.Input
         private static bool IsMeleeEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
         {
             return IsNonAttackingEscapeDecision(semantics, decision);
+        }
+
+        private static bool IsCornerEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
+        {
+            if (semantics == null || decision == null)
+            {
+                return false;
+            }
+
+            if (IsAttackDecision(decision))
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(decision.debugSummary)
+                && (decision.debugSummary.IndexOf("corner escape", StringComparison.OrdinalIgnoreCase) >= 0
+                    || decision.debugSummary.IndexOf("escape corner", StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                return true;
+            }
+
+            if (Mathf.Abs(semantics.targetDirection.x) > 0.1f && Mathf.Abs(decision.moveAxis) > 0.1f)
+            {
+                return Mathf.Sign(decision.moveAxis) == Mathf.Sign(semantics.targetDirection.x);
+            }
+
+            return false;
         }
 
         private static bool IsNonAttackingEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
