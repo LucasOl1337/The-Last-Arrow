@@ -54,6 +54,7 @@ def default_private_profile() -> dict[str, Any]:
             "cornerDeaths": 0,
             "roundResetMistakes": 0,
             "closeRangeDeaths": 0,
+            "movementStalls": 0,
         },
     }
 
@@ -117,8 +118,17 @@ class MemoryTracker:
 
         payload.setdefault("updatedAt", now_iso())
         payload.setdefault("observationCount", 0)
-        payload.setdefault("opponentPatterns", default_private_profile()["opponentPatterns"])
-        payload.setdefault("selfFindings", default_private_profile()["selfFindings"])
+        defaults = default_private_profile()
+        payload.setdefault("opponentPatterns", defaults["opponentPatterns"])
+        payload.setdefault("selfFindings", defaults["selfFindings"])
+        if not isinstance(payload.get("opponentPatterns"), dict):
+            payload["opponentPatterns"] = defaults["opponentPatterns"]
+        if not isinstance(payload.get("selfFindings"), dict):
+            payload["selfFindings"] = defaults["selfFindings"]
+        for key, value in defaults["opponentPatterns"].items():
+            payload["opponentPatterns"].setdefault(key, value)
+        for key, value in defaults["selfFindings"].items():
+            payload["selfFindings"].setdefault(key, value)
         self._save_private_profile(payload)
         return payload
 
@@ -317,6 +327,7 @@ class MemoryTracker:
         events = prompt.get("events") or []
         previous_target = ((previous or {}).get("promptState") or {}).get("target") or {}
         patterns = self.profile["opponentPatterns"]
+        findings = self.profile["selfFindings"]
 
         self.profile["observationCount"] = safe_int(self.profile.get("observationCount"), 0) + 1
         horizontal_distance = abs(safe_float(arena.get("horizontalDistance"), 0.0))
@@ -338,6 +349,22 @@ class MemoryTracker:
 
         self._observe_bot_feedback(current, previous)
 
+        if self._has_new_memory_marker("movement_stalled", current, previous):
+            findings["movementStalls"] = safe_int(findings.get("movementStalls"), 0) + 1
+            feedback = current.get("executorFeedback") or {}
+            intent_mode = compact_line(str(feedback.get("intentMode", "") or ((current.get("lastIntent") or {}).get("mode", "")) or "unknown"))
+            self._append_jsonl(
+                self.events_log,
+                {
+                    "timestamp": now_iso(),
+                    "type": "movement_stalled",
+                    "frame": safe_int(current.get("frame"), -1),
+                    "sessionId": str(current.get("sessionId", "") or ""),
+                    "botId": self.bot_id,
+                    "intentMode": intent_mode,
+                },
+            )
+
         if not bool(target.get("isGrounded", True)) and bool(previous_target.get("isGrounded", True)) and target_velocity_y > 0.1:
             patterns["jumpEscapes"] = safe_int(patterns.get("jumpEscapes"), 0) + 1
         if bool(target.get("isDashing")) and not bool(previous_target.get("isDashing")):
@@ -350,6 +377,24 @@ class MemoryTracker:
             patterns["vulnerabilityWindows"] = safe_int(patterns.get("vulnerabilityWindows"), 0) + 1
 
         self._save_private_profile(self.profile)
+
+    @staticmethod
+    def _has_new_memory_marker(marker: str, current: dict[str, Any], previous: dict[str, Any] | None) -> bool:
+        current_prompt = current.get("promptState") or {}
+        previous_prompt = ((previous or {}).get("promptState") or {})
+        current_markers = set(str(item) for item in (current_prompt.get("events") or []))
+        current_markers.update(str(item) for item in (current_prompt.get("memory") or []))
+        if marker not in current_markers:
+            return False
+
+        current_session = str(current.get("sessionId", "") or "")
+        previous_session = str((previous or {}).get("sessionId", "") or "")
+        if current_session != previous_session:
+            return True
+
+        previous_markers = set(str(item) for item in (previous_prompt.get("events") or []))
+        previous_markers.update(str(item) for item in (previous_prompt.get("memory") or []))
+        return marker not in previous_markers
 
     def _observe_bot_feedback(self, current: dict[str, Any], previous: dict[str, Any] | None) -> None:
         feedback = current.get("executorFeedback") or {}
@@ -973,6 +1018,7 @@ class MemoryTracker:
             ("Jump escapes", str(safe_int(patterns.get("jumpEscapes"), 0))),
             ("Dash escapes", str(safe_int(patterns.get("dashEscapes"), 0))),
             ("Deaths logged", str(safe_int(findings.get("deathsLogged"), 0))),
+            ("Move stalls", str(safe_int(findings.get("movementStalls"), 0))),
         ]
 
     def latest_death_rows(self) -> list[tuple[str, str]]:
@@ -1035,6 +1081,8 @@ class MemoryTracker:
             hints.append("Ja houve erro em round reset. Convem bloquear intents ofensivos nesse estado antes do prompt.")
         if safe_int(findings.get("projectileDeaths"), 0) >= 2:
             hints.append("As mortes recentes mostram problema com projetil. Vale subir o peso de defesa a distancia e leitura de ETA.")
+        if safe_int(findings.get("movementStalls"), 0) >= 1:
+            hints.append("Ja houve stall de movimento. Convem variar rota, pular, dashear ou recuar em vez de segurar um eixo sem ganho.")
 
         latest_feedback = getattr(self, "latest_bot_feedback", None) or {}
         latest_feedback_text = compact_line(str(latest_feedback.get("feedback", "") or ""))
@@ -1079,6 +1127,8 @@ class MemoryTracker:
             focus_points.append("Recent deaths came from not respecting projectile threat.")
         if safe_int(findings.get("roundResetMistakes"), 0) >= 1:
             focus_points.append("A prior death happened during round-reset context; do not force offense there.")
+        if safe_int(findings.get("movementStalls"), 0) >= 1:
+            focus_points.append("Recent movement stalled; replan pathing instead of holding one axis.")
 
         latest_death = {}
         if death:
@@ -1162,6 +1212,7 @@ class MemoryTracker:
                 "cornerDeaths": safe_int(findings.get("cornerDeaths"), 0),
                 "roundResetMistakes": safe_int(findings.get("roundResetMistakes"), 0),
                 "closeRangeDeaths": safe_int(findings.get("closeRangeDeaths"), 0),
+                "movementStalls": safe_int(findings.get("movementStalls"), 0),
             },
             "latestDeathReview": latest_death,
             "latestRoundReview": latest_round_review,

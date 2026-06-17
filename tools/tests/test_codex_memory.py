@@ -145,6 +145,41 @@ class MemoryTrackerPersistenceTestCase(unittest.TestCase):
             self.assertEqual(1, len(events))
             self.assertEqual("new-session", events[0]["sessionId"])
 
+    def test_observe_records_movement_stall_memory_once(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            tracker = object.__new__(codex_memory.MemoryTracker)
+            tracker.bot_id = "bot-test"
+            tracker.profile = codex_memory.default_private_profile()
+            tracker.events_log = Path(temp_dir) / "bots" / "bot-test" / "events.jsonl"
+            tracker.private_profile_path = Path(temp_dir) / "bots" / "bot-test" / "current_opponent_profile.json"
+            current = {
+                "frame": 90,
+                "sessionId": "session-stall",
+                "executorFeedback": {
+                    "source": "codex_live",
+                    "intentMode": "pressure",
+                },
+                "promptState": {
+                    "arena": {"horizontalDistance": 240.0},
+                    "target": {"isGrounded": True, "velocity": {"y": 0.0}},
+                    "events": [],
+                    "memory": ["movement_stalled"],
+                },
+            }
+            next_frame = dict(current)
+            next_frame["frame"] = 91
+
+            tracker._observe(current, None)
+            tracker._observe(next_frame, current)
+
+            self.assertEqual(1, tracker.profile["selfFindings"]["movementStalls"])
+            events = [json.loads(line) for line in tracker.events_log.read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(1, len(events))
+            self.assertEqual("movement_stalled", events[0]["type"])
+            self.assertEqual("session-stall", events[0]["sessionId"])
+            self.assertEqual(90, events[0]["frame"])
+            self.assertEqual("pressure", events[0]["intentMode"])
+
     def test_smart_hints_and_prompt_payload_expose_latest_bot_feedback(self) -> None:
         tracker = object.__new__(codex_memory.MemoryTracker)
         tracker.bot_id = "bot-test"
@@ -171,6 +206,30 @@ class MemoryTrackerPersistenceTestCase(unittest.TestCase):
         self.assertTrue(any("Feedback recente do bot" in item for item in hints))
         self.assertEqual(tracker.latest_bot_feedback, payload["latestBotFeedback"])
         self.assertIn("corner pressure", " ".join(payload["focusPoints"]))
+
+    def test_smart_hints_and_prompt_payload_expose_movement_stalls(self) -> None:
+        tracker = object.__new__(codex_memory.MemoryTracker)
+        tracker.bot_id = "bot-test"
+        tracker.bot_profile = {"displayName": "Bot Test"}
+        tracker.profile = codex_memory.default_private_profile()
+        tracker.profile["selfFindings"]["movementStalls"] = 2
+        tracker.latest_bot_feedback = None
+        tracker.latest_death_review = None
+        tracker.latest_round_review = None
+        tracker.latest_series_review = None
+        tracker.latest_series_plan = None
+        tracker.latest_round_report_path = Path("latest_round_review.md")
+        tracker.latest_series_report_path = Path("latest_series_review.md")
+        tracker.latest_series_plan_path = Path("latest_series_plan.md")
+        tracker.global_knowledge = type("FakeKnowledge", (), {"summary_points": lambda self, limit=5: []})()
+        tracker._refresh_bot_profile = lambda: tracker.bot_profile
+
+        hints = tracker.smart_hints()
+        payload = tracker.prompt_payload()
+
+        self.assertTrue(any("stall de movimento" in item for item in hints))
+        self.assertEqual(2, payload["selfFindings"]["movementStalls"])
+        self.assertIn("movement stalled", " ".join(payload["focusPoints"]).lower())
 
 
 if __name__ == "__main__":
