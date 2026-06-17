@@ -2618,6 +2618,60 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void HeuristicPolicy_JumpsWhenImminentProjectileThreatAndDashIsUnavailable()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                    isGrounded = true,
+                    dashCooldownLeft = 0.35f,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                },
+                opponents = new List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 1,
+                        position = new Vector2(180f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 180f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = true,
+                    targetVulnerable = true,
+                    shouldPunish = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.12f,
+                    incomingProjectileDirection = Vector2.left,
+                    shouldDashEvade = true,
+                    selfHasArrows = true,
+                },
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaHeuristicPolicy.Decide(snapshot);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI JUMP EVADE"));
+            Assert.That(decision.jumpPressed, Is.True);
+            Assert.That(decision.jumpHeld, Is.True);
+            Assert.That(decision.dashPrimaryPressed, Is.False);
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+        }
+
+        [Test]
         public void HeuristicPolicy_HoldsActiveParryWindowAgainstImminentProjectile()
         {
             var snapshot = new AiArenaSnapshotEnvelope

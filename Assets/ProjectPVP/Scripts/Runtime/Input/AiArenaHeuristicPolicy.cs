@@ -78,7 +78,7 @@ namespace ProjectPVP.Input
                     useDash = true;
                     decision.debugSummary = "AI PARRY DASH";
                 }
-                else if (semantics.shouldJumpEvade)
+                else if (semantics.shouldJumpEvade || (semantics.shouldDashEvade && self.isGrounded))
                 {
                     axis = semantics.targetDirection.x >= 0f ? -0.35f : 0.35f;
                     useJump = true;
