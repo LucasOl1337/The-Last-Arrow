@@ -85,7 +85,7 @@ namespace ProjectPVP.Input
             semantics.shouldPunish = targetVulnerable
                 && (semantics.targetInMeleeRange || semantics.targetInUltimateRange || semantics.targetInShootRange);
             semantics.shouldAntiAir = semantics.targetAbove
-                && horizontalDistance <= shootRange
+                && semantics.targetInShootRange
                 && target.velocity.y <= 80f;
             semantics.shouldCollectProjectile = semantics.hasCollectibleProjectile
                 && (self.arrows <= 1 || semantics.shouldRetreat || selfCornered)

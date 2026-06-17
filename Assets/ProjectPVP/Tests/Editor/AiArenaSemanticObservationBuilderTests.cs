@@ -71,6 +71,32 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_DoesNotMarkAntiAirWhenTargetIsAboveShootTolerance()
+        {
+            AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
+            self.arrows = 3;
+
+            AiArenaControllerSnapshot target = BuildTarget(new Vector2(100f, 420f));
+            target.velocity = Vector2.zero;
+
+            AiArenaSemanticObservation semantics = AiArenaSemanticObservationBuilder.Build(
+                self,
+                target,
+                null,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(semantics.targetAbove, Is.True);
+            Assert.That(semantics.targetInShootRange, Is.False);
+            Assert.That(semantics.shouldAntiAir, Is.False);
+        }
+
+        [Test]
         public void Build_CompensatesPredictedTargetDirectionForSelfMomentum()
         {
             AiArenaControllerSnapshot selfStationary = BuildSelf(Vector2.zero);
