@@ -160,7 +160,7 @@ namespace ProjectPVP.Input
                 ref _debugSummary);
             _botFeedback = DecorateBotFeedbackForExecutorSource(
                 _lastExecutorSource,
-                AiArenaBotFeedbackBuilder.Build(snapshot, decision));
+                AiArenaBotFeedbackBuilder.Build(snapshot, _debugSummary, _currentFrame));
             _lastExecutorSummary = _debugSummary;
             _currentFrame = ObserveMovementStall(snapshot, _currentFrame);
             _lastReportedFrame = _currentFrame;

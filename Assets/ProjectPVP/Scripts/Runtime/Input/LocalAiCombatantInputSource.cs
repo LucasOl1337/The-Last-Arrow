@@ -143,7 +143,7 @@ namespace ProjectPVP.Input
                 dashInterval,
                 ultimateInterval,
                 ref _debugSummary);
-            _botFeedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+            _botFeedback = AiArenaBotFeedbackBuilder.Build(snapshot, _debugSummary, frame);
             return frame;
         }
 

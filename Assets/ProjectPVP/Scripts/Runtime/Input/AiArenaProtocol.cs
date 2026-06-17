@@ -151,6 +151,21 @@ namespace ProjectPVP.Input
     {
         internal static string Build(AiArenaSnapshotEnvelope snapshot, AiArenaDecisionEnvelope decision)
         {
+            return Build(snapshot, decision, trustDebugSummaryForAction: true);
+        }
+
+        internal static string Build(AiArenaSnapshotEnvelope snapshot, string actionSummary, PlayerInputFrame executedFrame)
+        {
+            return Build(snapshot, BuildExecutedDecision(actionSummary, executedFrame), trustDebugSummaryForAction: false);
+        }
+
+        internal static string Build(AiArenaSnapshotEnvelope snapshot, string actionSummary, CodexReportedInputFrame executedFrame)
+        {
+            return Build(snapshot, BuildExecutedDecision(actionSummary, executedFrame), trustDebugSummaryForAction: false);
+        }
+
+        private static string Build(AiArenaSnapshotEnvelope snapshot, AiArenaDecisionEnvelope decision, bool trustDebugSummaryForAction)
+        {
             if (snapshot == null || snapshot.semantics == null)
             {
                 return "waiting for arena snapshot; improve: verify bot observation setup.";
@@ -172,7 +187,7 @@ namespace ProjectPVP.Input
                 string time = semantics.incomingProjectileTime >= 0f
                     ? semantics.incomingProjectileTime.ToString("0.00") + "s"
                     : "now";
-                if (!IsProjectileDefenseDecision(decision))
+                if (!IsProjectileDefenseDecision(decision, trustDebugSummaryForAction))
                 {
                     return "missed projectile defense " + time + "; action " + action + "; improve: dash, jump, parry, or block before attacking.";
                 }
@@ -182,7 +197,7 @@ namespace ProjectPVP.Input
 
             if (semantics.targetUsingUltimate)
             {
-                if (!IsUltimateEscapeDecision(semantics, decision))
+                if (!IsUltimateEscapeDecision(semantics, decision, trustDebugSummaryForAction))
                 {
                     return "missed ultimate escape; action " + action + "; improve: dash or move away before pickups or trades.";
                 }
@@ -192,7 +207,7 @@ namespace ProjectPVP.Input
 
             if (semantics.targetUsingMelee)
             {
-                if (!IsMeleeEscapeDecision(semantics, decision))
+                if (!IsMeleeEscapeDecision(semantics, decision, trustDebugSummaryForAction))
                 {
                     return "missed melee escape; action " + action + "; improve: dash or move away before trading into active melee.";
                 }
@@ -202,7 +217,7 @@ namespace ProjectPVP.Input
 
             if (semantics.targetUsingRanged)
             {
-                if (!IsRangedPressureDecision(semantics, decision))
+                if (!IsRangedPressureDecision(semantics, decision, trustDebugSummaryForAction))
                 {
                     return "missed ranged response; action " + action + "; improve: dodge, break line, or interrupt before chasing pickups.";
                 }
@@ -212,7 +227,7 @@ namespace ProjectPVP.Input
 
             if (ShouldPrioritizeCornerEscapeFeedback(semantics, isOutOfArrows))
             {
-                if (!IsCornerEscapeDecision(semantics, decision))
+                if (!IsCornerEscapeDecision(semantics, decision, trustDebugSummaryForAction))
                 {
                     string advice = AiArenaHeuristicPolicy.ShouldDeferCollectionForCornerEscape(semantics)
                         ? "move toward center before chasing wall-side arrows."
@@ -249,7 +264,7 @@ namespace ProjectPVP.Input
 
             if (semantics.selfCornered)
             {
-                if (!IsCornerEscapeDecision(semantics, decision))
+                if (!IsCornerEscapeDecision(semantics, decision, trustDebugSummaryForAction))
                 {
                     return "missed corner escape; action " + action + "; improve: move toward center before committing.";
                 }
@@ -259,7 +274,7 @@ namespace ProjectPVP.Input
 
             if (semantics.shouldAntiAir)
             {
-                if (!IsAntiAirDecision(decision))
+                if (!IsAntiAirDecision(decision, trustDebugSummaryForAction))
                 {
                     return "missed anti-air; action " + action + "; improve: shoot, jump, or aim upward before the target lands.";
                 }
@@ -269,7 +284,7 @@ namespace ProjectPVP.Input
 
             if (semantics.targetVulnerable || semantics.shouldPunish)
             {
-                if (!IsAttackDecision(decision))
+                if (!IsAttackDecision(decision, trustDebugSummaryForAction))
                 {
                     return "missed punish window; action " + action + "; improve: fire, melee, or ultimate before target recovers.";
                 }
@@ -280,7 +295,7 @@ namespace ProjectPVP.Input
             return "spacing stable at " + semantics.horizontalDistance.ToString("0") + "u; action " + action + "; improve: keep pressure without wasting arrows.";
         }
 
-        private static bool IsAttackDecision(AiArenaDecisionEnvelope decision)
+        private static bool IsAttackDecision(AiArenaDecisionEnvelope decision, bool trustDebugSummaryForAction)
         {
             if (decision == null)
             {
@@ -292,7 +307,7 @@ namespace ProjectPVP.Input
                 return true;
             }
 
-            if (string.IsNullOrWhiteSpace(decision.debugSummary))
+            if (!trustDebugSummaryForAction || string.IsNullOrWhiteSpace(decision.debugSummary))
             {
                 return false;
             }
@@ -314,7 +329,7 @@ namespace ProjectPVP.Input
             return decision.shootPressed || decision.shootHeld;
         }
 
-        private static bool IsProjectileDefenseDecision(AiArenaDecisionEnvelope decision)
+        private static bool IsProjectileDefenseDecision(AiArenaDecisionEnvelope decision, bool trustDebugSummaryForAction)
         {
             if (decision == null)
             {
@@ -324,6 +339,11 @@ namespace ProjectPVP.Input
             if (decision.jumpPressed || decision.jumpHeld || decision.dashPrimaryPressed || decision.dashSecondaryPressed)
             {
                 return true;
+            }
+
+            if (!trustDebugSummaryForAction)
+            {
+                return IsExecutedSummaryProjectileDefense(decision);
             }
 
             if (string.IsNullOrWhiteSpace(decision.debugSummary))
@@ -340,19 +360,51 @@ namespace ProjectPVP.Input
                 || decision.debugSummary.IndexOf("jump", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private static bool IsAntiAirDecision(AiArenaDecisionEnvelope decision)
+        private static bool IsExecutedSummaryProjectileDefense(AiArenaDecisionEnvelope decision)
+        {
+            if (decision == null || string.IsNullOrWhiteSpace(decision.debugSummary))
+            {
+                return false;
+            }
+
+            string summary = decision.debugSummary;
+            bool hasHorizontalMovement = Mathf.Abs(decision.moveAxis) > 0.1f;
+            if (summary.IndexOf("projectile drift", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return hasHorizontalMovement;
+            }
+
+            if (summary.IndexOf("parry hold", StringComparison.OrdinalIgnoreCase) >= 0
+                || summary.IndexOf("projectile block", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+
+            if (hasHorizontalMovement
+                && (summary.IndexOf("evade", StringComparison.OrdinalIgnoreCase) >= 0
+                    || summary.IndexOf("dodge", StringComparison.OrdinalIgnoreCase) >= 0
+                    || summary.IndexOf("escape", StringComparison.OrdinalIgnoreCase) >= 0
+                    || summary.IndexOf("retreat", StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsAntiAirDecision(AiArenaDecisionEnvelope decision, bool trustDebugSummaryForAction)
         {
             if (decision == null)
             {
                 return false;
             }
 
-            if (decision.jumpPressed || decision.jumpHeld || IsAttackDecision(decision) || decision.aimY > 0.35f)
+            if (decision.jumpPressed || decision.jumpHeld || IsAttackDecision(decision, trustDebugSummaryForAction) || decision.aimY > 0.35f)
             {
                 return true;
             }
 
-            if (string.IsNullOrWhiteSpace(decision.debugSummary))
+            if (!trustDebugSummaryForAction || string.IsNullOrWhiteSpace(decision.debugSummary))
             {
                 return false;
             }
@@ -363,34 +415,36 @@ namespace ProjectPVP.Input
                 || decision.debugSummary.IndexOf("above", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
-        private static bool IsUltimateEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
+        private static bool IsUltimateEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision, bool trustDebugSummaryForAction)
         {
-            return IsNonAttackingEscapeDecision(semantics, decision);
+            return IsNonAttackingEscapeDecision(semantics, decision, trustDebugSummaryForAction);
         }
 
-        private static bool IsMeleeEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
+        private static bool IsMeleeEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision, bool trustDebugSummaryForAction)
         {
-            return IsNonAttackingEscapeDecision(semantics, decision);
+            return IsNonAttackingEscapeDecision(semantics, decision, trustDebugSummaryForAction);
         }
 
-        private static bool IsRangedPressureDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
+        private static bool IsRangedPressureDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision, bool trustDebugSummaryForAction)
         {
-            return IsAttackDecision(decision) || IsNonAttackingEscapeDecision(semantics, decision);
+            return IsAttackDecision(decision, trustDebugSummaryForAction)
+                || IsNonAttackingEscapeDecision(semantics, decision, trustDebugSummaryForAction);
         }
 
-        private static bool IsCornerEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
+        private static bool IsCornerEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision, bool trustDebugSummaryForAction)
         {
             if (semantics == null || decision == null)
             {
                 return false;
             }
 
-            if (IsAttackDecision(decision))
+            if (IsAttackDecision(decision, trustDebugSummaryForAction))
             {
                 return false;
             }
 
-            if (!string.IsNullOrWhiteSpace(decision.debugSummary)
+            if (trustDebugSummaryForAction
+                && !string.IsNullOrWhiteSpace(decision.debugSummary)
                 && (decision.debugSummary.IndexOf("corner escape", StringComparison.OrdinalIgnoreCase) >= 0
                     || decision.debugSummary.IndexOf("escape corner", StringComparison.OrdinalIgnoreCase) >= 0))
             {
@@ -405,14 +459,14 @@ namespace ProjectPVP.Input
             return false;
         }
 
-        private static bool IsNonAttackingEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
+        private static bool IsNonAttackingEscapeDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision, bool trustDebugSummaryForAction)
         {
             if (semantics == null || decision == null)
             {
                 return false;
             }
 
-            if (IsAttackDecision(decision))
+            if (IsAttackDecision(decision, trustDebugSummaryForAction))
             {
                 return false;
             }
@@ -422,7 +476,8 @@ namespace ProjectPVP.Input
                 return true;
             }
 
-            if (!string.IsNullOrWhiteSpace(decision.debugSummary)
+            if (trustDebugSummaryForAction
+                && !string.IsNullOrWhiteSpace(decision.debugSummary)
                 && (decision.debugSummary.IndexOf("evade", StringComparison.OrdinalIgnoreCase) >= 0
                     || decision.debugSummary.IndexOf("dodge", StringComparison.OrdinalIgnoreCase) >= 0
                     || decision.debugSummary.IndexOf("escape", StringComparison.OrdinalIgnoreCase) >= 0
@@ -437,6 +492,45 @@ namespace ProjectPVP.Input
             }
 
             return false;
+        }
+
+        private static AiArenaDecisionEnvelope BuildExecutedDecision(string actionSummary, PlayerInputFrame frame)
+        {
+            return new AiArenaDecisionEnvelope
+            {
+                debugSummary = actionSummary,
+                moveAxis = frame.axis,
+                aimX = frame.aim.x,
+                aimY = frame.aim.y,
+                jumpPressed = frame.jumpPressed,
+                jumpHeld = frame.jumpHeld,
+                shootPressed = frame.shootPressed,
+                shootHeld = frame.shootHeld,
+                meleePressed = frame.meleePressed,
+                ultimatePressed = frame.ultimatePressed,
+                dashPrimaryPressed = frame.dashPrimaryPressed,
+                dashSecondaryPressed = frame.dashSecondaryPressed,
+            };
+        }
+
+        private static AiArenaDecisionEnvelope BuildExecutedDecision(string actionSummary, CodexReportedInputFrame frame)
+        {
+            CodexReportedInputFrame resolvedFrame = frame != null ? frame : new CodexReportedInputFrame();
+            return new AiArenaDecisionEnvelope
+            {
+                debugSummary = actionSummary,
+                moveAxis = resolvedFrame.axis,
+                aimX = resolvedFrame.aim.x,
+                aimY = resolvedFrame.aim.y,
+                jumpPressed = resolvedFrame.jumpPressed,
+                jumpHeld = resolvedFrame.jumpHeld,
+                shootPressed = resolvedFrame.shootPressed,
+                shootHeld = resolvedFrame.shootHeld,
+                meleePressed = resolvedFrame.meleePressed,
+                ultimatePressed = resolvedFrame.ultimatePressed,
+                dashPrimaryPressed = resolvedFrame.dashPrimaryPressed,
+                dashSecondaryPressed = resolvedFrame.dashSecondaryPressed,
+            };
         }
 
         private static bool ShouldPrioritizeCornerEscapeFeedback(AiArenaSemanticObservation semantics, bool isOutOfArrows)

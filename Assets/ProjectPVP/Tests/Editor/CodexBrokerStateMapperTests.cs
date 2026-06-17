@@ -189,6 +189,43 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_UsesReportedInputInsteadOfSummaryForProjectileDefense()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                    dashCooldownLeft = 0.4f,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.14f,
+                    shouldDashEvade = true,
+                },
+            };
+            var reportedInput = new CodexReportedInputFrame
+            {
+                frame = 18,
+                aim = Vector2.right,
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI PARRY DASH",
+                currentIntent: null,
+                snapshot,
+                90f,
+                reportedInput);
+
+            Assert.That(feedback.botFeedback, Does.Contain("missed projectile defense"));
+            Assert.That(feedback.botFeedback, Does.Contain("AI PARRY DASH"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("projectile threat 0.14s; action AI PARRY DASH; improve: defend before attacking"));
+        }
+
+        [Test]
         public void ResolveControllerOwner_ReturnsEnvelopeOwnerWhenPresent()
         {
             string owner = CodexBrokerStateMapper.ResolveControllerOwner(
@@ -318,6 +355,69 @@ namespace ProjectPVP.Tests.Editor
 
             Assert.That(feedback, Does.Contain("missed projectile defense"));
             Assert.That(feedback, Does.Contain("dash, jump, parry, or block"));
+        }
+
+        [Test]
+        public void BotFeedbackBuilder_UsesExecutedFrameInsteadOfActionSummaryForProjectileDefense()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                    dashCooldownLeft = 0.4f,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.16f,
+                    shouldDashEvade = true,
+                },
+            };
+            var frame = new PlayerInputFrame
+            {
+                frame = 21,
+                aim = Vector2.right,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, "AI PARRY DASH", frame);
+
+            Assert.That(feedback, Does.Contain("missed projectile defense"));
+            Assert.That(feedback, Does.Contain("AI PARRY DASH"));
+            Assert.That(feedback, Does.Not.Contain("projectile threat 0.16s; action AI PARRY DASH; improve: defend before attacking"));
+        }
+
+        [Test]
+        public void BotFeedbackBuilder_TreatsExecutedProjectileDriftAsThreatResponse()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.12f,
+                    shouldDashEvade = true,
+                },
+            };
+            var frame = new PlayerInputFrame
+            {
+                frame = 22,
+                axis = 0.35f,
+                right = true,
+                aim = Vector2.right,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, "AI PROJECTILE DRIFT", frame);
+
+            Assert.That(feedback, Does.Contain("projectile threat 0.12s"));
+            Assert.That(feedback, Does.Contain("AI PROJECTILE DRIFT"));
+            Assert.That(feedback, Does.Not.Contain("missed projectile defense"));
         }
 
         [Test]
