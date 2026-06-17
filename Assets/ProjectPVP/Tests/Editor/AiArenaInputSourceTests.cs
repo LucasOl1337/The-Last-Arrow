@@ -810,6 +810,70 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CodexBrokerCombatantInputSource_MovementStallEscapesOnCurrentFrame()
+        {
+            MethodInfo observeStallMethod = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ObserveMovementStall",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(observeStallMethod, Is.Not.Null);
+
+            GameObject root = new GameObject("MovementStallEscapeBrokerInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                var currentSnapshot = new AiArenaSnapshotEnvelope
+                {
+                    frame = 22,
+                    self = new AiArenaCombatantObservation
+                    {
+                        slotId = 1,
+                        position = Vector2.zero,
+                        isGrounded = true,
+                        dashCooldownLeft = 0f,
+                    },
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                        horizontalDistance = 240f,
+                        targetDirection = Vector2.right,
+                    },
+                };
+                var frame = new PlayerInputFrame
+                {
+                    frame = 22,
+                    axis = 1f,
+                    aim = Vector2.right,
+                    right = true,
+                    shootPressed = true,
+                    shootHeld = true,
+                };
+                PlayerInputFrame resolvedFrame = frame;
+
+                for (int index = 0; index < 20; index += 1)
+                {
+                    resolvedFrame = (PlayerInputFrame)observeStallMethod.Invoke(input, new object[] { currentSnapshot, frame });
+                }
+
+                Assert.That(resolvedFrame.axis, Is.LessThan(0f));
+                Assert.That(resolvedFrame.left, Is.True);
+                Assert.That(resolvedFrame.right, Is.False);
+                Assert.That(resolvedFrame.jumpPressed, Is.True);
+                Assert.That(resolvedFrame.jumpHeld, Is.True);
+                Assert.That(resolvedFrame.dashPrimaryPressed, Is.True);
+                Assert.That(resolvedFrame.shootPressed, Is.False);
+                Assert.That(resolvedFrame.shootHeld, Is.False);
+                Assert.That(input.BotFeedback, Does.Contain("escape jump/dash"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void CodexBrokerCombatantInputSource_MovementStallDoesNotTriggerWhilePositionAdvances()
         {
             MethodInfo observeStallMethod = typeof(CodexBrokerCombatantInputSource).GetMethod(

@@ -13,6 +13,7 @@ namespace ProjectPVP.Input
         private const float MovementStallAxisThreshold = 0.85f;
         private const float MovementStallMinimumDisplacement = 12f;
         private const int MovementStallFrameThreshold = 18;
+        private const int MovementStallEscapeFrameDuration = 8;
 
         [Min(1)] public int slotId = 2;
         [Header("Combat Ranges")]
@@ -63,6 +64,7 @@ namespace ProjectPVP.Input
         private int _movementStallFrameCount;
         private float _movementStallStartX;
         private bool _movementStallLatched;
+        private int _movementStallEscapeFramesLeft;
         private CodexBrokerRequestLifecycleState _sessionStartRequest = CodexBrokerRequestLifecycleState.Inactive();
         private CodexBrokerRequestLifecycleState _strategyRequest = CodexBrokerRequestLifecycleState.Inactive();
 
@@ -166,9 +168,9 @@ namespace ProjectPVP.Input
                 ultimateInterval,
                 ref _debugSummary);
             _botFeedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
-            _lastReportedFrame = _currentFrame;
             _lastExecutorSummary = _debugSummary;
-            ObserveMovementStall(snapshot, _currentFrame);
+            _currentFrame = ObserveMovementStall(snapshot, _currentFrame);
+            _lastReportedFrame = _currentFrame;
             _previousSnapshot = snapshot;
             _frameIndex += 1;
         }
@@ -717,7 +719,7 @@ namespace ProjectPVP.Input
             }
         }
 
-        private void ObserveMovementStall(AiArenaSnapshotEnvelope snapshot, PlayerInputFrame frame)
+        private PlayerInputFrame ObserveMovementStall(AiArenaSnapshotEnvelope snapshot, PlayerInputFrame frame)
         {
             if (snapshot == null
                 || snapshot.self == null
@@ -727,14 +729,14 @@ namespace ProjectPVP.Input
                 || !snapshot.semantics.hasTarget)
             {
                 ResetMovementStall();
-                return;
+                return frame;
             }
 
             int axisSign = ResolveStrongAxisSign(frame.axis);
             if (axisSign == 0)
             {
                 ResetMovementStall();
-                return;
+                return frame;
             }
 
             float currentX = snapshot.self.position.x;
@@ -744,7 +746,7 @@ namespace ProjectPVP.Input
                 _movementStallFrameCount = 1;
                 _movementStallStartX = currentX;
                 _movementStallLatched = false;
-                return;
+                return frame;
             }
 
             _movementStallFrameCount += 1;
@@ -753,21 +755,67 @@ namespace ProjectPVP.Input
                 _movementStallFrameCount = 1;
                 _movementStallStartX = currentX;
                 _movementStallLatched = false;
-                return;
+                return frame;
             }
 
-            if (_movementStallLatched || _movementStallFrameCount < MovementStallFrameThreshold)
+            if (_movementStallLatched)
             {
-                return;
+                return ConsumeMovementStallEscapeFrame(snapshot, frame, axisSign);
+            }
+
+            if (_movementStallFrameCount < MovementStallFrameThreshold)
+            {
+                return frame;
             }
 
             _manualForceRefresh = true;
             _lastStrategyRequestTime = -999f;
             _debugSummary = "AI | Movement stalled";
             _lastExecutorSummary = _debugSummary;
-            _botFeedback = "movement stalled; improve: replan path instead of holding one axis.";
+            _botFeedback = "movement stalled; action: escape jump/dash; improve: replan path instead of holding one axis.";
             RecordPromptEvents(new List<string> { "movement_stalled" });
             _movementStallLatched = true;
+            _movementStallEscapeFramesLeft = MovementStallEscapeFrameDuration;
+            return ConsumeMovementStallEscapeFrame(snapshot, frame, axisSign);
+        }
+
+        private PlayerInputFrame ConsumeMovementStallEscapeFrame(
+            AiArenaSnapshotEnvelope snapshot,
+            PlayerInputFrame frame,
+            int stalledAxisSign)
+        {
+            if (_movementStallEscapeFramesLeft <= 0)
+            {
+                return frame;
+            }
+
+            _movementStallEscapeFramesLeft -= 1;
+            return BuildMovementStallEscapeFrame(snapshot, frame, stalledAxisSign);
+        }
+
+        private static PlayerInputFrame BuildMovementStallEscapeFrame(
+            AiArenaSnapshotEnvelope snapshot,
+            PlayerInputFrame frame,
+            int stalledAxisSign)
+        {
+            float escapeAxis = Mathf.Clamp(-stalledAxisSign, -1f, 1f);
+            bool jump = snapshot.self.isGrounded;
+            bool dash = snapshot.self.dashCooldownLeft <= 0.01f && !snapshot.self.isDashing;
+
+            frame.axis = escapeAxis;
+            frame.left = escapeAxis < -0.1f;
+            frame.right = escapeAxis > 0.1f;
+            frame.up = frame.up || jump;
+            frame.down = false;
+            frame.jumpPressed = frame.jumpPressed || jump;
+            frame.jumpHeld = frame.jumpHeld || jump;
+            frame.dashPrimaryPressed = frame.dashPrimaryPressed || dash;
+            frame.dashSecondaryPressed = false;
+            frame.shootPressed = false;
+            frame.shootHeld = false;
+            frame.meleePressed = false;
+            frame.ultimatePressed = false;
+            return frame;
         }
 
         private void ResetMovementStall()
@@ -776,6 +824,7 @@ namespace ProjectPVP.Input
             _movementStallFrameCount = 0;
             _movementStallStartX = 0f;
             _movementStallLatched = false;
+            _movementStallEscapeFramesLeft = 0;
         }
 
         private static int ResolveStrongAxisSign(float axis)
