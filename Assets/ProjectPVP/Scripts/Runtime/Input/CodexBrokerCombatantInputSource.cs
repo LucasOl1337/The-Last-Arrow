@@ -10,6 +10,10 @@ namespace ProjectPVP.Input
     [DisallowMultipleComponent]
     public sealed class CodexBrokerCombatantInputSource : MonoBehaviour, ICombatantInputSource, IBotFeedbackInputSource
     {
+        private const float MovementStallAxisThreshold = 0.85f;
+        private const float MovementStallMinimumDisplacement = 12f;
+        private const int MovementStallFrameThreshold = 18;
+
         [Min(1)] public int slotId = 2;
         [Header("Combat Ranges")]
         public float desiredCombatDistance = 360f;
@@ -55,6 +59,10 @@ namespace ProjectPVP.Input
         private int _consecutiveBrokerFailures;
         private float _lastBrokerSuccessTime = -999f;
         private bool _manualForceRefresh;
+        private int _movementStallAxisSign;
+        private int _movementStallFrameCount;
+        private float _movementStallStartX;
+        private bool _movementStallLatched;
         private CodexBrokerRequestLifecycleState _sessionStartRequest = CodexBrokerRequestLifecycleState.Inactive();
         private CodexBrokerRequestLifecycleState _strategyRequest = CodexBrokerRequestLifecycleState.Inactive();
 
@@ -160,6 +168,7 @@ namespace ProjectPVP.Input
             _botFeedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
             _lastReportedFrame = _currentFrame;
             _lastExecutorSummary = _debugSummary;
+            ObserveMovementStall(snapshot, _currentFrame);
             _previousSnapshot = snapshot;
             _frameIndex += 1;
         }
@@ -189,6 +198,7 @@ namespace ProjectPVP.Input
             _consecutiveBrokerFailures = 0;
             _lastBrokerSuccessTime = -999f;
             _manualForceRefresh = false;
+            ResetMovementStall();
             CodexBrokerRequestLifecycle.Invalidate(ref _sessionStartRequest);
             CodexBrokerRequestLifecycle.Invalidate(ref _strategyRequest);
             _collector.ForceRefresh();
@@ -209,6 +219,7 @@ namespace ProjectPVP.Input
             _controllerOwner = string.Empty;
             _debugSummary = "AI | Codex pending";
             _manualForceRefresh = false;
+            ResetMovementStall();
         }
 
         public void RequestImmediateReplan(string reason = "debug_hud")
@@ -704,6 +715,82 @@ namespace ProjectPVP.Input
                     _eventMemory.Dequeue();
                 }
             }
+        }
+
+        private void ObserveMovementStall(AiArenaSnapshotEnvelope snapshot, PlayerInputFrame frame)
+        {
+            if (snapshot == null
+                || snapshot.self == null
+                || snapshot.semantics == null
+                || snapshot.arena == null
+                || snapshot.arena.roundResetPending
+                || !snapshot.semantics.hasTarget)
+            {
+                ResetMovementStall();
+                return;
+            }
+
+            int axisSign = ResolveStrongAxisSign(frame.axis);
+            if (axisSign == 0)
+            {
+                ResetMovementStall();
+                return;
+            }
+
+            float currentX = snapshot.self.position.x;
+            if (axisSign != _movementStallAxisSign)
+            {
+                _movementStallAxisSign = axisSign;
+                _movementStallFrameCount = 1;
+                _movementStallStartX = currentX;
+                _movementStallLatched = false;
+                return;
+            }
+
+            _movementStallFrameCount += 1;
+            if (Mathf.Abs(currentX - _movementStallStartX) > MovementStallMinimumDisplacement)
+            {
+                _movementStallFrameCount = 1;
+                _movementStallStartX = currentX;
+                _movementStallLatched = false;
+                return;
+            }
+
+            if (_movementStallLatched || _movementStallFrameCount < MovementStallFrameThreshold)
+            {
+                return;
+            }
+
+            _manualForceRefresh = true;
+            _lastStrategyRequestTime = -999f;
+            _debugSummary = "AI | Movement stalled";
+            _lastExecutorSummary = _debugSummary;
+            _botFeedback = "movement stalled; improve: replan path instead of holding one axis.";
+            RecordPromptEvents(new List<string> { "movement_stalled" });
+            _movementStallLatched = true;
+        }
+
+        private void ResetMovementStall()
+        {
+            _movementStallAxisSign = 0;
+            _movementStallFrameCount = 0;
+            _movementStallStartX = 0f;
+            _movementStallLatched = false;
+        }
+
+        private static int ResolveStrongAxisSign(float axis)
+        {
+            if (axis >= MovementStallAxisThreshold)
+            {
+                return 1;
+            }
+
+            if (axis <= -MovementStallAxisThreshold)
+            {
+                return -1;
+            }
+
+            return 0;
         }
 
         private void ApplyBrokerEnvelope(string responseJson)

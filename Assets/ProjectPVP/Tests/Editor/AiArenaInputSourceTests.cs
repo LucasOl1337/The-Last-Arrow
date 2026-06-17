@@ -725,6 +725,170 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CodexBrokerCombatantInputSource_MovementStallForcesReplanAndRecordsMemory()
+        {
+            MethodInfo observeStallMethod = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ObserveMovementStall",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo shouldForceRefreshMethod = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ShouldForceRefresh",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo buildPromptStateMethod = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "BuildPromptState",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo previousSnapshotField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_previousSnapshot",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(observeStallMethod, Is.Not.Null);
+            Assert.That(shouldForceRefreshMethod, Is.Not.Null);
+            Assert.That(buildPromptStateMethod, Is.Not.Null);
+            Assert.That(previousSnapshotField, Is.Not.Null);
+
+            GameObject root = new GameObject("MovementStallBrokerInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                var previousSnapshot = new AiArenaSnapshotEnvelope
+                {
+                    frame = 10,
+                    self = new AiArenaCombatantObservation
+                    {
+                        slotId = 1,
+                        position = Vector2.zero,
+                    },
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                        horizontalDistance = 240f,
+                        targetDirection = Vector2.right,
+                    },
+                };
+                var currentSnapshot = new AiArenaSnapshotEnvelope
+                {
+                    frame = 11,
+                    self = new AiArenaCombatantObservation
+                    {
+                        slotId = 1,
+                        position = Vector2.zero,
+                    },
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                        horizontalDistance = 240f,
+                        targetDirection = Vector2.right,
+                    },
+                };
+                previousSnapshotField.SetValue(input, previousSnapshot);
+                var frame = new PlayerInputFrame
+                {
+                    axis = 1f,
+                    aim = Vector2.right,
+                };
+
+                for (int index = 0; index < 20; index += 1)
+                {
+                    observeStallMethod.Invoke(input, new object[] { currentSnapshot, frame });
+                }
+
+                bool shouldRefresh = (bool)shouldForceRefreshMethod.Invoke(input, new object[] { currentSnapshot });
+                CodexPromptState promptState = (CodexPromptState)buildPromptStateMethod.Invoke(input, new object[] { currentSnapshot });
+
+                Assert.That(shouldRefresh, Is.True);
+                Assert.That(input.ManualForceRefreshPending, Is.True);
+                Assert.That(input.BotFeedback, Does.Contain("movement stalled"));
+                Assert.That(input.LastExecutorSummary, Does.Contain("Movement stalled"));
+                Assert.That(promptState.memory, Does.Contain("movement_stalled"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void CodexBrokerCombatantInputSource_MovementStallDoesNotTriggerWhilePositionAdvances()
+        {
+            MethodInfo observeStallMethod = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ObserveMovementStall",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            MethodInfo shouldForceRefreshMethod = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ShouldForceRefresh",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo previousSnapshotField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_previousSnapshot",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(observeStallMethod, Is.Not.Null);
+            Assert.That(shouldForceRefreshMethod, Is.Not.Null);
+            Assert.That(previousSnapshotField, Is.Not.Null);
+
+            GameObject root = new GameObject("MovingBrokerInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                var previousSnapshot = new AiArenaSnapshotEnvelope
+                {
+                    frame = 20,
+                    self = new AiArenaCombatantObservation
+                    {
+                        slotId = 1,
+                        position = Vector2.zero,
+                    },
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                        horizontalDistance = 240f,
+                        targetDirection = Vector2.right,
+                    },
+                };
+                var currentSnapshot = new AiArenaSnapshotEnvelope
+                {
+                    frame = 21,
+                    self = new AiArenaCombatantObservation
+                    {
+                        slotId = 1,
+                        position = Vector2.zero,
+                    },
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                        horizontalDistance = 240f,
+                        targetDirection = Vector2.right,
+                    },
+                };
+                previousSnapshotField.SetValue(input, previousSnapshot);
+                var frame = new PlayerInputFrame
+                {
+                    axis = 1f,
+                    aim = Vector2.right,
+                };
+
+                for (int index = 0; index < 20; index += 1)
+                {
+                    currentSnapshot.self.position = new Vector2(index * 20f, 0f);
+                    observeStallMethod.Invoke(input, new object[] { currentSnapshot, frame });
+                }
+
+                bool shouldRefresh = (bool)shouldForceRefreshMethod.Invoke(input, new object[] { currentSnapshot });
+
+                Assert.That(shouldRefresh, Is.False);
+                Assert.That(input.ManualForceRefreshPending, Is.False);
+                Assert.That(input.BotFeedback, Does.Not.Contain("movement stalled"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void CodexBrokerCombatantInputSource_FallsBackWhenIntentAgeExceedsExtendedWindow()
         {
             MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
