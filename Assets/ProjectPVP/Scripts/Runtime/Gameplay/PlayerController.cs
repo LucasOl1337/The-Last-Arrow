@@ -112,6 +112,9 @@ namespace ProjectPVP.Gameplay
         public Vector2 CurrentVelocity => body != null ? body.linearVelocity : Vector2.zero;
         public float HorizontalVelocity => body != null ? body.linearVelocity.x : 0f;
         public float VerticalVelocity => body != null ? body.linearVelocity.y : 0f;
+        public Vector2 UltimateDashDirection => _context != null && _context.ultimateDashVelocity.sqrMagnitude > 0.01f
+            ? _context.ultimateDashVelocity.normalized
+            : Vector2.zero;
         public Vector2 RootPosition => body != null ? body.position : (Vector2)transform.position;
         public SpriteRenderer VisualSpriteRenderer => spriteRenderer;
         public Vector2 ConfiguredSpawnWorldPosition => _movementSystem != null ? _movementSystem.ResolveConfiguredSpawnWorldPosition() : (Vector2)transform.position;

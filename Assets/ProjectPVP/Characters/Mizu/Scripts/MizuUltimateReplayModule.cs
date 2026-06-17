@@ -171,6 +171,17 @@ namespace ProjectPVP.Characters.Mizu
             return rootStart + endpoint;
         }
 
+        public Vector2 ResolveReplayRootEnd(Vector2 rootStart, Vector2 replayDirection, int facingDirection, CharacterDefinition definition)
+        {
+            Vector2 endpoint = ResolveReplayEndpointLocalPosition(definition);
+            if (replayDirection.sqrMagnitude > 0.01f && endpoint.sqrMagnitude > 0.001f)
+            {
+                return rootStart + replayDirection.normalized * endpoint.magnitude;
+            }
+
+            return ResolveReplayRootEnd(rootStart, facingDirection, definition);
+        }
+
         public float ResolveReplayStartDelay(CharacterDefinition definition)
         {
             if (replayMovement != null)
@@ -300,6 +311,7 @@ namespace ProjectPVP.Characters.Mizu
             private CombatShapeSnapshot _replayShape;
             private PlayerCombatAnchor _replaySceneAnchor;
             private Vector2 _ghostSpriteOffset;
+            private Vector2 _replayDirection;
             private Vector3 _ghostScale = Vector3.one;
             private Vector3 _ghostEulerAngles = Vector3.zero;
             private float _replayDelayLeft;
@@ -346,10 +358,16 @@ namespace ProjectPVP.Characters.Mizu
                 ResetReplayState();
                 _replayFacing = Player.ResolveFacingDirection();
                 _replayRootStart = Player.RootPosition;
+                _replayDirection = Player.UltimateDashDirection;
                 _sceneReplayCaptured = TryCaptureReplaySceneShape(out _replayRootEnd, out _replayShape);
+                if (_sceneReplayCaptured)
+                {
+                    AlignCapturedReplayToUltimateDirection();
+                }
+
                 if (!_sceneReplayCaptured)
                 {
-                    _replayRootEnd = _module.ResolveReplayRootEnd(_replayRootStart, _replayFacing, Definition);
+                    _replayRootEnd = _module.ResolveReplayRootEnd(_replayRootStart, _replayDirection, _replayFacing, Definition);
                 }
             }
 
@@ -362,7 +380,7 @@ namespace ProjectPVP.Characters.Mizu
 
                 if (!_sceneReplayCaptured)
                 {
-                    _replayRootEnd = _module.ResolveReplayRootEnd(_replayRootStart, _replayFacing, Definition);
+                    _replayRootEnd = _module.ResolveReplayRootEnd(_replayRootStart, _replayDirection, _replayFacing, Definition);
                     if (!_module.TryBuildReplayHitbox(_replayRootEnd, _replayFacing, out _replayShape)
                         && !Player.TryCaptureUltimateHitShapeSnapshot(out _replayShape))
                     {
@@ -470,8 +488,27 @@ namespace ProjectPVP.Characters.Mizu
                 _ghostAnimationFramesPerSecond = 12f;
                 _ghostAnimationLoop = false;
                 _sceneReplayCaptured = false;
+                _replayDirection = Vector2.zero;
                 _replayFacing = Player.ResolveFacingDirection();
                 CleanupGhost();
+            }
+
+            private void AlignCapturedReplayToUltimateDirection()
+            {
+                if (_replayDirection.sqrMagnitude <= 0.01f)
+                {
+                    return;
+                }
+
+                Vector2 directedRootEnd = _module.ResolveReplayRootEnd(_replayRootStart, _replayDirection, _replayFacing, Definition);
+                Vector2 translation = directedRootEnd - _replayRootEnd;
+                if (translation.sqrMagnitude <= 0.001f)
+                {
+                    return;
+                }
+
+                _replayShape = _replayShape.Translate(translation);
+                _replayRootEnd = directedRootEnd;
             }
 
             private void FinishReplayImpact()
@@ -751,7 +788,7 @@ namespace ProjectPVP.Characters.Mizu
                 }
 
                 rootStart = Player.RootPosition;
-                rootEnd = _module.ResolveReplayRootEnd(rootStart, Player.ResolveFacingDirection(), Definition);
+                rootEnd = _module.ResolveReplayRootEnd(rootStart, Player.UltimateDashDirection, Player.ResolveFacingDirection(), Definition);
                 int previewFacing = Player.ResolveFacingDirection();
 
                 if (_module.TryBuildReplayHitbox(rootEnd, previewFacing, out shape))

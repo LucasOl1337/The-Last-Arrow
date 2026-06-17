@@ -2527,6 +2527,8 @@ namespace ProjectPVP.Tests.Editor
 
                 Assert.That(context.ultimateDashVelocity.x, Is.EqualTo(0f).Within(0.0001f));
                 Assert.That(context.ultimateDashVelocity.y, Is.GreaterThan(0f));
+                Assert.That(player.UltimateDashDirection.x, Is.EqualTo(0f).Within(0.0001f));
+                Assert.That(player.UltimateDashDirection.y, Is.GreaterThan(0f));
                 Assert.That(
                     context.ultimateDashVelocity.magnitude,
                     Is.EqualTo(definition.ultimateDashDistance / definition.ultimateDashDuration).Within(0.0001f));
