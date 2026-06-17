@@ -1492,6 +1492,71 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_AntiAirDoesNotLayerShotOntoMeleePunish()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 3,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        position = new Vector2(72f, 48f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 72f,
+                    verticalDistance = 48f,
+                    targetDirection = new Vector2(3f, 2f).normalized,
+                    predictedTargetDirection = new Vector2(3f, 2f).normalized,
+                    targetAbove = true,
+                    targetInMeleeRange = true,
+                    targetInShootRange = true,
+                    targetVulnerable = true,
+                    shouldPunish = true,
+                    selfHasArrows = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "punish",
+                preferredRange = 220,
+                shootBias = 0.9f,
+                advanceBias = 0.2f,
+                meleeBias = 1f,
+                dashBias = 0.1f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = true,
+                punishRecovery = true,
+                cornerEscapeBias = 0.1f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "melee airborne recovery",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.meleePressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.debugSummary, Is.EqualTo("AI PUNISH MELEE"));
+        }
+
+        [Test]
         public void StrategicPolicy_ZoneIntentAtPreferredRangeKeepsForwardDrift()
         {
             var snapshot = new AiArenaSnapshotEnvelope
