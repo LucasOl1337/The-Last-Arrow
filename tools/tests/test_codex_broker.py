@@ -161,6 +161,9 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "source": "codex",
                     "summary": "AI PARRY HOLD",
                     "botFeedback": "projectile threat 0.12s; action AI PARRY HOLD; improve: defend before attacking.",
+                    "targetRangedThreatActive": True,
+                    "targetUltimateThreatActive": True,
+                    "selfCornered": True,
                 },
             }
         )
@@ -171,6 +174,9 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
             "projectile threat 0.12s; action AI PARRY HOLD; improve: defend before attacking.",
             report["botFeedback"],
         )
+        self.assertTrue(report["targetRangedThreatActive"])
+        self.assertTrue(report["targetUltimateThreatActive"])
+        self.assertTrue(report["selfCornered"])
 
 
 if __name__ == "__main__":

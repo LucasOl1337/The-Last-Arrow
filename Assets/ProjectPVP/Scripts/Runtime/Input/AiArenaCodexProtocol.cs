@@ -176,6 +176,11 @@ namespace ProjectPVP.Input
         public string intentMode = string.Empty;
         public string intentReason = string.Empty;
         public bool projectileThreatActive;
+        public bool targetMeleeThreatActive;
+        public bool targetRangedThreatActive;
+        public bool targetUltimateThreatActive;
+        public bool selfCornered;
+        public bool targetCornered;
         public bool targetVisible;
         public bool roundResetPending;
         public bool recoverableProjectileAvailable;

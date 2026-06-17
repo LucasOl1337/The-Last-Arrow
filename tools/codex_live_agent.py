@@ -210,29 +210,31 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     round_reset = bool(arena.get("roundResetPending")) or bool(feedback.get("roundResetPending"))
     target_visible = bool(feedback.get("targetVisible")) or has_prompt_target
     projectile_risk = bool(feedback.get("projectileThreatActive")) or has_prompt_projectiles
-    self_cornered = bool(arena.get("selfCornered"))
-    target_cornered = bool(arena.get("targetCornered"))
+    self_cornered = bool(feedback.get("selfCornered")) or bool(arena.get("selfCornered"))
+    target_cornered = bool(feedback.get("targetCornered")) or bool(arena.get("targetCornered"))
     in_melee = bool(arena.get("targetInMeleeRange"))
     in_shoot = bool(arena.get("targetInShootRange"))
     target_above = bool(arena.get("targetAbove"))
-    target_vulnerable = bool(target.get("isHitStunned")) or bool(target.get("isMeleeActive")) or bool(target.get("isUltimateActive"))
+    target_melee_threat = bool(feedback.get("targetMeleeThreatActive")) or bool(target.get("isMeleeActive"))
+    target_ranged_threat = bool(feedback.get("targetRangedThreatActive"))
+    target_ultimate_threat = bool(feedback.get("targetUltimateThreatActive")) or bool(target.get("isUltimateActive"))
+    target_vulnerable = bool(target.get("isHitStunned"))
     self_hitstunned = bool(self_state.get("isHitStunned"))
     self_arrows = max(0, int(self_state.get("arrows", 0) or 0))
     target_arrows = max(0, int(target.get("arrows", 0) or 0))
     arrow_lead = self_arrows - target_arrows
     movement_stalled = has_movement_stall_feedback(state)
+    try:
+        dash_cooldown_left = float(self_state.get("dashCooldownLeft", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        dash_cooldown_left = 9999.0
+    can_dash = dash_cooldown_left <= 0.01 and not bool(self_state.get("isDashing"))
+    self_grounded = bool(self_state.get("isGrounded", True))
 
     if round_reset or self_hitstunned:
         return tuned
 
     if movement_stalled and target_visible and not projectile_risk:
-        try:
-            dash_cooldown_left = float(self_state.get("dashCooldownLeft", 0.0) or 0.0)
-        except (TypeError, ValueError):
-            dash_cooldown_left = 9999.0
-        can_dash = dash_cooldown_left <= 0.01 and not bool(self_state.get("isDashing"))
-        self_grounded = bool(self_state.get("isGrounded", True))
-
         tuned["mode"] = "retreat"
         tuned["preferredRange"] = max(tuned["preferredRange"], 320)
         tuned["advanceBias"] = min(tuned["advanceBias"], 0.18)
@@ -246,6 +248,45 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         return tuned
 
     if not target_visible or projectile_risk:
+        return tuned
+
+    if target_ultimate_threat:
+        tuned["mode"] = "retreat"
+        tuned["preferredRange"] = max(tuned["preferredRange"], 360)
+        tuned["advanceBias"] = min(tuned["advanceBias"], 0.12)
+        tuned["shootBias"] = min(tuned["shootBias"], 0.28)
+        tuned["meleeBias"] = min(tuned["meleeBias"], 0.22)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.94 if can_dash else 0.64)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.42 if self_grounded else 0.24)
+        tuned["antiProjectile"] = "hold"
+        tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.78)
+        tuned["reason"] = "target_ultimate_threat"
+        return tuned
+
+    if target_melee_threat:
+        tuned["mode"] = "retreat"
+        tuned["preferredRange"] = max(tuned["preferredRange"], 260)
+        tuned["advanceBias"] = min(tuned["advanceBias"], 0.18)
+        tuned["shootBias"] = min(tuned["shootBias"], 0.34)
+        tuned["meleeBias"] = min(tuned["meleeBias"], 0.26)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.88 if can_dash else 0.58)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.34 if self_grounded else 0.18)
+        tuned["antiProjectile"] = "hold"
+        tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.7)
+        tuned["reason"] = "target_melee_threat"
+        return tuned
+
+    if target_ranged_threat:
+        tuned["mode"] = "retreat" if self_arrows <= 0 else "pressure"
+        tuned["preferredRange"] = max(tuned["preferredRange"], 300)
+        tuned["advanceBias"] = min(tuned["advanceBias"], 0.24) if self_arrows <= 0 else max(tuned["advanceBias"], 0.62)
+        tuned["shootBias"] = min(tuned["shootBias"], 0.28) if self_arrows <= 0 else max(tuned["shootBias"], 0.58 if in_shoot else 0.4)
+        tuned["meleeBias"] = min(tuned["meleeBias"], 0.28)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.86 if can_dash else 0.56)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.42 if self_grounded else 0.18)
+        tuned["antiProjectile"] = "dash" if can_dash else "hold"
+        tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.72 if self_cornered else 0.38)
+        tuned["reason"] = "target_ranged_threat"
         return tuned
 
     if target_vulnerable:
@@ -388,8 +429,8 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     target_in_melee = bool(arena.get("targetInMeleeRange", False))
     target_in_ultimate = bool(arena.get("targetInUltimateRange", False))
     target_in_shoot = bool(arena.get("targetInShootRange", False))
-    target_cornered = bool(arena.get("targetCornered", False))
-    self_cornered = bool(arena.get("selfCornered", False))
+    target_cornered = bool(feedback.get("targetCornered", False)) or bool(arena.get("targetCornered", False))
+    self_cornered = bool(feedback.get("selfCornered", False)) or bool(arena.get("selfCornered", False))
     target_above = bool(arena.get("targetAbove", False))
     self_grounded = bool(self_state.get("isGrounded", True))
     self_arrows = max(0, read_int(self_state, "arrows", 0))
@@ -400,6 +441,9 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     can_melee = read_float(self_state, "meleeCooldownLeft", 0.0) <= 0.01 and not bool(self_state.get("isMeleeActive", False))
     can_dash = read_float(self_state, "dashCooldownLeft", 0.0) <= 0.01 and not bool(self_state.get("isDashing", False))
     can_ultimate = read_float(self_state, "ultimateCooldownLeft", 0.0) <= 0.01 and not bool(self_state.get("isUltimateActive", False))
+    target_melee_threat = bool(feedback.get("targetMeleeThreatActive", False)) or bool(target_state.get("isMeleeActive", False))
+    target_ranged_threat = bool(feedback.get("targetRangedThreatActive", False))
+    target_ultimate_threat = bool(feedback.get("targetUltimateThreatActive", False)) or bool(target_state.get("isUltimateActive", False))
     target_vulnerable = bool(target_state.get("isHitStunned", False)) or "target_became_vulnerable" in events
     movement_stalled = has_movement_stall_feedback(state)
 
@@ -500,7 +544,67 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
                 "antiProjectile": "parry_prefer" if bool(self_state.get("canParryProjectile", False)) else "hold",
                 "cornerEscapeBias": 0.62,
                 "reason": "heuristic_projectile_hold",
+        })
+        return intent
+
+    if target_ultimate_threat:
+        intent.update({
+            "mode": "retreat",
+            "preferredRange": 360,
+            "advanceBias": 0.1,
+            "shootBias": 0.24,
+            "meleeBias": 0.18,
+            "dashBias": 0.95 if can_dash else 0.62,
+            "jumpBias": 0.42 if self_grounded else 0.2,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.82,
+            "reason": "heuristic_ultimate_escape",
+        })
+        return intent
+
+    if target_melee_threat:
+        intent.update({
+            "mode": "retreat",
+            "preferredRange": 280,
+            "advanceBias": 0.16,
+            "shootBias": 0.32,
+            "meleeBias": 0.22,
+            "dashBias": 0.9 if can_dash else 0.56,
+            "jumpBias": 0.35 if self_grounded else 0.16,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.76,
+            "reason": "heuristic_melee_escape",
+        })
+        return intent
+
+    if target_ranged_threat and not target_vulnerable:
+        if self_arrows > 0 and can_shoot and target_in_shoot:
+            intent.update({
+                "mode": "pressure",
+                "preferredRange": 260,
+                "advanceBias": 0.62,
+                "shootBias": 0.66,
+                "meleeBias": 0.34,
+                "dashBias": 0.86 if can_dash else 0.54,
+                "jumpBias": 0.38 if self_grounded else 0.16,
+                "antiProjectile": "dash" if can_dash else "hold",
+                "cornerEscapeBias": 0.4,
+                "reason": "heuristic_ranged_interrupt",
             })
+            return intent
+
+        intent.update({
+            "mode": "retreat",
+            "preferredRange": 320,
+            "advanceBias": 0.18,
+            "shootBias": 0.22,
+            "meleeBias": 0.24,
+            "dashBias": 0.84 if can_dash else 0.52,
+            "jumpBias": 0.42 if self_grounded else 0.18,
+            "antiProjectile": "dash" if can_dash else "hold",
+            "cornerEscapeBias": 0.76 if self_cornered else 0.44,
+            "reason": "heuristic_ranged_dodge",
+        })
         return intent
 
     if movement_stalled:

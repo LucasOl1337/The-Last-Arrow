@@ -133,6 +133,48 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["dashBias"], 0.9)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_uses_ranged_threat_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 0
+        state["promptState"]["target"]["arrows"] = 2
+        state["executorFeedback"]["targetRangedThreatActive"] = True
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("retreat", intent["mode"])
+        self.assertEqual("heuristic_ranged_dodge", intent["reason"])
+        self.assertEqual("dash", intent["antiProjectile"])
+        self.assertGreaterEqual(intent["dashBias"], 0.8)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
+    def test_apply_aggression_bias_respects_ultimate_threat_feedback(self) -> None:
+        state = _build_base_state()
+        state["executorFeedback"]["targetUltimateThreatActive"] = True
+        intent = {
+            "mode": "pressure",
+            "preferredRange": 220,
+            "advanceBias": 0.9,
+            "shootBias": 0.7,
+            "meleeBias": 0.8,
+            "dashBias": 0.3,
+            "jumpBias": 0.2,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.2,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "overaggressive_pressure",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("retreat", tuned["mode"])
+        self.assertEqual("target_ultimate_threat", tuned["reason"])
+        self.assertLessEqual(tuned["advanceBias"], 0.12)
+        self.assertGreaterEqual(tuned["dashBias"], 0.9)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
     def test_heuristic_intent_preserves_movement_stall_escape_after_aggression_bias(self) -> None:
         state = _build_base_state()
         state["promptState"]["events"] = ["movement_stalled"]

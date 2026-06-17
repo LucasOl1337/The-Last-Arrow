@@ -25,6 +25,11 @@ namespace ProjectPVP.Tests.Editor
                     hasTarget = true,
                     incomingProjectileThreat = true,
                     shouldCollectProjectile = true,
+                    targetUsingMelee = true,
+                    targetUsingRanged = true,
+                    targetUsingUltimate = true,
+                    selfCornered = true,
+                    targetCornered = true,
                 },
                 arena = new AiArenaArenaObservation
                 {
@@ -62,6 +67,11 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(feedback.intentMode, Is.EqualTo("pressure"));
             Assert.That(feedback.intentReason, Is.EqualTo("punish_jump"));
             Assert.That(feedback.projectileThreatActive, Is.True);
+            Assert.That(feedback.targetMeleeThreatActive, Is.True);
+            Assert.That(feedback.targetRangedThreatActive, Is.True);
+            Assert.That(feedback.targetUltimateThreatActive, Is.True);
+            Assert.That(feedback.selfCornered, Is.True);
+            Assert.That(feedback.targetCornered, Is.True);
             Assert.That(feedback.targetVisible, Is.True);
             Assert.That(feedback.roundResetPending, Is.True);
             Assert.That(feedback.recoverableProjectileAvailable, Is.True);
@@ -87,6 +97,11 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(feedback.intentMode, Is.EqualTo(string.Empty));
             Assert.That(feedback.intentReason, Is.EqualTo(string.Empty));
             Assert.That(feedback.projectileThreatActive, Is.False);
+            Assert.That(feedback.targetMeleeThreatActive, Is.False);
+            Assert.That(feedback.targetRangedThreatActive, Is.False);
+            Assert.That(feedback.targetUltimateThreatActive, Is.False);
+            Assert.That(feedback.selfCornered, Is.False);
+            Assert.That(feedback.targetCornered, Is.False);
             Assert.That(feedback.targetVisible, Is.False);
             Assert.That(feedback.roundResetPending, Is.False);
             Assert.That(feedback.recoverableProjectileAvailable, Is.False);
