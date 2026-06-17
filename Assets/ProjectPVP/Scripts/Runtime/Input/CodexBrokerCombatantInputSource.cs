@@ -782,7 +782,11 @@ namespace ProjectPVP.Input
         private void HandleBrokerRequestFailure()
         {
             _consecutiveBrokerFailures += 1;
+            _lastExecutorSource = "broker_retrying";
             _lastExecutorSummary = "AI | Broker retrying";
+            _botFeedback = DecorateBotFeedbackForExecutorSource(
+                _lastExecutorSource,
+                "waiting for broker response; improve: keep local defense active while reconnecting.");
 
             if (!CodexBrokerFailurePolicy.ShouldInvalidateSession(
                 _sessionId,
@@ -829,6 +833,7 @@ namespace ProjectPVP.Input
 
             return normalizedSource switch
             {
+                "broker_retrying" => "broker retrying; control: keep local fallback active while broker recovers; " + normalizedFeedback,
                 "codex_stale" => "codex stale; control: force replan if this repeats; " + normalizedFeedback,
                 "heuristic_fallback" => "heuristic fallback; control: restore broker or wait for agent intent; " + normalizedFeedback,
                 _ => normalizedFeedback,

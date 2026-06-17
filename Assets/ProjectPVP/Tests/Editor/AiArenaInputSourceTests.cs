@@ -989,6 +989,64 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CodexBrokerCombatantInputSource_FeedbackNamesBrokerRetryControl()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "DecorateBotFeedbackForExecutorSource",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+
+            string feedback = (string)method.Invoke(null, new object[]
+            {
+                "broker_retrying",
+                "projectile threat 0.12s; action AI PARRY DASH; improve: defend before attacking.",
+            });
+
+            Assert.That(feedback, Does.StartWith("broker retrying;"));
+            Assert.That(feedback, Does.Contain("local fallback"));
+            Assert.That(feedback, Does.Contain("projectile threat"));
+        }
+
+        [Test]
+        public void CodexBrokerCombatantInputSource_RequestFailureReportsRetryBeforeInvalidatingSession()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "HandleBrokerRequestFailure",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo sessionIdField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_sessionId",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo lastBrokerSuccessTimeField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_lastBrokerSuccessTime",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null);
+            Assert.That(sessionIdField, Is.Not.Null);
+            Assert.That(lastBrokerSuccessTimeField, Is.Not.Null);
+
+            GameObject root = new GameObject("BrokerRetryFeedbackInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                sessionIdField.SetValue(input, "live-session");
+                lastBrokerSuccessTimeField.SetValue(input, Time.realtimeSinceStartup);
+
+                method.Invoke(input, null);
+
+                Assert.That(input.SessionId, Is.EqualTo("live-session"));
+                Assert.That(input.LastExecutorSource, Is.EqualTo("broker_retrying"));
+                Assert.That(input.LastExecutorSummary, Does.Contain("Broker retrying"));
+                Assert.That(input.BotFeedback, Does.StartWith("broker retrying;"));
+                Assert.That(input.BotFeedback, Does.Contain("local fallback"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void CodexBrokerCombatantInputSource_FallsBackWhenIntentAgeExceedsExtendedWindow()
         {
             MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
