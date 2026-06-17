@@ -47,6 +47,7 @@ namespace ProjectPVP.Tests.Editor
         {
             DestroyKillImpactFxForTests();
             DestroyAttackCueFxForTests();
+            DestroyParryCueFxForTests();
         }
 
         [Test]
@@ -734,6 +735,7 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(AwakeMethod, Is.Not.Null);
             Assert.That(ProjectileOnTriggerEnter2DMethod, Is.Not.Null);
             Assert.That(ContextField, Is.Not.Null);
+            DestroyParryCueFxForTests();
 
             GameObject attackerRoot = new GameObject("projectile_attacker_parry");
             GameObject targetRoot = new GameObject("projectile_target_parry");
@@ -782,6 +784,11 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(projectile.IsCollectible, Is.False);
                 Assert.That(projectile.IsParried, Is.False);
                 Assert.That(projectile.CurrentVelocity.x, Is.LessThan(0f));
+
+                ProjectPvpParryCueFx[] effects = Object.FindObjectsByType<ProjectPvpParryCueFx>(FindObjectsSortMode.None);
+                Assert.That(effects, Has.Length.EqualTo(1));
+                Assert.That((Vector2)effects[0].transform.position, Is.EqualTo(target.RootPosition));
+                Assert.That(effects[0].Duration, Is.GreaterThan(0f));
             }
             finally
             {
@@ -796,6 +803,7 @@ namespace ProjectPVP.Tests.Editor
         {
             Assert.That(AwakeMethod, Is.Not.Null);
             Assert.That(ContextField, Is.Not.Null);
+            DestroyParryCueFxForTests();
 
             GameObject attackerRoot = new GameObject("projectile_attacker_shield_parry");
             GameObject targetRoot = new GameObject("projectile_target_shield_parry");
@@ -847,6 +855,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(projectile.IsParried, Is.False);
                 Assert.That(projectile.IsStuck, Is.True);
                 Assert.That(projectile.IsCollectible, Is.True);
+                Assert.That(Object.FindObjectsByType<ProjectPvpParryCueFx>(FindObjectsSortMode.None), Is.Empty);
             }
             finally
             {
@@ -2845,6 +2854,18 @@ namespace ProjectPVP.Tests.Editor
         private static void DestroyAttackCueFxForTests()
         {
             ProjectPvpAttackCueFx[] effects = Object.FindObjectsByType<ProjectPvpAttackCueFx>(FindObjectsSortMode.None);
+            for (int index = 0; index < effects.Length; index += 1)
+            {
+                if (effects[index] != null)
+                {
+                    Object.DestroyImmediate(effects[index].gameObject);
+                }
+            }
+        }
+
+        private static void DestroyParryCueFxForTests()
+        {
+            ProjectPvpParryCueFx[] effects = Object.FindObjectsByType<ProjectPvpParryCueFx>(FindObjectsSortMode.None);
             for (int index = 0; index < effects.Length; index += 1)
             {
                 if (effects[index] != null)

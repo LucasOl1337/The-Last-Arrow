@@ -501,6 +501,7 @@ namespace ProjectPVP.Gameplay
                     projectile.ConsumeParryEvent();
                 }
 
+                SpawnParryFeedback();
                 AddArrows(1);
                 _context.dashParryTimer = 0f;
                 _context.dashPressTimer = 0f;
@@ -559,6 +560,26 @@ namespace ProjectPVP.Gameplay
             return !_context.isDead
                 && (_context.dashParryTimer > 0f || _context.dashPressTimer > 0f)
                 && (_context.Controller == null || !_context.Controller.HasShield);
+        }
+
+        private void SpawnParryFeedback()
+        {
+            Vector2 center;
+            if (_context.Controller != null)
+            {
+                center = _context.Controller.RootPosition;
+            }
+            else if (_context.transform != null)
+            {
+                center = _context.transform.position;
+            }
+            else
+            {
+                center = Vector2.zero;
+            }
+
+            float radius = Mathf.Max(56f, _statResolver.ResolveColliderSize().x * 0.85f);
+            ProjectPvpParryCueFx.Spawn(center, radius, 0.16f);
         }
 
         private void ApplyProjectileHitReaction(ProjectileController projectile)
