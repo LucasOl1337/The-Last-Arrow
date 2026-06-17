@@ -84,6 +84,14 @@ namespace ProjectPVP.Input
                     useJump = true;
                     decision.debugSummary = "AI JUMP EVADE";
                 }
+                else if (semantics.shouldDashEvade)
+                {
+                    axis = Mathf.Abs(semantics.incomingProjectileDirection.x) > 0.1f
+                        ? Mathf.Sign(semantics.incomingProjectileDirection.x) * 0.35f
+                        : (semantics.targetDirection.x >= 0f ? -0.35f : 0.35f);
+                    holdProjectileDefense = true;
+                    decision.debugSummary = "AI PROJECTILE DRIFT";
+                }
             }
             else if (prioritizeCollection && !semantics.targetUsingUltimate)
             {

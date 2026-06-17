@@ -269,6 +269,7 @@ namespace ProjectPVP.Input
                 || decision.debugSummary.IndexOf("block", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("evade", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("dodge", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("projectile drift", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("dash", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("jump", StringComparison.OrdinalIgnoreCase) >= 0;
         }

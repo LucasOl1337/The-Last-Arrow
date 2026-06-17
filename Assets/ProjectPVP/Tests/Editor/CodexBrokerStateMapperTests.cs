@@ -247,6 +247,36 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_TreatsProjectileDriftAsThreatResponse()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.12f,
+                    shouldDashEvade = true,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI PROJECTILE DRIFT",
+                moveAxis = 0.35f,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("projectile threat 0.12s"));
+            Assert.That(feedback, Does.Contain("AI PROJECTILE DRIFT"));
+            Assert.That(feedback, Does.Not.Contain("missed projectile defense"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_ReportsMissedProjectileDefenseWhenDecisionIgnoresThreat()
         {
             var snapshot = new AiArenaSnapshotEnvelope
