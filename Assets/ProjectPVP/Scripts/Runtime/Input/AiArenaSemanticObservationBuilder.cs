@@ -48,12 +48,17 @@ namespace ProjectPVP.Input
                 ResolveProjectileGravity(self),
                 leadTime,
                 direction);
-            float selfEdgeDistance = Mathf.Min(
-                Mathf.Abs(self.position.x - arena.wrapBounds.xMin),
-                Mathf.Abs(arena.wrapBounds.xMax - self.position.x));
-            float targetEdgeDistance = Mathf.Min(
-                Mathf.Abs(target.position.x - arena.wrapBounds.xMin),
-                Mathf.Abs(arena.wrapBounds.xMax - target.position.x));
+            bool hasPlayableBounds = HasPlayableBounds(arena.wrapBounds);
+            float selfEdgeDistance = hasPlayableBounds
+                ? Mathf.Min(
+                    Mathf.Abs(self.position.x - arena.wrapBounds.xMin),
+                    Mathf.Abs(arena.wrapBounds.xMax - self.position.x))
+                : float.MaxValue;
+            float targetEdgeDistance = hasPlayableBounds
+                ? Mathf.Min(
+                    Mathf.Abs(target.position.x - arena.wrapBounds.xMin),
+                    Mathf.Abs(arena.wrapBounds.xMax - target.position.x))
+                : float.MaxValue;
             bool targetUsingMelee = target.isMeleeActive && IsWithinBoxThreat(self.position, target.meleeHitboxCenter, target.meleeHitboxSize, 48f);
             bool targetUsingUltimate = target.isUltimateActive && IsWithinCircleThreat(self.position, target.ultimateHitboxCenter, target.ultimateHitboxRadius, 40f);
             bool targetUsingRanged = target.isShootAnimating;
@@ -225,7 +230,7 @@ namespace ProjectPVP.Input
             float bestDistance = float.MaxValue;
             Vector2 bestDirection = Vector2.zero;
             Rect bounds = arena.wrapBounds;
-            bool hasPlayableBounds = bounds.width > 0.01f && bounds.height > 0.01f;
+            bool hasPlayableBounds = HasPlayableBounds(bounds);
 
             for (int index = 0; index < projectiles.Count; index += 1)
             {
@@ -267,6 +272,11 @@ namespace ProjectPVP.Input
                 && position.x <= bounds.xMax
                 && position.y >= bounds.yMin
                 && position.y <= bounds.yMax;
+        }
+
+        private static bool HasPlayableBounds(Rect bounds)
+        {
+            return bounds.width > 0.01f && bounds.height > 0.01f;
         }
 
         private static bool IsWithinBoxThreat(Vector2 point, Vector2 center, Vector2 size, float padding)

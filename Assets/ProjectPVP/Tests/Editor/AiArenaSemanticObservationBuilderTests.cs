@@ -71,6 +71,41 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_DoesNotMarkCombatantsCorneredWhenArenaBoundsAreMissing()
+        {
+            AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
+            self.arrows = 3;
+
+            AiArenaControllerSnapshot target = BuildTarget(new Vector2(160f, 0f));
+
+            var projectiles = new List<AiArenaProjectileSnapshot>
+            {
+                new AiArenaProjectileSnapshot
+                {
+                    isValid = true,
+                    isCollectible = true,
+                    position = new Vector2(-120f, 0f),
+                },
+            };
+
+            AiArenaSemanticObservation semantics = AiArenaSemanticObservationBuilder.Build(
+                self,
+                target,
+                projectiles,
+                default,
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(semantics.selfCornered, Is.False);
+            Assert.That(semantics.targetCornered, Is.False);
+            Assert.That(semantics.shouldCollectProjectile, Is.False);
+        }
+
+        [Test]
         public void Build_DoesNotMarkAntiAirWhenTargetIsAboveShootTolerance()
         {
             AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
