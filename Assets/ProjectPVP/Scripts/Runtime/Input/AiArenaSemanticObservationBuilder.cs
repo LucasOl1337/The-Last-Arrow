@@ -25,7 +25,7 @@ namespace ProjectPVP.Input
             };
 
             PopulateProjectileThreatSemantics(ref semantics, self, projectiles, verticalTolerance);
-            PopulateCollectibleProjectileSemantics(ref semantics, self, projectiles);
+            PopulateCollectibleProjectileSemantics(ref semantics, self, projectiles, arena);
 
             if (!self.isValid || !target.isValid)
             {
@@ -214,7 +214,8 @@ namespace ProjectPVP.Input
         private static void PopulateCollectibleProjectileSemantics(
             ref AiArenaSemanticObservation semantics,
             AiArenaControllerSnapshot self,
-            IReadOnlyList<AiArenaProjectileSnapshot> projectiles)
+            IReadOnlyList<AiArenaProjectileSnapshot> projectiles,
+            AiArenaArenaSnapshot arena)
         {
             if (projectiles == null || !self.isValid)
             {
@@ -223,11 +224,18 @@ namespace ProjectPVP.Input
 
             float bestDistance = float.MaxValue;
             Vector2 bestDirection = Vector2.zero;
+            Rect bounds = arena.wrapBounds;
+            bool hasPlayableBounds = bounds.width > 0.01f && bounds.height > 0.01f;
 
             for (int index = 0; index < projectiles.Count; index += 1)
             {
                 AiArenaProjectileSnapshot projectile = projectiles[index];
                 if (!projectile.isValid || !projectile.isCollectible)
+                {
+                    continue;
+                }
+
+                if (hasPlayableBounds && !IsInsidePlayableBounds(projectile.position, bounds))
                 {
                     continue;
                 }
@@ -251,6 +259,14 @@ namespace ProjectPVP.Input
             semantics.hasCollectibleProjectile = true;
             semantics.collectibleProjectileDistance = bestDistance;
             semantics.collectibleProjectileDirection = bestDirection;
+        }
+
+        private static bool IsInsidePlayableBounds(Vector2 position, Rect bounds)
+        {
+            return position.x >= bounds.xMin
+                && position.x <= bounds.xMax
+                && position.y >= bounds.yMin
+                && position.y <= bounds.yMax;
         }
 
         private static bool IsWithinBoxThreat(Vector2 point, Vector2 center, Vector2 size, float padding)

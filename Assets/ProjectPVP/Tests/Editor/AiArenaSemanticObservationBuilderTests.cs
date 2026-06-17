@@ -557,6 +557,80 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_IgnoresOutOfBoundsCollectibleProjectilesForRecovery()
+        {
+            AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
+            self.arrows = 0;
+
+            var projectiles = new List<AiArenaProjectileSnapshot>
+            {
+                new AiArenaProjectileSnapshot
+                {
+                    isValid = true,
+                    isCollectible = true,
+                    position = new Vector2(-460f, 0f),
+                },
+                new AiArenaProjectileSnapshot
+                {
+                    isValid = true,
+                    isCollectible = true,
+                    position = new Vector2(180f, 0f),
+                },
+            };
+
+            AiArenaSemanticObservation semantics = AiArenaSemanticObservationBuilder.Build(
+                self,
+                BuildTarget(new Vector2(240f, 0f)),
+                projectiles,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 140f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(semantics.hasCollectibleProjectile, Is.True);
+            Assert.That(semantics.collectibleProjectileDistance, Is.EqualTo(180f).Within(0.001f));
+            Assert.That(semantics.collectibleProjectileDirection, Is.EqualTo(Vector2.right));
+            Assert.That(semantics.shouldCollectProjectile, Is.True);
+        }
+
+        [Test]
+        public void Build_AllowsCollectibleProjectileOnArenaEdgeForRecovery()
+        {
+            AiArenaControllerSnapshot self = BuildSelf(new Vector2(320f, 0f));
+            self.arrows = 0;
+
+            var projectiles = new List<AiArenaProjectileSnapshot>
+            {
+                new AiArenaProjectileSnapshot
+                {
+                    isValid = true,
+                    isCollectible = true,
+                    position = new Vector2(400f, 0f),
+                },
+            };
+
+            AiArenaSemanticObservation semantics = AiArenaSemanticObservationBuilder.Build(
+                self,
+                BuildTarget(new Vector2(240f, 0f)),
+                projectiles,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 140f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(semantics.hasCollectibleProjectile, Is.True);
+            Assert.That(semantics.collectibleProjectileDistance, Is.EqualTo(80f).Within(0.001f));
+            Assert.That(semantics.collectibleProjectileDirection, Is.EqualTo(Vector2.right));
+            Assert.That(semantics.shouldCollectProjectile, Is.True);
+        }
+
+        [Test]
         public void EstimateTimeToClosestApproach_ReachesIncomingProjectileAndRejectsRetreatingOne()
         {
             float incoming = AiArenaProjectileThreatMath.EstimateTimeToClosestApproach(
