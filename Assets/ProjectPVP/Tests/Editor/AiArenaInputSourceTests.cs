@@ -659,6 +659,54 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CodexBrokerCombatantInputSource_ForceRefreshesWhenTargetMeleeThreatChanges()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ShouldForceRefresh",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo previousSnapshotField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_previousSnapshot",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null);
+            Assert.That(previousSnapshotField, Is.Not.Null);
+
+            GameObject root = new GameObject("MeleeThreatRefreshBrokerInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                previousSnapshotField.SetValue(input, new AiArenaSnapshotEnvelope
+                {
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                        targetUsingMelee = false,
+                    },
+                });
+
+                var snapshot = new AiArenaSnapshotEnvelope
+                {
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                        targetUsingMelee = true,
+                    },
+                };
+
+                bool shouldRefresh = (bool)method.Invoke(input, new object[] { snapshot });
+
+                Assert.That(shouldRefresh, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void CodexBrokerCombatantInputSource_ForceRefreshesWhenNearestRecoverableProjectileDistanceChanges()
         {
             MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(

@@ -91,6 +91,65 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_AddsTargetMeleeTransitionEvents()
+        {
+            var previousSafeSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 30,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingMelee = false,
+                },
+            };
+            var currentMeleeSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 31,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingMelee = true,
+                },
+            };
+            var previousMeleeSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 32,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingMelee = true,
+                },
+            };
+            var currentSafeSnapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 33,
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingMelee = false,
+                },
+            };
+
+            CodexPromptState meleeStartedPrompt = CodexPromptStateBuilder.Build(
+                currentMeleeSnapshot,
+                previousSafeSnapshot,
+                fallbackFrame: 0,
+                memoryHistory: null);
+            CodexPromptState meleeEndedPrompt = CodexPromptStateBuilder.Build(
+                currentSafeSnapshot,
+                previousMeleeSnapshot,
+                fallbackFrame: 0,
+                memoryHistory: null);
+
+            Assert.That(meleeStartedPrompt.events, Does.Contain("target_started_melee"));
+            Assert.That(meleeEndedPrompt.events, Does.Contain("target_stopped_melee"));
+        }
+
+        [Test]
         public void Build_FiltersProjectileThreatsByEtaAndLateralDistance()
         {
             var snapshot = new AiArenaSnapshotEnvelope

@@ -123,6 +123,11 @@ namespace ProjectPVP.Input
                 AddEvent(eventSink, "target_started_ultimate");
             }
 
+            if (current.targetUsingMelee != previous.targetUsingMelee)
+            {
+                AddEvent(eventSink, current.targetUsingMelee ? "target_started_melee" : "target_stopped_melee");
+            }
+
             if (current.selfCornered != previous.selfCornered)
             {
                 AddEvent(eventSink, current.selfCornered ? "self_cornered" : "self_escaped_corner");
