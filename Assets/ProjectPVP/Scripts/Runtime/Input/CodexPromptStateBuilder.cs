@@ -45,6 +45,11 @@ namespace ProjectPVP.Input
 
                     if (projectile.isCollectible)
                     {
+                        if (!IsInsidePlayableBounds(projectile.position, snapshot.arena))
+                        {
+                            continue;
+                        }
+
                         float distance = EstimateProjectileDistance(snapshot.self, projectile);
                         if (distance >= 0f)
                         {
@@ -242,6 +247,19 @@ namespace ProjectPVP.Input
             }
 
             return closestOffset.magnitude <= DangerousProjectileLateralTolerance ? etaSeconds : -1f;
+        }
+
+        private static bool IsInsidePlayableBounds(Vector2 position, AiArenaArenaObservation arena)
+        {
+            if (arena == null || arena.wrapXMax <= arena.wrapXMin || arena.wrapYMax <= arena.wrapYMin)
+            {
+                return true;
+            }
+
+            return position.x >= arena.wrapXMin
+                && position.x <= arena.wrapXMax
+                && position.y >= arena.wrapYMin
+                && position.y <= arena.wrapYMax;
         }
 
         private static float EstimateProjectileDistance(AiArenaCombatantObservation self, AiArenaProjectileObservation projectile)

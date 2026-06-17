@@ -349,6 +349,96 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_IgnoresOutOfBoundsRecoverableProjectiles()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 28,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    position = Vector2.zero,
+                    velocity = Vector2.zero,
+                },
+                arena = new AiArenaArenaObservation
+                {
+                    wrapXMin = -400f,
+                    wrapXMax = 400f,
+                    wrapYMin = -200f,
+                    wrapYMax = 200f,
+                },
+                semantics = new AiArenaSemanticObservation(),
+                projectiles = new List<AiArenaProjectileObservation>
+                {
+                    new AiArenaProjectileObservation
+                    {
+                        isCollectible = true,
+                        sourceSlotId = 2,
+                        position = new Vector2(-460f, 0f),
+                    },
+                    new AiArenaProjectileObservation
+                    {
+                        isCollectible = true,
+                        sourceSlotId = 2,
+                        position = new Vector2(180f, 0f),
+                    },
+                },
+            };
+
+            CodexPromptState prompt = CodexPromptStateBuilder.Build(
+                snapshot,
+                previousSnapshot: null,
+                fallbackFrame: 0,
+                memoryHistory: null);
+
+            Assert.That(prompt.recoverableProjectiles, Has.Count.EqualTo(1));
+            Assert.That(prompt.recoverableProjectiles[0].distanceToSelf, Is.EqualTo(180f).Within(0.001f));
+            Assert.That(prompt.recoverableProjectiles[0].position, Is.EqualTo(new Vector2(180f, 0f)));
+        }
+
+        [Test]
+        public void Build_AllowsRecoverableProjectileOnArenaEdge()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 29,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    position = new Vector2(320f, 0f),
+                    velocity = Vector2.zero,
+                },
+                arena = new AiArenaArenaObservation
+                {
+                    wrapXMin = -400f,
+                    wrapXMax = 400f,
+                    wrapYMin = -200f,
+                    wrapYMax = 200f,
+                },
+                semantics = new AiArenaSemanticObservation(),
+                projectiles = new List<AiArenaProjectileObservation>
+                {
+                    new AiArenaProjectileObservation
+                    {
+                        isCollectible = true,
+                        sourceSlotId = 2,
+                        position = new Vector2(400f, 0f),
+                    },
+                },
+            };
+
+            CodexPromptState prompt = CodexPromptStateBuilder.Build(
+                snapshot,
+                previousSnapshot: null,
+                fallbackFrame: 0,
+                memoryHistory: null);
+
+            Assert.That(prompt.recoverableProjectiles, Has.Count.EqualTo(1));
+            Assert.That(prompt.recoverableProjectiles[0].distanceToSelf, Is.EqualTo(80f).Within(0.001f));
+            Assert.That(prompt.recoverableProjectiles[0].position, Is.EqualTo(new Vector2(400f, 0f)));
+        }
+
+        [Test]
         public void Build_UsesRelativeVelocityForProjectileEta()
         {
             var stationarySnapshot = new AiArenaSnapshotEnvelope
