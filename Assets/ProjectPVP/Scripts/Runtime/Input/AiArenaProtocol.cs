@@ -201,6 +201,16 @@ namespace ProjectPVP.Input
                 return "corner pressure detected; action " + action + "; improve: escape corner before committing.";
             }
 
+            if (semantics.shouldAntiAir)
+            {
+                if (!IsAntiAirDecision(decision))
+                {
+                    return "missed anti-air; action " + action + "; improve: shoot, jump, or aim upward before the target lands.";
+                }
+
+                return "anti-air opportunity; action " + action + "; improve: challenge vertical approaches before landing.";
+            }
+
             if (semantics.targetVulnerable || semantics.shouldPunish)
             {
                 if (!IsAttackDecision(decision))
@@ -261,6 +271,29 @@ namespace ProjectPVP.Input
                 || decision.debugSummary.IndexOf("dodge", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("dash", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("jump", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool IsAntiAirDecision(AiArenaDecisionEnvelope decision)
+        {
+            if (decision == null)
+            {
+                return false;
+            }
+
+            if (decision.jumpPressed || decision.jumpHeld || IsAttackDecision(decision) || decision.aimY > 0.35f)
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(decision.debugSummary))
+            {
+                return false;
+            }
+
+            return decision.debugSummary.IndexOf("anti air", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("anti-air", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("climb", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("above", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static bool IsKnownProjectileRecoveryDirection(AiArenaSemanticObservation semantics)

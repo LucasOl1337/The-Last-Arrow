@@ -361,6 +361,37 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_ReportsMissedAntiAirWhenDecisionDoesNotChallengeVerticalTarget()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    shouldAntiAir = true,
+                    targetAbove = true,
+                    targetInShootRange = true,
+                    horizontalDistance = 320f,
+                    verticalDistance = 160f,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI DRIFT",
+                moveAxis = 0.35f,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("missed anti-air"));
+            Assert.That(feedback, Does.Contain("shoot, jump, or aim upward"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_UsesSafeFallbackWhenSnapshotIsMissing()
         {
             string feedback = AiArenaBotFeedbackBuilder.Build(null, null);
