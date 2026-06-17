@@ -30,6 +30,7 @@ namespace ProjectPVP.Input
 
         private readonly AiArenaRuntimeSnapshotCollector _collector = new AiArenaRuntimeSnapshotCollector();
         private readonly AiArenaLocalTransport _transport = new AiArenaLocalTransport();
+        private readonly AiArenaMovementStallEscapeController _movementStallEscape = new AiArenaMovementStallEscapeController();
         private PlayerInputFrame _currentFrame;
         private int _frameIndex;
         private AiArenaExecutionState _executionState;
@@ -72,6 +73,7 @@ namespace ProjectPVP.Input
 
             AiArenaTransportResult result = _transport.RequestDecisionJson(snapshotJson, decisionTimeoutMs);
             _currentFrame = ResolveFrame(result, self, snapshot);
+            _currentFrame = ObserveMovementStall(snapshot, _currentFrame);
             _frameIndex += 1;
         }
 
@@ -81,6 +83,7 @@ namespace ProjectPVP.Input
             _frameIndex = 0;
             _executionState = default;
             _botFeedback = string.Empty;
+            _movementStallEscape.Reset();
             _collector.ForceRefresh();
         }
 
@@ -91,6 +94,7 @@ namespace ProjectPVP.Input
             _executionState = default;
             _debugSummary = "AI";
             _botFeedback = string.Empty;
+            _movementStallEscape.Reset();
         }
 
         private PlayerInputFrame ResolveFrame(AiArenaTransportResult result, AiArenaControllerSnapshot self, AiArenaSnapshotEnvelope snapshot)
@@ -141,6 +145,18 @@ namespace ProjectPVP.Input
                 ref _debugSummary);
             _botFeedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
             return frame;
+        }
+
+        private PlayerInputFrame ObserveMovementStall(AiArenaSnapshotEnvelope snapshot, PlayerInputFrame frame)
+        {
+            PlayerInputFrame resolvedFrame = _movementStallEscape.Observe(snapshot, frame);
+            if (_movementStallEscape.EscapedThisFrame)
+            {
+                _debugSummary = "AI | Movement stalled";
+                _botFeedback = "movement stalled; action: escape jump/dash; improve: replan path instead of holding one axis.";
+            }
+
+            return resolvedFrame;
         }
     }
 }

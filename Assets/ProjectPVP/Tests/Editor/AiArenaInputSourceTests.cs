@@ -1181,6 +1181,47 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void LocalAiCombatantInputSource_EscapesWhenMovementStalls()
+        {
+            ClearSnapshotRegistry();
+            GameObject selfRoot = new GameObject("LocalStalledSelf");
+            GameObject opponentRoot = new GameObject("LocalStalledOpponent");
+            LocalAiCombatantInputSource input = selfRoot.AddComponent<LocalAiCombatantInputSource>();
+            SnapshotSourceController self = selfRoot.AddComponent<SnapshotSourceController>();
+            SnapshotSourceController opponent = opponentRoot.AddComponent<SnapshotSourceController>();
+
+            try
+            {
+                self.slotId = 1;
+                self.currentArrows = 5;
+                self.grounded = true;
+                opponent.slotId = 2;
+                opponent.currentArrows = 0;
+                selfRoot.transform.position = Vector3.zero;
+                opponentRoot.transform.position = new Vector3(240f, 0f, 0f);
+
+                input.ConfigureForSlot(CombatantSlotId.SlotOne);
+                for (int index = 0; index < 20; index += 1)
+                {
+                    input.CaptureFrame();
+                }
+
+                Assert.That(input.CurrentFrame.axis, Is.LessThan(0f));
+                Assert.That(input.CurrentFrame.left, Is.True);
+                Assert.That(input.CurrentFrame.right, Is.False);
+                Assert.That(input.CurrentFrame.jumpPressed, Is.True);
+                Assert.That(input.CurrentFrame.dashPrimaryPressed, Is.True);
+                Assert.That(input.BotFeedback, Does.Contain("movement stalled"));
+            }
+            finally
+            {
+                ClearSnapshotRegistry();
+                Object.DestroyImmediate(selfRoot);
+                Object.DestroyImmediate(opponentRoot);
+            }
+        }
+
+        [Test]
         public void LocalAiCombatantInputSource_FallsBackSafely_OnInvalidResponse()
         {
             GameObject selfRoot = new GameObject("Self");

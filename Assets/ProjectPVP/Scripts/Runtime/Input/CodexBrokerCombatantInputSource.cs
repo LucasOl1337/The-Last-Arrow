@@ -10,11 +10,6 @@ namespace ProjectPVP.Input
     [DisallowMultipleComponent]
     public sealed class CodexBrokerCombatantInputSource : MonoBehaviour, ICombatantInputSource, IBotFeedbackInputSource
     {
-        private const float MovementStallAxisThreshold = 0.85f;
-        private const float MovementStallMinimumDisplacement = 12f;
-        private const int MovementStallFrameThreshold = 18;
-        private const int MovementStallEscapeFrameDuration = 8;
-
         [Min(1)] public int slotId = 2;
         [Header("Combat Ranges")]
         public float desiredCombatDistance = 360f;
@@ -42,6 +37,7 @@ namespace ProjectPVP.Input
 
         private readonly AiArenaRuntimeSnapshotCollector _collector = new AiArenaRuntimeSnapshotCollector();
         private readonly Queue<string> _eventMemory = new Queue<string>(8);
+        private readonly AiArenaMovementStallEscapeController _movementStallEscape = new AiArenaMovementStallEscapeController();
         private PlayerInputFrame _currentFrame;
         private AiArenaExecutionState _executionState;
         private int _frameIndex;
@@ -60,11 +56,6 @@ namespace ProjectPVP.Input
         private int _consecutiveBrokerFailures;
         private float _lastBrokerSuccessTime = -999f;
         private bool _manualForceRefresh;
-        private int _movementStallAxisSign;
-        private int _movementStallFrameCount;
-        private float _movementStallStartX;
-        private bool _movementStallLatched;
-        private int _movementStallEscapeFramesLeft;
         private CodexBrokerRequestLifecycleState _sessionStartRequest = CodexBrokerRequestLifecycleState.Inactive();
         private CodexBrokerRequestLifecycleState _strategyRequest = CodexBrokerRequestLifecycleState.Inactive();
 
@@ -721,125 +712,27 @@ namespace ProjectPVP.Input
 
         private PlayerInputFrame ObserveMovementStall(AiArenaSnapshotEnvelope snapshot, PlayerInputFrame frame)
         {
-            if (snapshot == null
-                || snapshot.self == null
-                || snapshot.semantics == null
-                || snapshot.arena == null
-                || snapshot.arena.roundResetPending
-                || !snapshot.semantics.hasTarget)
+            PlayerInputFrame resolvedFrame = _movementStallEscape.Observe(snapshot, frame);
+            if (_movementStallEscape.EscapedThisFrame)
             {
-                ResetMovementStall();
-                return frame;
+                _debugSummary = "AI | Movement stalled";
+                _lastExecutorSummary = _debugSummary;
+                _botFeedback = "movement stalled; action: escape jump/dash; improve: replan path instead of holding one axis.";
             }
 
-            int axisSign = ResolveStrongAxisSign(frame.axis);
-            if (axisSign == 0)
+            if (_movementStallEscape.TriggeredThisFrame)
             {
-                ResetMovementStall();
-                return frame;
+                _manualForceRefresh = true;
+                _lastStrategyRequestTime = -999f;
+                RecordPromptEvents(new List<string> { "movement_stalled" });
             }
 
-            float currentX = snapshot.self.position.x;
-            if (axisSign != _movementStallAxisSign)
-            {
-                _movementStallAxisSign = axisSign;
-                _movementStallFrameCount = 1;
-                _movementStallStartX = currentX;
-                _movementStallLatched = false;
-                return frame;
-            }
-
-            _movementStallFrameCount += 1;
-            if (Mathf.Abs(currentX - _movementStallStartX) > MovementStallMinimumDisplacement)
-            {
-                _movementStallFrameCount = 1;
-                _movementStallStartX = currentX;
-                _movementStallLatched = false;
-                return frame;
-            }
-
-            if (_movementStallLatched)
-            {
-                return ConsumeMovementStallEscapeFrame(snapshot, frame, axisSign);
-            }
-
-            if (_movementStallFrameCount < MovementStallFrameThreshold)
-            {
-                return frame;
-            }
-
-            _manualForceRefresh = true;
-            _lastStrategyRequestTime = -999f;
-            _debugSummary = "AI | Movement stalled";
-            _lastExecutorSummary = _debugSummary;
-            _botFeedback = "movement stalled; action: escape jump/dash; improve: replan path instead of holding one axis.";
-            RecordPromptEvents(new List<string> { "movement_stalled" });
-            _movementStallLatched = true;
-            _movementStallEscapeFramesLeft = MovementStallEscapeFrameDuration;
-            return ConsumeMovementStallEscapeFrame(snapshot, frame, axisSign);
-        }
-
-        private PlayerInputFrame ConsumeMovementStallEscapeFrame(
-            AiArenaSnapshotEnvelope snapshot,
-            PlayerInputFrame frame,
-            int stalledAxisSign)
-        {
-            if (_movementStallEscapeFramesLeft <= 0)
-            {
-                return frame;
-            }
-
-            _movementStallEscapeFramesLeft -= 1;
-            return BuildMovementStallEscapeFrame(snapshot, frame, stalledAxisSign);
-        }
-
-        private static PlayerInputFrame BuildMovementStallEscapeFrame(
-            AiArenaSnapshotEnvelope snapshot,
-            PlayerInputFrame frame,
-            int stalledAxisSign)
-        {
-            float escapeAxis = Mathf.Clamp(-stalledAxisSign, -1f, 1f);
-            bool jump = snapshot.self.isGrounded;
-            bool dash = snapshot.self.dashCooldownLeft <= 0.01f && !snapshot.self.isDashing;
-
-            frame.axis = escapeAxis;
-            frame.left = escapeAxis < -0.1f;
-            frame.right = escapeAxis > 0.1f;
-            frame.up = frame.up || jump;
-            frame.down = false;
-            frame.jumpPressed = frame.jumpPressed || jump;
-            frame.jumpHeld = frame.jumpHeld || jump;
-            frame.dashPrimaryPressed = frame.dashPrimaryPressed || dash;
-            frame.dashSecondaryPressed = false;
-            frame.shootPressed = false;
-            frame.shootHeld = false;
-            frame.meleePressed = false;
-            frame.ultimatePressed = false;
-            return frame;
+            return resolvedFrame;
         }
 
         private void ResetMovementStall()
         {
-            _movementStallAxisSign = 0;
-            _movementStallFrameCount = 0;
-            _movementStallStartX = 0f;
-            _movementStallLatched = false;
-            _movementStallEscapeFramesLeft = 0;
-        }
-
-        private static int ResolveStrongAxisSign(float axis)
-        {
-            if (axis >= MovementStallAxisThreshold)
-            {
-                return 1;
-            }
-
-            if (axis <= -MovementStallAxisThreshold)
-            {
-                return -1;
-            }
-
-            return 0;
+            _movementStallEscape.Reset();
         }
 
         private void ApplyBrokerEnvelope(string responseJson)
