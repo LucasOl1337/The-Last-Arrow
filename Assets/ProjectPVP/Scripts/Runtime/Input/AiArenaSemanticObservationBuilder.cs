@@ -59,9 +59,10 @@ namespace ProjectPVP.Input
                     Mathf.Abs(target.position.x - arena.wrapBounds.xMin),
                     Mathf.Abs(arena.wrapBounds.xMax - target.position.x))
                 : float.MaxValue;
+            bool targetInShootRange = horizontalDistance <= shootRange && verticalDistance <= verticalTolerance;
             bool targetUsingMelee = target.isMeleeActive && IsWithinBoxThreat(self.position, target.meleeHitboxCenter, target.meleeHitboxSize, 48f);
             bool targetUsingUltimate = target.isUltimateActive && IsWithinCircleThreat(self.position, target.ultimateHitboxCenter, target.ultimateHitboxRadius, 40f);
-            bool targetUsingRanged = target.isShootAnimating;
+            bool targetUsingRanged = target.isShootAnimating && targetInShootRange;
             bool targetVulnerable = target.isHitStunned
                 || (target.isShootAnimating && !targetUsingUltimate)
                 || (target.isMeleeActive && !targetUsingMelee && verticalDistance <= verticalTolerance);
@@ -78,7 +79,7 @@ namespace ProjectPVP.Input
             semantics.targetBelow = offset.y < -32f;
             semantics.targetInMeleeRange = horizontalDistance <= meleeRange && verticalDistance <= Mathf.Min(verticalTolerance, 96f);
             semantics.targetInUltimateRange = horizontalDistance <= ultimateRange && verticalDistance <= Mathf.Min(verticalTolerance, 120f);
-            semantics.targetInShootRange = horizontalDistance <= shootRange && verticalDistance <= verticalTolerance;
+            semantics.targetInShootRange = targetInShootRange;
             semantics.shouldAdvance = horizontalDistance > desiredCombatDistance;
             semantics.shouldRetreat = horizontalDistance < closeRetreatDistance || targetUsingMelee || targetUsingUltimate;
             semantics.shouldPressure = !semantics.incomingProjectileThreat

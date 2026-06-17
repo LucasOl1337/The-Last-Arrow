@@ -132,6 +132,58 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_MarksShootAnimationInRangeAsRangedThreat()
+        {
+            AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
+            self.arrows = 3;
+
+            AiArenaControllerSnapshot target = BuildTarget(new Vector2(420f, 0f));
+            target.isShootAnimating = true;
+
+            AiArenaSemanticObservation semantics = AiArenaSemanticObservationBuilder.Build(
+                self,
+                target,
+                null,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(semantics.targetInShootRange, Is.True);
+            Assert.That(semantics.targetUsingRanged, Is.True);
+            Assert.That(semantics.targetVulnerable, Is.True);
+        }
+
+        [Test]
+        public void Build_DoesNotMarkShootAnimationOutsideShootRangeAsRangedThreat()
+        {
+            AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
+            self.arrows = 3;
+
+            AiArenaControllerSnapshot target = BuildTarget(new Vector2(1180f, 0f));
+            target.isShootAnimating = true;
+
+            AiArenaSemanticObservation semantics = AiArenaSemanticObservationBuilder.Build(
+                self,
+                target,
+                null,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(semantics.targetInShootRange, Is.False);
+            Assert.That(semantics.targetUsingRanged, Is.False);
+            Assert.That(semantics.shouldPunish, Is.False);
+        }
+
+        [Test]
         public void Build_CompensatesPredictedTargetDirectionForSelfMomentum()
         {
             AiArenaControllerSnapshot selfStationary = BuildSelf(Vector2.zero);
