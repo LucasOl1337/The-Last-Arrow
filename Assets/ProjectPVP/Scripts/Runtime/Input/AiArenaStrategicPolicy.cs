@@ -229,6 +229,8 @@ namespace ProjectPVP.Input
                         break;
                     case "parry_prefer":
                         decision.moveAxis = 0f;
+                        ClearCombatActions(decision);
+                        decision.debugSummary = "AI PARRY HOLD";
                         break;
                 }
             }
@@ -278,6 +280,23 @@ namespace ProjectPVP.Input
                 "parry_prefer" => "parry_prefer",
                 _ => "hold",
             };
+        }
+
+        private static void ClearCombatActions(AiArenaDecisionEnvelope decision)
+        {
+            if (decision == null)
+            {
+                return;
+            }
+
+            decision.shootPressed = false;
+            decision.shootHeld = false;
+            decision.meleePressed = false;
+            decision.ultimatePressed = false;
+            decision.dashPrimaryPressed = false;
+            decision.dashSecondaryPressed = false;
+            decision.jumpPressed = false;
+            decision.jumpHeld = false;
         }
     }
 }

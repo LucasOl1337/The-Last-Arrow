@@ -1610,6 +1610,58 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void HeuristicPolicy_HoldsActiveParryWindowAgainstImminentProjectile()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                    canParryProjectile = true,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                },
+                opponents = new List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 1,
+                        position = new Vector2(180f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 180f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = true,
+                    targetVulnerable = true,
+                    shouldPunish = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.12f,
+                    incomingProjectileDirection = Vector2.left,
+                    selfHasArrows = true,
+                },
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaHeuristicPolicy.Decide(snapshot);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI PARRY HOLD"));
+            Assert.That(decision.moveAxis, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+            Assert.That(decision.dashPrimaryPressed, Is.False);
+            Assert.That(decision.jumpPressed, Is.False);
+        }
+
+        [Test]
         public void StrategicPolicy_DashAntiProjectileUsesIncomingProjectileDirection()
         {
             var snapshot = new AiArenaSnapshotEnvelope
@@ -1658,6 +1710,71 @@ namespace ProjectPVP.Tests.Editor
 
             Assert.That(decision.dashPrimaryPressed, Is.True);
             Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+        }
+
+        [Test]
+        public void StrategicPolicy_ParryPreferClearsOffenseDuringProjectileThreat()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                    dashCooldownLeft = 0f,
+                },
+                opponents = new List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 1,
+                        position = new Vector2(80f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 80f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInMeleeRange = true,
+                    targetInShootRange = true,
+                    targetVulnerable = true,
+                    shouldPunish = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.16f,
+                    incomingProjectileDirection = Vector2.left,
+                    selfHasArrows = true,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "punish",
+                preferredRange = 220,
+                shootBias = 1f,
+                meleeBias = 1f,
+                dashBias = 0f,
+                antiProjectile = "parry_prefer",
+                punishRecovery = true,
+                expiresInMs = 400,
+                reason = "hold parry before punish",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.moveAxis, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+            Assert.That(decision.dashPrimaryPressed, Is.False);
+            Assert.That(decision.jumpPressed, Is.False);
         }
 
         private sealed class SnapshotSourceController : MonoBehaviour, IAiArenaControllerSnapshotSource

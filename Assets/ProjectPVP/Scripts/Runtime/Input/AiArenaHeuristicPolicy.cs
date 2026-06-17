@@ -53,12 +53,15 @@ namespace ProjectPVP.Input
             bool useMelee = false;
             bool useUltimate = false;
             bool useDash = false;
+            bool holdProjectileParry = false;
 
             if (semantics.incomingProjectileThreat)
             {
                 if (self.canParryProjectile && semantics.incomingProjectileTime <= 0.18f)
                 {
                     axis = 0f;
+                    holdProjectileParry = true;
+                    decision.debugSummary = "AI PARRY HOLD";
                 }
                 else if (semantics.shouldDashEvade && canDash)
                 {
@@ -82,7 +85,7 @@ namespace ProjectPVP.Input
                 decision.debugSummary = "AI COLLECT ARROW";
             }
 
-            if (!prioritizeCollection && !useDash && !useJump && semantics.targetUsingUltimate)
+            if (!prioritizeCollection && !useDash && !useJump && !holdProjectileParry && semantics.targetUsingUltimate)
             {
                 if (canDash)
                 {
@@ -96,7 +99,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!prioritizeCollection && !useDash && !useJump && semantics.shouldPunish)
+            if (!prioritizeCollection && !useDash && !useJump && !holdProjectileParry && semantics.shouldPunish)
             {
                 if (canUltimate && semantics.targetInUltimateRange && !semantics.incomingProjectileThreat)
                 {
@@ -117,7 +120,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!prioritizeCollection && !useDash && !useJump && !useUltimate && !useMelee)
+            if (!prioritizeCollection && !useDash && !useJump && !useUltimate && !useMelee && !holdProjectileParry)
             {
                 if (semantics.shouldAntiAir && canShoot)
                 {
