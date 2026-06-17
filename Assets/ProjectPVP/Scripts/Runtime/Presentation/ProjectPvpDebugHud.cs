@@ -49,6 +49,8 @@ namespace ProjectPVP.Presentation
             {
                 DrawNotesPanel(new Rect(Screen.width - 348f, 18f, 330f, 120f));
             }
+
+            DrawBotControlPanel(new Rect(Screen.width - 348f, showProjectNotes ? 148f : 18f, 330f, 220f));
         }
 
         private void Start()
@@ -411,6 +413,104 @@ namespace ProjectPVP.Presentation
             GUILayout.Space(4f);
             GUILayout.Label("Se o teclado nao responder, clique uma vez dentro da janela Game.", _bodyStyle);
             GUILayout.EndArea();
+        }
+
+        private void DrawBotControlPanel(Rect rect)
+        {
+            List<CodexBrokerCombatantInputSource> inputs = CollectBrokerInputs();
+            if (inputs.Count == 0)
+            {
+                return;
+            }
+
+            GUILayout.BeginArea(rect, _panelStyle);
+            GUILayout.Label("Bot Coach", _titleStyle);
+            GUILayout.Space(4f);
+
+            for (int index = 0; index < inputs.Count; index += 1)
+            {
+                CodexBrokerCombatantInputSource input = inputs[index];
+                if (index > 0)
+                {
+                    GUILayout.Space(6f);
+                }
+
+                string owner = string.IsNullOrWhiteSpace(input.ControllerOwner) ? "-" : input.ControllerOwner;
+                string session = string.IsNullOrWhiteSpace(input.SessionId)
+                    ? "-"
+                    : input.SessionId.Length > 8 ? input.SessionId.Substring(0, 8) : input.SessionId;
+                GUILayout.Label(
+                    "Slot " + input.slotId +
+                    " | " + (input.useAgentDrivenMode ? "Agent" : "Direct") +
+                    " | Owner " + owner +
+                    " | Session " + session +
+                    (input.ManualForceRefreshPending ? " | Replan pending" : string.Empty),
+                    _bodyStyle);
+
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button(input.useAgentDrivenMode ? "Agent On" : "Agent Off"))
+                {
+                    input.SetAgentDrivenMode(!input.useAgentDrivenMode);
+                }
+
+                if (GUILayout.Button("Replan"))
+                {
+                    input.RequestImmediateReplan("debug_hud");
+                }
+
+                if (GUILayout.Button("Restart"))
+                {
+                    input.RestartBrokerSession("debug_hud");
+                }
+
+                GUILayout.EndHorizontal();
+
+                if (!string.IsNullOrWhiteSpace(input.BotFeedback))
+                {
+                    GUILayout.Label(input.BotFeedback, _bodyStyle);
+                }
+            }
+
+            GUILayout.EndArea();
+        }
+
+        private List<CodexBrokerCombatantInputSource> CollectBrokerInputs()
+        {
+            var inputs = new List<CodexBrokerCombatantInputSource>();
+            if (matchController != null && matchController.Slots.Count > 0)
+            {
+                for (int index = 0; index < matchController.Slots.Count; index += 1)
+                {
+                    CombatantSlotConfig slot = matchController.Slots[index];
+                    AddBrokerInput(inputs, slot != null ? slot.controller : null);
+                }
+            }
+            else
+            {
+                AddBrokerInput(inputs, legacySlotOneController);
+                AddBrokerInput(inputs, legacySlotTwoController);
+            }
+
+            return inputs;
+        }
+
+        private static void AddBrokerInput(List<CodexBrokerCombatantInputSource> inputs, PlayerController player)
+        {
+            if (player == null)
+            {
+                return;
+            }
+
+            CodexBrokerCombatantInputSource input = player.InputSource as CodexBrokerCombatantInputSource;
+            if (input == null)
+            {
+                input = player.GetComponent<CodexBrokerCombatantInputSource>();
+            }
+
+            if (input != null && !inputs.Contains(input))
+            {
+                inputs.Add(input);
+            }
         }
 
         private IEnumerable<string> BuildSlotSummaries()

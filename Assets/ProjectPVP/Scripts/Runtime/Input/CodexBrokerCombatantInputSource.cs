@@ -54,6 +54,7 @@ namespace ProjectPVP.Input
         private string _controllerOwner = string.Empty;
         private int _consecutiveBrokerFailures;
         private float _lastBrokerSuccessTime = -999f;
+        private bool _manualForceRefresh;
         private CodexBrokerRequestLifecycleState _sessionStartRequest = CodexBrokerRequestLifecycleState.Inactive();
         private CodexBrokerRequestLifecycleState _strategyRequest = CodexBrokerRequestLifecycleState.Inactive();
 
@@ -71,6 +72,7 @@ namespace ProjectPVP.Input
         public bool IsSessionStarting => _sessionStartRequest.InFlight;
         public bool IsStrategyRequestInFlight => _strategyRequest.InFlight;
         public bool HasLiveSession => !string.IsNullOrWhiteSpace(_sessionId);
+        public bool ManualForceRefreshPending => _manualForceRefresh;
         public float IntentAgeMs => _currentIntent == null || _lastIntentReceivedTime < 0f
             ? -1f
             : (Time.realtimeSinceStartup - _lastIntentReceivedTime) * 1000f;
@@ -186,6 +188,7 @@ namespace ProjectPVP.Input
             _debugSummary = "AI | Codex pending";
             _consecutiveBrokerFailures = 0;
             _lastBrokerSuccessTime = -999f;
+            _manualForceRefresh = false;
             CodexBrokerRequestLifecycle.Invalidate(ref _sessionStartRequest);
             CodexBrokerRequestLifecycle.Invalidate(ref _strategyRequest);
             _collector.ForceRefresh();
@@ -205,6 +208,52 @@ namespace ProjectPVP.Input
             _botFeedback = string.Empty;
             _controllerOwner = string.Empty;
             _debugSummary = "AI | Codex pending";
+            _manualForceRefresh = false;
+        }
+
+        public void RequestImmediateReplan(string reason = "debug_hud")
+        {
+            string normalizedReason = NormalizeDebugReason(reason);
+            _manualForceRefresh = true;
+            _lastStrategyRequestTime = -999f;
+            _debugSummary = "AI | Manual replan:" + normalizedReason;
+            _botFeedback = "manual replan requested; improve: reassess current fight state.";
+        }
+
+        public void RestartBrokerSession(string reason = "debug_hud")
+        {
+            RestartBrokerSession(reason, useAgentDrivenMode);
+        }
+
+        private void RestartBrokerSession(string reason, bool stopUsingAgentDrivenMode)
+        {
+            string sessionToStop = _sessionId;
+            string normalizedReason = NormalizeDebugReason(reason);
+            if (Application.isPlaying && !string.IsNullOrWhiteSpace(sessionToStop))
+            {
+                StartCoroutine(SendStopRequest(sessionToStop, stopUsingAgentDrivenMode));
+            }
+
+            InvalidateBrokerSession();
+            _manualForceRefresh = true;
+            _lastStrategyRequestTime = -999f;
+            _lastExecutorSummary = "AI | Broker session restarted";
+            _debugSummary = "AI | Broker restart:" + normalizedReason;
+            _botFeedback = "broker session restarted; improve: rebuild live context before next attack.";
+        }
+
+        public void SetAgentDrivenMode(bool enabled)
+        {
+            if (useAgentDrivenMode == enabled)
+            {
+                return;
+            }
+
+            bool previousAgentDrivenMode = useAgentDrivenMode;
+            useAgentDrivenMode = enabled;
+            RestartBrokerSession("agent mode changed", previousAgentDrivenMode);
+            _debugSummary = "AI | Agent mode " + (enabled ? "on" : "off");
+            _botFeedback = "agent mode changed; improve: rebuild broker session for the selected control path.";
         }
 
         public void PrewarmSession()
@@ -349,6 +398,7 @@ namespace ProjectPVP.Input
             }
 
             int requestVersion = BeginStrategyRequest();
+            _manualForceRefresh = false;
             var request = new CodexAgentStateUpdateRequest
             {
                 sessionId = _sessionId,
@@ -433,6 +483,7 @@ namespace ProjectPVP.Input
             }
 
             int requestVersion = BeginStrategyRequest();
+            _manualForceRefresh = false;
             var request = new CodexBrokerStrategyTickRequest
             {
                 sessionId = _sessionId,
@@ -523,6 +574,11 @@ namespace ProjectPVP.Input
 
         private bool ShouldForceRefresh(AiArenaSnapshotEnvelope snapshot)
         {
+            if (_manualForceRefresh)
+            {
+                return true;
+            }
+
             if (snapshot == null || snapshot.semantics == null)
             {
                 return false;
@@ -721,6 +777,12 @@ namespace ProjectPVP.Input
             _botFeedback = "broker disconnected; improve: verify broker process and network path.";
             _consecutiveBrokerFailures = 0;
             _lastBrokerSuccessTime = -999f;
+            _manualForceRefresh = false;
+        }
+
+        private static string NormalizeDebugReason(string reason)
+        {
+            return string.IsNullOrWhiteSpace(reason) ? "manual" : reason.Trim();
         }
 
         private static CodexReportedInputFrame BuildReportedInput(PlayerInputFrame frame)
@@ -743,12 +805,17 @@ namespace ProjectPVP.Input
 
         private IEnumerator SendStopRequest(string sessionId)
         {
+            return SendStopRequest(sessionId, useAgentDrivenMode);
+        }
+
+        private IEnumerator SendStopRequest(string sessionId, bool agentDrivenMode)
+        {
             var request = new CodexBrokerSessionStopRequest
             {
                 sessionId = sessionId,
                 slotId = slotId,
             };
-            yield return SendJsonRequest(useAgentDrivenMode ? "/agent/session/stop" : "/session/stop", JsonUtility.ToJson(request), null, null);
+            yield return SendJsonRequest(agentDrivenMode ? "/agent/session/stop" : "/session/stop", JsonUtility.ToJson(request), null, null);
         }
 
         private IEnumerator SendResetRequest(string sessionId, string reason)

@@ -190,6 +190,138 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CodexBrokerCombatantInputSource_RequestImmediateReplanMarksManualRefresh()
+        {
+            MethodInfo shouldForceRefreshMethod = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ShouldForceRefresh",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo previousSnapshotField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_previousSnapshot",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(shouldForceRefreshMethod, Is.Not.Null);
+            Assert.That(previousSnapshotField, Is.Not.Null);
+
+            GameObject root = new GameObject("ManualReplanBrokerInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                previousSnapshotField.SetValue(input, new AiArenaSnapshotEnvelope
+                {
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                    },
+                });
+
+                var snapshot = new AiArenaSnapshotEnvelope
+                {
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                    },
+                };
+
+                input.RequestImmediateReplan("editor_test");
+                bool shouldForceRefresh = (bool)shouldForceRefreshMethod.Invoke(input, new object[] { snapshot });
+
+                Assert.That(input.ManualForceRefreshPending, Is.True);
+                Assert.That(shouldForceRefresh, Is.True);
+                Assert.That(input.BotFeedback, Does.Contain("manual replan requested"));
+                Assert.That(input.FaceButtonDebug, Does.Contain("editor_test"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void CodexBrokerCombatantInputSource_RestartBrokerSessionClearsSessionAndIntent()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ApplyBrokerEnvelope",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+
+            GameObject root = new GameObject("RestartBrokerSessionInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                method.Invoke(input, new object[]
+                {
+                    JsonUtility.ToJson(new CodexBrokerIntentEnvelope
+                    {
+                        sessionId = "session-before-restart",
+                        hasAgentAction = true,
+                        intent = new CodexStrategyIntent
+                        {
+                            mode = "pressure",
+                            reason = "before restart",
+                        },
+                    }),
+                });
+
+                input.RestartBrokerSession("editor_test");
+
+                Assert.That(input.SessionId, Is.Empty);
+                Assert.That(input.CurrentIntentMode, Is.Empty);
+                Assert.That(input.HasAgentAction, Is.False);
+                Assert.That(input.ManualForceRefreshPending, Is.True);
+                Assert.That(input.BotFeedback, Does.Contain("broker session restarted"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void CodexBrokerCombatantInputSource_SetAgentDrivenModeRestartsWhenModeChanges()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ApplyBrokerEnvelope",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+
+            GameObject root = new GameObject("ToggleAgentModeInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                input.useAgentDrivenMode = true;
+                method.Invoke(input, new object[]
+                {
+                    JsonUtility.ToJson(new CodexBrokerIntentEnvelope
+                    {
+                        sessionId = "agent-session",
+                        hasAgentAction = true,
+                        intent = new CodexStrategyIntent
+                        {
+                            mode = "zone",
+                            reason = "before mode switch",
+                        },
+                    }),
+                });
+
+                input.SetAgentDrivenMode(false);
+
+                Assert.That(input.useAgentDrivenMode, Is.False);
+                Assert.That(input.SessionId, Is.Empty);
+                Assert.That(input.CurrentIntentMode, Is.Empty);
+                Assert.That(input.ManualForceRefreshPending, Is.True);
+                Assert.That(input.BotFeedback, Does.Contain("agent mode changed"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void CodexBrokerCombatantInputSource_RoundResetPendingSuppressesStaleIntentActions()
         {
             MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
