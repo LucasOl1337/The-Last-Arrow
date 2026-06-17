@@ -2598,6 +2598,60 @@ namespace ProjectPVP.Tests.Editor
             }
         }
 
+        [Test]
+        public void ResolveFatalHitCameraShake_StrengthensHighCommitmentKills()
+        {
+            PlayerController.ResolveFatalHitCameraShake("Melee", out float meleeIntensity, out float meleeDuration);
+            PlayerController.ResolveFatalHitCameraShake("Projectile", out float projectileIntensity, out float projectileDuration);
+            PlayerController.ResolveFatalHitCameraShake("Head Stomp", out float headStompIntensity, out float headStompDuration);
+            PlayerController.ResolveFatalHitCameraShake("Ring Out", out float ringOutIntensity, out float ringOutDuration);
+            PlayerController.ResolveFatalHitCameraShake("Ultimate", out float ultimateIntensity, out float ultimateDuration);
+
+            Assert.That(projectileIntensity, Is.GreaterThan(meleeIntensity));
+            Assert.That(projectileDuration, Is.GreaterThan(meleeDuration));
+            Assert.That(headStompIntensity, Is.GreaterThan(projectileIntensity));
+            Assert.That(headStompDuration, Is.GreaterThan(projectileDuration));
+            Assert.That(ringOutDuration, Is.GreaterThan(headStompDuration));
+            Assert.That(ultimateIntensity, Is.GreaterThan(headStompIntensity));
+            Assert.That(ultimateDuration, Is.EqualTo(ringOutDuration).Within(0.0001f));
+        }
+
+        [Test]
+        public void TryKill_AppliesCauseSpecificCameraShakeFeedback()
+        {
+            Assert.That(AwakeMethod, Is.Not.Null);
+
+            GameObject cameraRoot = new GameObject("cause_specific_kill_shake_camera");
+            cameraRoot.AddComponent<Camera>();
+            ProjectPvpCameraShake shake = cameraRoot.AddComponent<ProjectPvpCameraShake>();
+            GameObject meleeRoot = new GameObject("melee_kill_shake_player");
+            GameObject ultimateRoot = new GameObject("ultimate_kill_shake_player");
+
+            try
+            {
+                PlayerController meleeVictim = CreatePlayer(meleeRoot, 1, null);
+                PlayerController ultimateVictim = CreatePlayer(ultimateRoot, 2, null);
+                InvokeAwake(meleeVictim);
+                InvokeAwake(ultimateVictim);
+
+                Assert.That(meleeVictim.TryKill(null, "Melee"), Is.True);
+                float meleeIntensity = shake.ActiveIntensity;
+                float meleeDuration = shake.ActiveDuration;
+
+                Assert.That(ultimateVictim.TryKill(null, "Ultimate"), Is.True);
+
+                Assert.That(shake.IsShaking, Is.True);
+                Assert.That(shake.ActiveIntensity, Is.GreaterThan(meleeIntensity));
+                Assert.That(shake.ActiveDuration, Is.GreaterThan(meleeDuration));
+            }
+            finally
+            {
+                Object.DestroyImmediate(cameraRoot);
+                Object.DestroyImmediate(meleeRoot);
+                Object.DestroyImmediate(ultimateRoot);
+            }
+        }
+
         private static PlayerController CreatePlayer(GameObject root, int slotId, CharacterDefinition definition)
         {
             Rigidbody2D body = root.AddComponent<Rigidbody2D>();

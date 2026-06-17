@@ -14,6 +14,16 @@ namespace ProjectPVP.Gameplay
     public sealed class PlayerController : MonoBehaviour, IAiArenaControllerSnapshotSource
     {
         private const float DeathFlashDuration = 0.08f;
+        private const float DefaultFatalHitShakeIntensity = 0.08f;
+        private const float DefaultFatalHitShakeDuration = 0.12f;
+        private const float ProjectileFatalHitShakeIntensity = 0.09f;
+        private const float ProjectileFatalHitShakeDuration = 0.13f;
+        private const float HeadStompFatalHitShakeIntensity = 0.11f;
+        private const float HeadStompFatalHitShakeDuration = 0.14f;
+        private const float RingOutFatalHitShakeIntensity = 0.1f;
+        private const float RingOutFatalHitShakeDuration = 0.16f;
+        private const float UltimateFatalHitShakeIntensity = 0.13f;
+        private const float UltimateFatalHitShakeDuration = 0.16f;
         private static readonly Color DeathFlashColor = new Color(1f, 0.58f, 0.26f, 1f);
 
         [Header("Identity")]
@@ -569,7 +579,8 @@ namespace ProjectPVP.Gameplay
             RecordFatalHit(source, cause);
             ApplyDefinitionToCollider();
             BeginDeathFlash();
-            ProjectPvpCameraShake.TryShakeDefault(0.08f, 0.12f);
+            ResolveFatalHitCameraShake(cause, out float shakeIntensity, out float shakeDuration);
+            ProjectPvpCameraShake.TryShakeDefault(shakeIntensity, shakeDuration);
             UpdatePresentationState();
             _combatSystem.PlayActionSfx("death");
             float deathEventDelay = characterDefinition != null && characterDefinition.HasActionAnimation("death")
@@ -578,6 +589,45 @@ namespace ProjectPVP.Gameplay
             StopDeathNotifyRoutine();
             _deathNotifyRoutine = StartCoroutine(NotifyDeathAfterDelay(deathEventDelay));
             return true;
+        }
+
+        internal static void ResolveFatalHitCameraShake(string cause, out float intensity, out float duration)
+        {
+            intensity = DefaultFatalHitShakeIntensity;
+            duration = DefaultFatalHitShakeDuration;
+
+            if (string.IsNullOrWhiteSpace(cause))
+            {
+                return;
+            }
+
+            string normalizedCause = cause.Trim();
+            if (string.Equals(normalizedCause, "Projectile", StringComparison.OrdinalIgnoreCase))
+            {
+                intensity = ProjectileFatalHitShakeIntensity;
+                duration = ProjectileFatalHitShakeDuration;
+                return;
+            }
+
+            if (string.Equals(normalizedCause, "Head Stomp", StringComparison.OrdinalIgnoreCase))
+            {
+                intensity = HeadStompFatalHitShakeIntensity;
+                duration = HeadStompFatalHitShakeDuration;
+                return;
+            }
+
+            if (string.Equals(normalizedCause, "Ring Out", StringComparison.OrdinalIgnoreCase))
+            {
+                intensity = RingOutFatalHitShakeIntensity;
+                duration = RingOutFatalHitShakeDuration;
+                return;
+            }
+
+            if (string.Equals(normalizedCause, "Ultimate", StringComparison.OrdinalIgnoreCase))
+            {
+                intensity = UltimateFatalHitShakeIntensity;
+                duration = UltimateFatalHitShakeDuration;
+            }
         }
 
         public void ApplyHitstun(float duration)

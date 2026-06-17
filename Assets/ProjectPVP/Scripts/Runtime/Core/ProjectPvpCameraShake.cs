@@ -12,6 +12,8 @@ namespace ProjectPVP.Presentation
         [SerializeField] private bool _hasRestPose;
 
         public bool IsShaking => _shakeDuration > 0f && _shakeElapsed < _shakeDuration;
+        public float ActiveIntensity => IsShaking ? _shakeIntensity : 0f;
+        public float ActiveDuration => IsShaking ? _shakeDuration : 0f;
 
         private void Awake()
         {

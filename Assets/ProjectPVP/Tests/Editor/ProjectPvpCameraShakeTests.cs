@@ -20,11 +20,15 @@ namespace ProjectPVP.Tests.Editor
                 shake.Shake(0.4f, 0.25f);
 
                 Assert.That(shake.IsShaking, Is.True);
+                Assert.That(shake.ActiveIntensity, Is.EqualTo(0.4f).Within(0.0001f));
+                Assert.That(shake.ActiveDuration, Is.EqualTo(0.25f).Within(0.0001f));
                 Assert.That(cameraRoot.transform.localPosition, Is.Not.EqualTo(restPosition));
 
                 shake.Tick(0.3f);
 
                 Assert.That(shake.IsShaking, Is.False);
+                Assert.That(shake.ActiveIntensity, Is.Zero);
+                Assert.That(shake.ActiveDuration, Is.Zero);
                 Assert.That(cameraRoot.transform.localPosition, Is.EqualTo(restPosition));
             }
             finally
