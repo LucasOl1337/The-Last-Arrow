@@ -129,6 +129,36 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertEqual("local-heuristic", report["agentModel"])
         self.assertTrue(report["hasAgentAction"])
 
+    def test_report_payload_includes_bot_feedback_from_executor_feedback(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            },
+        )
+
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI PARRY HOLD",
+                    "botFeedback": "projectile threat 0.12s; action AI PARRY HOLD; improve: defend before attacking.",
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual(
+            "projectile threat 0.12s; action AI PARRY HOLD; improve: defend before attacking.",
+            report["botFeedback"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

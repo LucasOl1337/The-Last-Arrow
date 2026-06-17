@@ -65,8 +65,60 @@ class CodexReportConsoleDiagnoseTestCase(unittest.TestCase):
         self.assertFalse(any("caiu em fallback" in hint for hint in hints))
 
 
+class CodexReportConsoleViewTestCase(unittest.TestCase):
+    def test_build_session_view_shows_bot_feedback(self) -> None:
+        view = codex_report_console.build_session_view(
+            {
+                "slotId": 2,
+                "botDisplayName": "Codex Two",
+                "botId": "codex-two",
+                "agentModel": "local-heuristic",
+                "agentPhase": "idle",
+                "intentMode": "stabilize",
+                "agentActionCount": 3,
+                "agentHeartbeatAgeMs": 20,
+                "intentReason": "hold parry",
+                "agentNote": "",
+                "summary": "AI PARRY HOLD",
+                "botFeedback": "projectile threat 0.12s; action AI PARRY HOLD; improve: defend before attacking.",
+                "controllerOwner": "Codex",
+                "controllerSource": "codex_agent",
+                "targetVisible": True,
+                "projectileThreatActive": True,
+                "lastInputSummary": "axis=+0.00",
+                "feedbackIntentReason": "hold parry",
+                "agentThinking": False,
+                "intentAgeMs": 40,
+                "agentLastError": "",
+            },
+            memory=_DummyMemory(),
+            width=100,
+        )
+
+        self.assertIn("Bot feedback", view)
+        self.assertIn("projectile threat 0.12s", view)
+
+
 class _DummyMemory:
+    bot_id = "codex-two"
+    slot_id = 2
+
     def smart_hints(self) -> list[str]:
+        return []
+
+    def profile_rows(self) -> list[tuple[str, str]]:
+        return []
+
+    def latest_death_rows(self) -> list[tuple[str, str]]:
+        return []
+
+    def latest_round_rows(self) -> list[tuple[str, str]]:
+        return []
+
+    def latest_match_rows(self) -> list[tuple[str, str]]:
+        return []
+
+    def latest_plan_rows(self) -> list[tuple[str, str]]:
         return []
 
 

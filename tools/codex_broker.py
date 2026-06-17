@@ -433,6 +433,7 @@ class AgentDrivenSession:
                 "controllerSource": source,
                 "controllerOwner": controller_owner,
                 "summary": str((self.executor_feedback or {}).get("summary", "")),
+                "botFeedback": str((self.executor_feedback or {}).get("botFeedback", "")),
                 "intentMode": str((self.cached_intent or {}).get("mode", "")),
                 "intentReason": str((self.cached_intent or {}).get("reason", "")),
                 "botId": str(prompt_state.get("botId", "") or self_prompt.get("botId", "") or ""),

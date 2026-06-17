@@ -302,6 +302,7 @@ def build_session_view(
     append_wrapped("Projectile risk", "yes" if session.get("projectileThreatActive") else "no", width, output)
     append_wrapped("Input echo", str(session.get("lastInputSummary", "-") or "-"), width, output)
     append_wrapped("Feedback", str(session.get("feedbackIntentReason", "-") or "-"), width, output)
+    append_wrapped("Bot feedback", str(session.get("botFeedback", "-") or "-"), width, output)
     output.append("")
 
     add_section("Health", output)

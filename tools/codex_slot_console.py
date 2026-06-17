@@ -121,6 +121,7 @@ def print_view(slot_id: int, session: dict[str, Any] | None, recent_events: dequ
     print(f"Score: {session.get('playerOneWins', 0)} x {session.get('playerTwoWins', 0)} | First to {session.get('roundsToChampion', 0) or 5}")
     print(f"Intent: {session.get('intentMode') or '-'}")
     print(f"Why: {compact_line(str(session.get('intentReason') or session.get('agentNote') or '-'))}")
+    print(f"Bot feedback: {compact_line(str(session.get('botFeedback') or '-'))}")
     print()
     print(f"Pressure   {meter(compute_pressure(session))}")
     print(f"Danger     {meter(compute_danger(session))}")
