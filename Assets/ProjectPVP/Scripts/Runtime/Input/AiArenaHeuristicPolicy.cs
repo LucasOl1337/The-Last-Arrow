@@ -187,7 +187,7 @@ namespace ProjectPVP.Input
             decision.aimX = aim.x;
             decision.aimY = aim.y;
             decision.jumpPressed = useJump;
-            decision.jumpHeld = useJump || (semantics.targetAbove && semantics.horizontalDistance < 700f);
+            decision.jumpHeld = useJump || (!holdProjectileDefense && semantics.targetAbove && semantics.horizontalDistance < 700f);
             decision.shootPressed = useShoot;
             decision.shootHeld = useShoot;
             decision.meleePressed = useMelee;

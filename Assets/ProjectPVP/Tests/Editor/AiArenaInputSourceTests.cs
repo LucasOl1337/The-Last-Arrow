@@ -2100,8 +2100,10 @@ namespace ProjectPVP.Tests.Editor
                     hasTarget = true,
                     targetSlotId = 2,
                     horizontalDistance = 180f,
-                    targetDirection = Vector2.right,
-                    predictedTargetDirection = Vector2.right,
+                    verticalDistance = 80f,
+                    targetDirection = new Vector2(180f, 80f).normalized,
+                    predictedTargetDirection = new Vector2(180f, 80f).normalized,
+                    targetAbove = true,
                     targetInShootRange = true,
                     targetVulnerable = true,
                     shouldPunish = true,
@@ -2121,6 +2123,7 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(decision.ultimatePressed, Is.False);
             Assert.That(decision.dashPrimaryPressed, Is.False);
             Assert.That(decision.jumpPressed, Is.False);
+            Assert.That(decision.jumpHeld, Is.False);
         }
 
         [Test]
@@ -2153,8 +2156,10 @@ namespace ProjectPVP.Tests.Editor
                     hasTarget = true,
                     targetSlotId = 2,
                     horizontalDistance = 180f,
-                    targetDirection = Vector2.right,
-                    predictedTargetDirection = Vector2.right,
+                    verticalDistance = 80f,
+                    targetDirection = new Vector2(180f, 80f).normalized,
+                    predictedTargetDirection = new Vector2(180f, 80f).normalized,
+                    targetAbove = true,
                     targetInShootRange = true,
                     targetVulnerable = true,
                     shouldPunish = true,
@@ -2175,6 +2180,7 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(decision.ultimatePressed, Is.False);
             Assert.That(decision.dashPrimaryPressed, Is.False);
             Assert.That(decision.jumpPressed, Is.False);
+            Assert.That(decision.jumpHeld, Is.False);
         }
 
         [Test]
