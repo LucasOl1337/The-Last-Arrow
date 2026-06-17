@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using ProjectPVP.Data;
 using ProjectPVP.Input;
+using ProjectPVP.Presentation;
 using UnityEngine;
 
 namespace ProjectPVP.Gameplay
@@ -37,6 +38,11 @@ namespace ProjectPVP.Gameplay
             _context.meleeTimeLeft = _statResolver.ResolveMeleeDuration();
             _context.meleeHitIds.Clear();
             TriggerMeleeAnimation(_statResolver.ResolveActionDuration("melee", _statResolver.ResolveMeleeDuration()));
+            ProjectPvpAttackCueFx.SpawnMelee(
+                _anchorSystem.GetMeleeHitboxCenter(),
+                _anchorSystem.GetMeleeHitboxSize(),
+                _context.facing,
+                _context.meleeTimeLeft);
             PlayActionSfx("melee");
         }
 
@@ -610,6 +616,10 @@ namespace ProjectPVP.Gameplay
             _context.ultimateAnimationTimeLeft = _context.ultimateTotalDuration;
             _context.ultimateImpactApplied = false;
             BeginUltimateDash();
+            ProjectPvpAttackCueFx.SpawnUltimate(
+                _anchorSystem.GetUltimateHitboxCenter(),
+                _statResolver.ResolveUltimateRadius(),
+                _context.ultimateTotalDuration);
             _actionLockSystem.LockActionForDuration("ult", _context.ultimateTotalDuration, Mathf.Min(_context.ultimateTotalDuration, 0.2f), false);
             PlayActionSfx("ult");
         }

@@ -46,6 +46,7 @@ namespace ProjectPVP.Tests.Editor
         public void TearDown()
         {
             DestroyKillImpactFxForTests();
+            DestroyAttackCueFxForTests();
         }
 
         [Test]
@@ -1620,6 +1621,97 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void TryUseMelee_SpawnsReadableAttackCueWhenAccepted()
+        {
+            Assert.That(AwakeMethod, Is.Not.Null);
+            Assert.That(CombatSystemField, Is.Not.Null);
+            DestroyAttackCueFxForTests();
+
+            GameObject root = new GameObject("melee_attack_cue_player");
+
+            try
+            {
+                PlayerController player = CreatePlayer(root, 1, null);
+                InvokeAwake(player);
+
+                PlayerCombatSystem combatSystem = (PlayerCombatSystem)CombatSystemField.GetValue(player);
+                combatSystem.TryUseMelee(new PlayerInputFrame { meleePressed = true });
+
+                ProjectPvpAttackCueFx[] effects = Object.FindObjectsByType<ProjectPvpAttackCueFx>(FindObjectsSortMode.None);
+                Assert.That(effects, Has.Length.EqualTo(1));
+                Assert.That(effects[0].Kind, Is.EqualTo(ProjectPvpAttackCueKind.Melee));
+                Assert.That((Vector2)effects[0].transform.position, Is.EqualTo(player.MeleeHitboxCenter));
+                Assert.That(effects[0].transform.localScale.x, Is.EqualTo(player.MeleeHitboxSize.x).Within(0.001f));
+                Assert.That(effects[0].Duration, Is.EqualTo(0.12f).Within(0.001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void TryUseMelee_DoesNotSpawnAttackCueWhenCooldownBlocksAction()
+        {
+            Assert.That(AwakeMethod, Is.Not.Null);
+            Assert.That(CombatSystemField, Is.Not.Null);
+            Assert.That(ContextField, Is.Not.Null);
+            DestroyAttackCueFxForTests();
+
+            GameObject root = new GameObject("blocked_melee_attack_cue_player");
+
+            try
+            {
+                PlayerController player = CreatePlayer(root, 1, null);
+                InvokeAwake(player);
+                PlayerContext context = (PlayerContext)ContextField.GetValue(player);
+                context.meleeCooldownLeft = 0.2f;
+
+                PlayerCombatSystem combatSystem = (PlayerCombatSystem)CombatSystemField.GetValue(player);
+                combatSystem.TryUseMelee(new PlayerInputFrame { meleePressed = true });
+
+                Assert.That(Object.FindObjectsByType<ProjectPvpAttackCueFx>(FindObjectsSortMode.None), Is.Empty);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void TryUseUltimate_SpawnsWarningCueWhenAccepted()
+        {
+            Assert.That(AwakeMethod, Is.Not.Null);
+            Assert.That(CombatSystemField, Is.Not.Null);
+            DestroyAttackCueFxForTests();
+
+            GameObject root = new GameObject("ultimate_attack_cue_player");
+            CharacterDefinition definition = ScriptableObject.CreateInstance<CharacterDefinition>();
+
+            try
+            {
+                definition.ultimateDashDistance = 120f;
+                PlayerController player = CreatePlayer(root, 1, definition);
+                InvokeAwake(player);
+
+                PlayerCombatSystem combatSystem = (PlayerCombatSystem)CombatSystemField.GetValue(player);
+                combatSystem.TryUseUltimate(new PlayerInputFrame { ultimatePressed = true });
+
+                ProjectPvpAttackCueFx[] effects = Object.FindObjectsByType<ProjectPvpAttackCueFx>(FindObjectsSortMode.None);
+                Assert.That(effects, Has.Length.EqualTo(1));
+                Assert.That(effects[0].Kind, Is.EqualTo(ProjectPvpAttackCueKind.Ultimate));
+                Assert.That((Vector2)effects[0].transform.position, Is.EqualTo(player.UltimateHitboxCenter));
+                Assert.That(effects[0].transform.localScale.x, Is.EqualTo(player.UltimateHitboxRadius * 2f).Within(0.001f));
+                Assert.That(effects[0].Duration, Is.GreaterThan(0f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(definition);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void TryCollectProjectile_RequiresCollectibleProjectileAndFreeArrowSlot()
         {
             Assert.That(AwakeMethod, Is.Not.Null);
@@ -2741,6 +2833,18 @@ namespace ProjectPVP.Tests.Editor
         private static void DestroyKillImpactFxForTests()
         {
             ProjectPvpKillImpactFx[] effects = Object.FindObjectsByType<ProjectPvpKillImpactFx>(FindObjectsSortMode.None);
+            for (int index = 0; index < effects.Length; index += 1)
+            {
+                if (effects[index] != null)
+                {
+                    Object.DestroyImmediate(effects[index].gameObject);
+                }
+            }
+        }
+
+        private static void DestroyAttackCueFxForTests()
+        {
+            ProjectPvpAttackCueFx[] effects = Object.FindObjectsByType<ProjectPvpAttackCueFx>(FindObjectsSortMode.None);
             for (int index = 0; index < effects.Length; index += 1)
             {
                 if (effects[index] != null)
