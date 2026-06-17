@@ -1512,6 +1512,51 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void TryConsumeJump_PrefersWallJumpOverCoyoteJumpWhenTouchingWall()
+        {
+            Assert.That(AwakeMethod, Is.Not.Null);
+            Assert.That(JumpSystemField, Is.Not.Null);
+            Assert.That(ContextField, Is.Not.Null);
+
+            GameObject root = new GameObject("wall_jump_over_coyote_player");
+            CharacterDefinition definition = ScriptableObject.CreateInstance<CharacterDefinition>();
+
+            try
+            {
+                definition.jumpVelocity = 600f;
+                definition.wallJumpHorizontalForce = 540f;
+                definition.wallJumpVerticalForce = 760f;
+
+                PlayerController player = CreatePlayer(root, 1, definition);
+                InvokeAwake(player);
+
+                PlayerJumpSystem jumpSystem = (PlayerJumpSystem)JumpSystemField.GetValue(player);
+                PlayerContext context = (PlayerContext)ContextField.GetValue(player);
+                context.isGrounded = false;
+                context.coyoteTimeLeft = 0.08f;
+                context.isTouchingWall = true;
+                context.wallJumpGraceTimer = 0f;
+                context.wallNormal = Vector2.right;
+                context.jumpBufferLeft = 0.12f;
+
+                Vector2 velocity = new Vector2(0f, -40f);
+
+                Assert.That(jumpSystem.TryConsumeJump(ref velocity), Is.True);
+                Assert.That(velocity.x, Is.EqualTo(definition.wallJumpHorizontalForce).Within(0.0001f));
+                Assert.That(velocity.y, Is.EqualTo(definition.wallJumpVerticalForce).Within(0.0001f));
+                Assert.That(velocity.y, Is.Not.EqualTo(definition.jumpVelocity).Within(0.0001f));
+                Assert.That(context.jumpBufferLeft, Is.Zero);
+                Assert.That(context.coyoteTimeLeft, Is.Zero);
+                Assert.That(context.isTouchingWall, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(definition);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void HandleJumpAndGravity_SlidesDownWallWhileFallingAndPushingIntoWall()
         {
             Assert.That(AwakeMethod, Is.Not.Null);

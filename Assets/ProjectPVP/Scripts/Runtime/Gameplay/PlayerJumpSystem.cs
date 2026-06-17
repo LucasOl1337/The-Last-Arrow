@@ -118,6 +118,12 @@ namespace ProjectPVP.Gameplay
                 return false;
             }
 
+            if (!_context.isGrounded && CanWallJump())
+            {
+                ConsumeWallJump(ref velocity);
+                return true;
+            }
+
             if (_context.isGrounded || _context.coyoteTimeLeft > 0f)
             {
                 velocity.y = _statResolver.ResolveJumpVelocity();
@@ -129,13 +135,7 @@ namespace ProjectPVP.Gameplay
 
             if (CanWallJump())
             {
-                velocity.y = _statResolver.ResolveWallJumpVerticalForce();
-                velocity.x = _context.wallNormal.x * _statResolver.ResolveWallJumpHorizontalForce();
-                ConsumeBufferedJump();
-                _context.wallJumpGraceTimer = 0f;
-                _context.wallDetachIgnoreTimer = WallJumpDetachIgnoreDuration;
-                _context.isTouchingWall = false;
-                TriggerJumpStartAnimation();
+                ConsumeWallJump(ref velocity);
                 return true;
             }
 
@@ -155,6 +155,18 @@ namespace ProjectPVP.Gameplay
             }
 
             return _context.wallJumpGraceTimer > 0f || _context.isTouchingWall;
+        }
+
+        private void ConsumeWallJump(ref Vector2 velocity)
+        {
+            velocity.y = _statResolver.ResolveWallJumpVerticalForce();
+            velocity.x = _context.wallNormal.x * _statResolver.ResolveWallJumpHorizontalForce();
+            ConsumeBufferedJump();
+            _context.coyoteTimeLeft = 0f;
+            _context.wallJumpGraceTimer = 0f;
+            _context.wallDetachIgnoreTimer = WallJumpDetachIgnoreDuration;
+            _context.isTouchingWall = false;
+            TriggerJumpStartAnimation();
         }
 
         public void ConsumeBufferedJump()
