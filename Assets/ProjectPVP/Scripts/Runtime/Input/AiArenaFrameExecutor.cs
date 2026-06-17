@@ -63,6 +63,11 @@ namespace ProjectPVP.Input
             bool ultimatePressed = self.ultimateCooldownLeft <= 0.01f && !self.isUltimateActive && state.ultimateCooldownLeft <= 0f && decision.ultimatePressed;
             bool jumpPressed = self.isGrounded && state.jumpCooldownLeft <= 0f && decision.jumpPressed;
             bool dashPressed = self.dashCooldownLeft <= 0.01f && !self.isDashing && state.dashCooldownLeft <= 0f && decision.dashPrimaryPressed;
+            bool holdJump = jumpPressed || decision.jumpHeld;
+            bool suppressSemanticVerticalInput = snapshot.semantics.incomingProjectileThreat
+                && !holdJump
+                && !dashPressed
+                && !decision.dashSecondaryPressed;
 
             if (shootPressed)
             {
@@ -115,10 +120,10 @@ namespace ProjectPVP.Input
                 aim = aim,
                 left = axis < -0.1f,
                 right = axis > 0.1f,
-                up = jumpPressed || snapshot.semantics.targetAbove,
-                down = snapshot.semantics.targetBelow || snapshot.semantics.shouldDashEvade,
+                up = holdJump || (!suppressSemanticVerticalInput && snapshot.semantics.targetAbove),
+                down = !suppressSemanticVerticalInput && (snapshot.semantics.targetBelow || snapshot.semantics.shouldDashEvade),
                 jumpPressed = jumpPressed,
-                jumpHeld = jumpPressed || decision.jumpHeld,
+                jumpHeld = holdJump,
                 shootPressed = shootPressed,
                 shootHeld = canShoot && state.shootHoldLeft > 0f,
                 meleePressed = meleePressed,

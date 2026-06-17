@@ -85,5 +85,69 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(secondFrame.shootHeld, Is.False);
             Assert.That(state.shootHoldLeft, Is.EqualTo(0f).Within(0.0001f));
         }
+
+        [Test]
+        public void BuildFrame_DoesNotAddVerticalMovementWhenDecisionHoldsDefenseUnderTarget()
+        {
+            var self = new AiArenaControllerSnapshot
+            {
+                isValid = true,
+                slotId = 1,
+                facing = 1,
+                isGrounded = true,
+                arrows = 2,
+                position = Vector2.zero,
+            };
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = self.slotId,
+                    facing = self.facing,
+                    isGrounded = self.isGrounded,
+                    arrows = self.arrows,
+                    position = self.position,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    targetAbove = true,
+                    targetDirection = new Vector2(1f, 1f).normalized,
+                    predictedTargetDirection = new Vector2(1f, 1f).normalized,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.12f,
+                    shouldDashEvade = true,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI PARRY HOLD",
+                aimX = 1f,
+                aimY = 0f,
+            };
+
+            AiArenaExecutionState state = default;
+            string debugSummary = string.Empty;
+
+            PlayerInputFrame frame = AiArenaFrameExecutor.BuildFrame(
+                ref state,
+                self,
+                snapshot,
+                decision,
+                frameIndex: 12,
+                shootInterval: 0.25f,
+                meleeInterval: 0.45f,
+                jumpInterval: 0.6f,
+                dashInterval: 0.85f,
+                ultimateInterval: 1.5f,
+                ref debugSummary);
+
+            Assert.That(frame.up, Is.False);
+            Assert.That(frame.down, Is.False);
+            Assert.That(frame.Movement.y, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(frame.jumpPressed, Is.False);
+            Assert.That(frame.jumpHeld, Is.False);
+        }
     }
 }
