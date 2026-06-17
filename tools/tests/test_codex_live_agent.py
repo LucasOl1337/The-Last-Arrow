@@ -138,6 +138,35 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertLess(intent["shootBias"], 0.5)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_closes_after_out_of_range_shot_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["target"]["arrows"] = 2
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 1180.0,
+            "verticalDistance": 12.0,
+            "targetInMeleeRange": False,
+            "targetInUltimateRange": False,
+            "targetInShootRange": False,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": False,
+        }
+        state["executorFeedback"]["botFeedback"] = (
+            "shot attempted out of range at 1180u; action AI ZONE SHOT; "
+            "improve: close distance, aim a valid line, or hold fire."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("pressure", intent["mode"])
+        self.assertEqual("heuristic_close_shot_range", intent["reason"])
+        self.assertLessEqual(intent["preferredRange"], 300)
+        self.assertGreaterEqual(intent["advanceBias"], 0.88)
+        self.assertGreaterEqual(intent["dashBias"], 0.78)
+        self.assertLess(intent["shootBias"], 0.5)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_build_heuristic_intent_uses_projectile_evade(self) -> None:
         state = _build_base_state()
         state["promptState"]["arena"] = {
@@ -244,6 +273,51 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertLessEqual(tuned["preferredRange"], 220)
         self.assertGreaterEqual(tuned["advanceBias"], 0.9)
         self.assertLess(tuned["shootBias"], 0.6)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
+    def test_apply_aggression_bias_closes_after_out_of_range_shot_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["target"]["arrows"] = 2
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 1180.0,
+            "verticalDistance": 12.0,
+            "targetInMeleeRange": False,
+            "targetInUltimateRange": False,
+            "targetInShootRange": False,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": False,
+        }
+        state["executorFeedback"]["botFeedback"] = (
+            "shot attempted out of range at 1180u; action AI ZONE SHOT; "
+            "improve: close distance, aim a valid line, or hold fire."
+        )
+        intent = {
+            "mode": "zone",
+            "preferredRange": 520,
+            "advanceBias": 0.2,
+            "shootBias": 0.9,
+            "meleeBias": 0.24,
+            "dashBias": 0.3,
+            "jumpBias": 0.2,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.26,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "passive_zone",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("pressure", tuned["mode"])
+        self.assertEqual("shot_out_of_range", tuned["reason"])
+        self.assertLessEqual(tuned["preferredRange"], 300)
+        self.assertGreaterEqual(tuned["advanceBias"], 0.88)
+        self.assertGreaterEqual(tuned["dashBias"], 0.78)
+        self.assertLess(tuned["shootBias"], 0.5)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
     def test_heuristic_intent_preserves_movement_stall_escape_after_aggression_bias(self) -> None:

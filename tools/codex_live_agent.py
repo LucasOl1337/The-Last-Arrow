@@ -163,6 +163,16 @@ def has_vulnerable_out_of_range_feedback(state: dict[str, Any]) -> bool:
     return "vulnerable target out of range" in combined
 
 
+def has_shot_out_of_range_feedback(state: dict[str, Any]) -> bool:
+    feedback_raw = state.get("executorFeedback")
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    combined = " ".join([
+        str(feedback.get("botFeedback", "")),
+        str(feedback.get("summary", "")),
+    ]).lower()
+    return "shot attempted out of range" in combined
+
+
 def resolve_runtime_provider(selected_provider: str, codex_available: bool) -> str:
     normalized = str(selected_provider or "openai_codex").strip().lower()
     if normalized == HEURISTIC_PROVIDER:
@@ -242,6 +252,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     arrow_lead = self_arrows - target_arrows
     movement_stalled = has_movement_stall_feedback(state)
     vulnerable_out_of_range = has_vulnerable_out_of_range_feedback(state)
+    shot_out_of_range = has_shot_out_of_range_feedback(state)
     try:
         dash_cooldown_left = float(self_state.get("dashCooldownLeft", 0.0) or 0.0)
     except (TypeError, ValueError):
@@ -318,6 +329,19 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["antiProjectile"] = "hold"
         tuned["cornerEscapeBias"] = min(tuned["cornerEscapeBias"], 0.24)
         tuned["reason"] = "vulnerable_out_of_range"
+        return tuned
+
+    if shot_out_of_range:
+        tuned["mode"] = "pressure"
+        tuned["preferredRange"] = min(tuned["preferredRange"], 300)
+        tuned["advanceBias"] = max(tuned["advanceBias"], 0.9)
+        tuned["shootBias"] = max(tuned["shootBias"], 0.56) if in_shoot else min(tuned["shootBias"], 0.42)
+        tuned["meleeBias"] = max(tuned["meleeBias"], 0.68 if in_melee else 0.58)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.82 if can_dash else 0.54)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.24)
+        tuned["antiProjectile"] = "hold"
+        tuned["cornerEscapeBias"] = min(tuned["cornerEscapeBias"], 0.28)
+        tuned["reason"] = "shot_out_of_range"
         return tuned
 
     if target_vulnerable:
@@ -478,6 +502,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     target_vulnerable = bool(target_state.get("isHitStunned", False)) or "target_became_vulnerable" in events
     movement_stalled = has_movement_stall_feedback(state)
     vulnerable_out_of_range = has_vulnerable_out_of_range_feedback(state)
+    shot_out_of_range = has_shot_out_of_range_feedback(state)
 
     projectile_eta: float | None = None
     for projectile in dangerous_projectiles:
@@ -666,6 +691,21 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
             "antiProjectile": "hold",
             "cornerEscapeBias": 0.22,
             "reason": "heuristic_close_vulnerable_target",
+        })
+        return intent
+
+    if shot_out_of_range:
+        intent.update({
+            "mode": "pressure",
+            "preferredRange": 260,
+            "advanceBias": 0.9,
+            "shootBias": 0.56 if target_in_shoot and can_shoot else 0.36,
+            "meleeBias": 0.7 if can_melee else 0.52,
+            "dashBias": 0.82 if can_dash else 0.52,
+            "jumpBias": 0.24,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.26,
+            "reason": "heuristic_close_shot_range",
         })
         return intent
 
