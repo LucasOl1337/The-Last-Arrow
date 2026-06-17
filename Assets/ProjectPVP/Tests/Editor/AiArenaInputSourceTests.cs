@@ -2619,6 +2619,58 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void HeuristicPolicy_EscapesCornerInsteadOfCollectingWallSideArrow()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 0,
+                    dashCooldownLeft = 0f,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 3,
+                        position = new Vector2(140f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 140f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = true,
+                    selfHasArrows = false,
+                    selfCornered = true,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 72f,
+                    collectibleProjectileDirection = Vector2.left,
+                    shouldCollectProjectile = true,
+                },
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaHeuristicPolicy.Decide(snapshot);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI CORNER ESCAPE"));
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+        }
+
+        [Test]
         public void HeuristicPolicy_CollectsVerticallyAlignedArrowWithoutHorizontalDrift()
         {
             var snapshot = new AiArenaSnapshotEnvelope

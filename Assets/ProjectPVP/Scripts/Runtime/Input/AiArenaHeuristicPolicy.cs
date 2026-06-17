@@ -46,8 +46,10 @@ namespace ProjectPVP.Input
             Vector2 aim = semantics.predictedTargetDirection.sqrMagnitude > 0.001f
                 ? semantics.predictedTargetDirection.normalized
                 : semantics.targetDirection.normalized;
+            bool deferCollectionForCornerEscape = ShouldDeferCollectionForCornerEscape(semantics);
             bool prioritizeCollection = semantics.shouldCollectProjectile
-                && (selfArrows <= 1 || targetArrows > selfArrows);
+                && (selfArrows <= 1 || targetArrows > selfArrows)
+                && !deferCollectionForCornerEscape;
 
             bool useJump = false;
             bool useShoot = false;
@@ -57,6 +59,7 @@ namespace ProjectPVP.Input
             bool holdProjectileDefense = false;
             bool holdUltimateDefense = false;
             bool holdMeleeDefense = false;
+            bool holdCornerDefense = false;
 
             if (semantics.incomingProjectileThreat)
             {
@@ -102,6 +105,15 @@ namespace ProjectPVP.Input
                 holdMeleeDefense = !useDash;
                 decision.debugSummary = "AI EVADE MELEE";
             }
+            else if (!semantics.targetUsingUltimate
+                && deferCollectionForCornerEscape
+                && semantics.horizontalDistance < 240f)
+            {
+                axis = semantics.targetDirection.x >= 0f ? 1f : -1f;
+                useDash = canDash;
+                holdCornerDefense = true;
+                decision.debugSummary = "AI CORNER ESCAPE";
+            }
             else if (prioritizeCollection && !semantics.targetUsingUltimate)
             {
                 axis = ResolveCollectionMoveAxis(semantics.collectibleProjectileDirection);
@@ -109,7 +121,7 @@ namespace ProjectPVP.Input
                 decision.debugSummary = "AI COLLECT ARROW";
             }
 
-            if (!useDash && !useJump && !holdProjectileDefense && !holdMeleeDefense && semantics.targetUsingUltimate)
+            if (!useDash && !useJump && !holdProjectileDefense && !holdMeleeDefense && !holdCornerDefense && semantics.targetUsingUltimate)
             {
                 if (canDash)
                 {
@@ -125,7 +137,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!prioritizeCollection && !useDash && !useJump && !holdProjectileDefense && !holdUltimateDefense && !holdMeleeDefense && semantics.shouldPunish)
+            if (!prioritizeCollection && !useDash && !useJump && !holdProjectileDefense && !holdUltimateDefense && !holdMeleeDefense && !holdCornerDefense && semantics.shouldPunish)
             {
                 if (canUltimate && semantics.targetInUltimateRange && !semantics.incomingProjectileThreat)
                 {
@@ -146,7 +158,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!prioritizeCollection && !useDash && !useJump && !useUltimate && !useMelee && !holdProjectileDefense && !holdUltimateDefense && !holdMeleeDefense)
+            if (!prioritizeCollection && !useDash && !useJump && !useUltimate && !useMelee && !holdProjectileDefense && !holdUltimateDefense && !holdMeleeDefense && !holdCornerDefense)
             {
                 if (semantics.shouldAntiAir && canShoot)
                 {
@@ -206,7 +218,7 @@ namespace ProjectPVP.Input
             decision.aimX = aim.x;
             decision.aimY = aim.y;
             decision.jumpPressed = useJump;
-            decision.jumpHeld = useJump || (!holdProjectileDefense && !holdUltimateDefense && !holdMeleeDefense && semantics.targetAbove && semantics.horizontalDistance < 700f);
+            decision.jumpHeld = useJump || (!holdProjectileDefense && !holdUltimateDefense && !holdMeleeDefense && !holdCornerDefense && semantics.targetAbove && semantics.horizontalDistance < 700f);
             decision.shootPressed = useShoot;
             decision.shootHeld = useShoot;
             decision.meleePressed = useMelee;
@@ -287,6 +299,24 @@ namespace ProjectPVP.Input
             return self != null
                 && self.isGrounded
                 && collectibleDirection.y > 0.35f;
+        }
+
+        internal static bool ShouldDeferCollectionForCornerEscape(AiArenaSemanticObservation semantics)
+        {
+            if (semantics == null || !semantics.selfCornered || !semantics.shouldCollectProjectile)
+            {
+                return false;
+            }
+
+            if (Mathf.Abs(semantics.targetDirection.x) <= 0.1f)
+            {
+                return false;
+            }
+
+            float centerAxis = semantics.targetDirection.x >= 0f ? 1f : -1f;
+            float collectionAxis = ResolveCollectionMoveAxis(semantics.collectibleProjectileDirection);
+            return Mathf.Abs(collectionAxis) > 0.1f
+                && Mathf.Sign(collectionAxis) != Mathf.Sign(centerAxis);
         }
 
         internal static float ResolveIncomingProjectileDashAxis(
