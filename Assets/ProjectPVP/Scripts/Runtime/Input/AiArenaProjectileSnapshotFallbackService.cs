@@ -25,6 +25,7 @@ namespace ProjectPVP.Input
                 sourceSlotId = sourceSlotId,
                 isStuck = AiArenaReflectionReader.ReadBoolProperty(projectile, "IsStuck", false),
                 isDisarmed = AiArenaReflectionReader.ReadBoolProperty(projectile, "IsDisarmed", false),
+                isCollectible = AiArenaReflectionReader.ReadBoolProperty(projectile, "IsCollectible", false),
                 position = position,
                 velocity = velocity,
                 travelDirection = AiArenaReflectionReader.ReadVector2Property(projectile, "TravelDirection", fallbackTravelDirection),

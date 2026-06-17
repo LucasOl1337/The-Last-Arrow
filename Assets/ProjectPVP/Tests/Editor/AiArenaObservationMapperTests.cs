@@ -30,6 +30,7 @@ namespace ProjectPVP.Tests.Editor
                 canBlockProjectiles = true,
                 arrows = 3,
                 facing = -1,
+                projectileInheritVelocityFactor = 0.45f,
                 shootCooldownLeft = 0.1f,
                 meleeCooldownLeft = 0.2f,
                 dashCooldownLeft = 0.3f,
@@ -63,6 +64,7 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(observation.canBlockProjectiles, Is.True);
             Assert.That(observation.arrows, Is.EqualTo(3));
             Assert.That(observation.facing, Is.EqualTo(-1));
+            Assert.That(observation.projectileInheritVelocityFactor, Is.EqualTo(0.45f).Within(0.001f));
             Assert.That(observation.shootCooldownLeft, Is.EqualTo(0.1f).Within(0.001f));
             Assert.That(observation.meleeCooldownLeft, Is.EqualTo(0.2f).Within(0.001f));
             Assert.That(observation.dashCooldownLeft, Is.EqualTo(0.3f).Within(0.001f));
@@ -85,6 +87,7 @@ namespace ProjectPVP.Tests.Editor
                 sourceSlotId = 1,
                 isStuck = true,
                 isDisarmed = true,
+                isCollectible = true,
                 position = new Vector2(12f, 34f),
                 velocity = new Vector2(-56f, 78f),
                 travelDirection = new Vector2(-1f, 0.25f),
@@ -95,6 +98,7 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(observation.sourceSlotId, Is.EqualTo(1));
             Assert.That(observation.isStuck, Is.True);
             Assert.That(observation.isDisarmed, Is.True);
+            Assert.That(observation.isCollectible, Is.True);
             Assert.That(observation.position, Is.EqualTo(new Vector2(12f, 34f)));
             Assert.That(observation.velocity, Is.EqualTo(new Vector2(-56f, 78f)));
             Assert.That(observation.travelDirection, Is.EqualTo(new Vector2(-1f, 0.25f)));

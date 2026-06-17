@@ -196,6 +196,7 @@ namespace ProjectPVP.Gameplay
         public void RefreshCollisionState()
         {
             bool wasTouchingWall = _context.isTouchingWall;
+            Vector2 previousWallNormal = _context.wallNormal;
             _context.isGrounded = QueryGround(out _);
             _context.isTouchingWall = TryGetWallNormal(out _context.wallNormal);
 
@@ -209,7 +210,9 @@ namespace ProjectPVP.Gameplay
             if (_context.wallDetachIgnoreTimer > 0f)
             {
                 _context.isTouchingWall = false;
-                _context.wallNormal = Vector2.zero;
+                _context.wallNormal = _context.wallJumpGraceTimer > 0f && previousWallNormal.sqrMagnitude > 0.01f
+                    ? previousWallNormal
+                    : Vector2.zero;
                 return;
             }
 

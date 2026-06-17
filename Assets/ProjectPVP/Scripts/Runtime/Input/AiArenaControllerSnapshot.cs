@@ -23,6 +23,7 @@ namespace ProjectPVP.Input
         public bool canBlockProjectiles;
         public int arrows;
         public int facing;
+        public float projectileInheritVelocityFactor;
         public float shootCooldownLeft;
         public float meleeCooldownLeft;
         public float dashCooldownLeft;

@@ -19,6 +19,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(snapshot.isValid, Is.True);
                 Assert.That(snapshot.sourceSlotId, Is.EqualTo(9));
                 Assert.That(snapshot.position, Is.EqualTo(new Vector2(5f, 6f)));
+                Assert.That(snapshot.isCollectible, Is.True);
             }
             finally
             {
@@ -43,6 +44,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(snapshot.position, Is.EqualTo(new Vector2(2f, 3f)));
                 Assert.That(snapshot.velocity, Is.EqualTo(new Vector2(4f, 0f)));
                 Assert.That(snapshot.travelDirection, Is.EqualTo(Vector2.right));
+                Assert.That(snapshot.isCollectible, Is.False);
             }
             finally
             {
@@ -69,6 +71,7 @@ namespace ProjectPVP.Tests.Editor
                     isValid = true,
                     sourceSlotId = 9,
                     position = new Vector2(5f, 6f),
+                    isCollectible = true,
                 };
             }
         }

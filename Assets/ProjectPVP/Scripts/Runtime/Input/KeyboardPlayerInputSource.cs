@@ -86,6 +86,11 @@ namespace ProjectPVP.Input
             RefreshContinuousState();
         }
 
+        private void OnDisable()
+        {
+            ClearBufferedInputState();
+        }
+
         private void OnValidate()
         {
             ApplyDefaultsIfNeeded();
@@ -233,6 +238,29 @@ namespace ProjectPVP.Input
             _ultimateBufferLeft = Mathf.Max(0f, _ultimateBufferLeft - deltaTime);
             _dashPrimaryBufferLeft = Mathf.Max(0f, _dashPrimaryBufferLeft - deltaTime);
             _dashSecondaryBufferLeft = Mathf.Max(0f, _dashSecondaryBufferLeft - deltaTime);
+        }
+
+        private void ClearBufferedInputState()
+        {
+            _jumpBufferLeft = 0f;
+            _shootBufferLeft = 0f;
+            _meleeBufferLeft = 0f;
+            _ultimateBufferLeft = 0f;
+            _dashPrimaryBufferLeft = 0f;
+            _dashSecondaryBufferLeft = 0f;
+            _dashSecondaryAxisHeldLastFrame = false;
+            _currentFrame = default;
+            _latestMove = Vector2.zero;
+            _latestAim = Vector2.zero;
+            _latestJumpHeld = false;
+            _latestShootHeld = false;
+            _activeGamepadSlot = -1;
+            ResetAimLatch();
+        }
+
+        public void ResetInputState()
+        {
+            ClearBufferedInputState();
         }
 
         private void ResetAimLatch()
@@ -585,6 +613,9 @@ namespace ProjectPVP.Input
 
         // Some Unity backends expose trigger presses only through axes, especially on
         // secondary gamepad slots, so the dash combo cannot rely on button indices alone.
+        // Suppress the axis fallback while the player is actively steering with the D-pad
+        // or right stick, because some Windows/XInput backends leak those motions into the
+        // trigger axis and would otherwise fire a ghost dash.
         private bool ReadDashSecondaryAxisPressed()
         {
             if (!enableGamepad)
@@ -600,7 +631,10 @@ namespace ProjectPVP.Input
                 return false;
             }
 
-            if (ReadGamepadDpadVector(slot).sqrMagnitude > 0.01f)
+            if (ShouldSuppressDashSecondaryAxis(
+                ReadGamepadDpadVector(slot),
+                ReadGamepadRightStickVector(slot),
+                gamepadActionMap.aimDeadzone))
             {
                 _dashSecondaryAxisHeldLastFrame = false;
                 return false;
@@ -612,6 +646,16 @@ namespace ProjectPVP.Input
             return justPressed;
         }
 
+        internal static bool ShouldSuppressDashSecondaryAxis(Vector2 dpad, Vector2 rightStick, float aimDeadzone)
+        {
+            if (dpad.sqrMagnitude > 0.01f)
+            {
+                return true;
+            }
+
+            return rightStick.magnitude >= aimDeadzone;
+        }
+
         private float ReadDashSecondaryAxisValue(int slot)
         {
             float strongestValue = 0f;
@@ -620,6 +664,13 @@ namespace ProjectPVP.Input
             strongestValue = Mathf.Max(strongestValue, ReadAxisForSlot(gamepadActionMap.dashSecondaryAxisAlt, slot));
             strongestValue = Mathf.Max(strongestValue, ReadAxisForSlot(gamepadActionMap.dashSecondaryAxisThird, slot));
             return strongestValue;
+        }
+
+        private Vector2 ReadGamepadRightStickVector(int slot)
+        {
+            float lookX = ReadStrongestAxisForSlot(slot, gamepadActionMap.lookHorizontalAxis, gamepadActionMap.lookHorizontalAxisAlt);
+            float lookY = ReadStrongestAxisForSlot(slot, gamepadActionMap.lookVerticalAxis, gamepadActionMap.lookVerticalAxisAlt);
+            return new Vector2(lookX, lookY);
         }
 
         private bool ReadGamepadButtonDown(int buttonIndex)

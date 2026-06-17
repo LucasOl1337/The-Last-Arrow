@@ -15,8 +15,8 @@ namespace ProjectPVP.Gameplay
         private const float DefaultGravity = 1500f;
         private const float DefaultMaxFallSpeed = 1500f;
         private const float DefaultJumpVelocity = 660f;
-        private const float DefaultShootCooldown = 0.001f;
-        private const int DefaultMaxArrows = 5;
+        private const float DefaultShootCooldown = 0.02f;
+        private const int DefaultMaxArrows = 3;
         private const float DefaultMeleeCooldown = 0.45f;
         private const float DefaultMeleeDuration = 0.12f;
         private const float DefaultUltimateCooldown = 1.25f;
@@ -35,12 +35,14 @@ namespace ProjectPVP.Gameplay
         private const float DefaultDashCooldown = 0.45f;
         private const float DefaultDashDistance = 100f;
         private const float DefaultDashUpwardMultiplier = 0.5f;
-        private const float DefaultProjectileAssistStrength = 0.32f;
+        private const float DefaultProjectileAssistStrength = 0.2f;
         private const float DefaultProjectileAssistMaxTurnRateDeg = 420f;
         private const float DefaultProjectileAssistAcquireConeDeg = 36f;
         private const float DefaultProjectileAssistMaxRange = 1600f;
         private const float DefaultProjectileAssistMinDistance = 40f;
         private const float DefaultProjectileAssistDropoffStartRatio = 0.6f;
+        private const float ArrowEncumbrancePerExtraArrow = 0.15f;
+        private const float ArrowEncumbranceMinimumScale = 0.5f;
 
         private readonly PlayerContext _context;
 
@@ -52,13 +54,21 @@ namespace ProjectPVP.Gameplay
         public float ResolveMoveSpeed()
         {
             float baseValue = _context.characterDefinition != null ? _context.characterDefinition.moveSpeed : DefaultMoveSpeed;
-            return baseValue * ResolveMoveScale();
+            return baseValue * ResolveMoveScale() * ResolveArrowEncumbranceScale();
         }
 
         public float ResolveMoveScale()
         {
             float scale = _context.characterDefinition != null ? _context.characterDefinition.runtimeMoveScale : 1f;
             return Mathf.Max(0.1f, scale);
+        }
+
+        public float ResolveArrowEncumbranceScale()
+        {
+            int heldArrows = _context != null ? Mathf.Max(0, _context.arrows) : 0;
+            int extraArrows = Mathf.Max(0, heldArrows - 1);
+            float scale = 1f - (extraArrows * ArrowEncumbrancePerExtraArrow);
+            return Mathf.Clamp(scale, ArrowEncumbranceMinimumScale, 1f);
         }
 
         public float ResolveJumpScale()

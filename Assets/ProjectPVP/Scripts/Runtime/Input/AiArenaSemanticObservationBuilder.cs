@@ -5,6 +5,8 @@ namespace ProjectPVP.Input
 {
     internal static class AiArenaSemanticObservationBuilder
     {
+        private const float EstimatedProjectileSpeed = 1600f;
+
         internal static AiArenaSemanticObservation Build(
             AiArenaControllerSnapshot self,
             AiArenaControllerSnapshot target,
@@ -23,6 +25,7 @@ namespace ProjectPVP.Input
             };
 
             PopulateProjectileThreatSemantics(ref semantics, self, projectiles, verticalTolerance);
+            PopulateCollectibleProjectileSemantics(ref semantics, self, projectiles);
 
             if (!self.isValid || !target.isValid)
             {
@@ -36,8 +39,13 @@ namespace ProjectPVP.Input
             float verticalDistance = Mathf.Abs(offset.y);
             Vector2 direction = offset.sqrMagnitude > 0.0001f ? offset.normalized : Vector2.right;
             float leadTime = Mathf.Clamp(horizontalDistance / Mathf.Max(320f, shootRange), 0.06f, 0.2f);
-            Vector2 predictedOffset = offset + target.velocity * leadTime;
-            Vector2 predictedDirection = predictedOffset.sqrMagnitude > 0.0001f ? predictedOffset.normalized : direction;
+            Vector2 predictedDirection = ResolvePredictedTargetDirection(
+                offset,
+                target.velocity,
+                self.velocity,
+                ResolveProjectileInheritVelocityFactor(self),
+                leadTime,
+                direction);
             float selfEdgeDistance = Mathf.Min(
                 Mathf.Abs(self.position.x - arena.wrapBounds.xMin),
                 Mathf.Abs(arena.wrapBounds.xMax - self.position.x));
@@ -50,6 +58,8 @@ namespace ProjectPVP.Input
             bool targetVulnerable = target.isHitStunned
                 || (target.isShootAnimating && !targetUsingUltimate)
                 || (target.isMeleeActive && !targetUsingMelee && verticalDistance <= verticalTolerance);
+            bool selfCornered = selfEdgeDistance < 180f;
+            bool targetCornered = targetEdgeDistance < 180f;
 
             semantics.hasTarget = true;
             semantics.targetSlotId = target.slotId;
@@ -65,7 +75,7 @@ namespace ProjectPVP.Input
             semantics.shouldAdvance = horizontalDistance > desiredCombatDistance;
             semantics.shouldRetreat = horizontalDistance < closeRetreatDistance || targetUsingMelee || targetUsingUltimate;
             semantics.shouldPressure = !semantics.incomingProjectileThreat
-                && (!semantics.selfHasArrows || targetVulnerable || targetEdgeDistance < 180f || horizontalDistance < desiredCombatDistance * 0.85f);
+                && (!semantics.selfHasArrows || targetVulnerable || targetEdgeDistance < 180f || horizontalDistance <= desiredCombatDistance * 1.15f);
             semantics.shouldZone = semantics.selfHasArrows
                 && !targetVulnerable
                 && !targetUsingUltimate
@@ -75,14 +85,46 @@ namespace ProjectPVP.Input
             semantics.shouldAntiAir = semantics.targetAbove
                 && horizontalDistance <= shootRange
                 && target.velocity.y <= 80f;
+            semantics.shouldCollectProjectile = semantics.hasCollectibleProjectile
+                && (self.arrows <= 1 || semantics.shouldRetreat || selfCornered)
+                && semantics.collectibleProjectileDistance <= 720f;
             semantics.targetVulnerable = targetVulnerable;
             semantics.targetPressuring = targetUsingMelee || targetUsingUltimate || horizontalDistance < closeRetreatDistance;
             semantics.targetUsingRanged = targetUsingRanged;
             semantics.targetUsingMelee = targetUsingMelee;
             semantics.targetUsingUltimate = targetUsingUltimate;
-            semantics.selfCornered = selfEdgeDistance < 180f;
-            semantics.targetCornered = targetEdgeDistance < 180f;
+            semantics.selfCornered = selfCornered;
+            semantics.targetCornered = targetCornered;
             return semantics;
+        }
+
+        internal static Vector2 ResolvePredictedTargetDirection(
+            Vector2 targetOffset,
+            Vector2 targetVelocity,
+            Vector2 selfVelocity,
+            float projectileInheritVelocityFactor,
+            float leadTime,
+            Vector2 fallbackDirection)
+        {
+            Vector2 predictedOffset = targetOffset + targetVelocity * leadTime;
+            if (predictedOffset.sqrMagnitude <= 0.0001f)
+            {
+                return fallbackDirection.sqrMagnitude > 0.0001f ? fallbackDirection.normalized : Vector2.right;
+            }
+
+            Vector2 compensatedTravel = (predictedOffset.normalized * EstimatedProjectileSpeed)
+                - selfVelocity * Mathf.Max(0f, projectileInheritVelocityFactor);
+            if (compensatedTravel.sqrMagnitude <= 0.0001f)
+            {
+                return predictedOffset.normalized;
+            }
+
+            return compensatedTravel.normalized;
+        }
+
+        private static float ResolveProjectileInheritVelocityFactor(AiArenaControllerSnapshot self)
+        {
+            return Mathf.Max(0f, self.projectileInheritVelocityFactor);
         }
 
         private static void PopulateProjectileThreatSemantics(
@@ -106,16 +148,18 @@ namespace ProjectPVP.Input
                     continue;
                 }
 
-                Vector2 toSelf = self.position - projectile.position;
-                float speedSqr = projectile.velocity.sqrMagnitude;
-                if (speedSqr <= 1f || Vector2.Dot(toSelf, projectile.velocity) <= 0f)
+                if (!AiArenaProjectileThreatMath.TryEstimateClosestApproach(
+                    self.position,
+                    self.velocity,
+                    projectile.position,
+                    projectile.velocity,
+                    out float timeToClosest,
+                    out Vector2 closestOffset))
                 {
                     continue;
                 }
 
-                float timeToClosest = Mathf.Clamp(Vector2.Dot(toSelf, projectile.velocity) / speedSqr, 0f, 1.5f);
-                Vector2 closestOffset = toSelf - projectile.velocity * timeToClosest;
-                float lateralDistance = Mathf.Abs(closestOffset.y);
+                float lateralDistance = closestOffset.magnitude;
                 if (lateralDistance > Mathf.Min(verticalTolerance, 140f))
                 {
                     continue;
@@ -142,6 +186,48 @@ namespace ProjectPVP.Input
             semantics.incomingProjectileDirection = bestThreatDirection;
             semantics.shouldDashEvade = bestThreatTime <= 0.2f;
             semantics.shouldJumpEvade = bestThreatTime > 0.2f && bestThreatTime <= 0.35f && self.isGrounded;
+        }
+
+        private static void PopulateCollectibleProjectileSemantics(
+            ref AiArenaSemanticObservation semantics,
+            AiArenaControllerSnapshot self,
+            IReadOnlyList<AiArenaProjectileSnapshot> projectiles)
+        {
+            if (projectiles == null || !self.isValid)
+            {
+                return;
+            }
+
+            float bestDistance = float.MaxValue;
+            Vector2 bestDirection = Vector2.zero;
+
+            for (int index = 0; index < projectiles.Count; index += 1)
+            {
+                AiArenaProjectileSnapshot projectile = projectiles[index];
+                if (!projectile.isValid || !projectile.isCollectible)
+                {
+                    continue;
+                }
+
+                Vector2 offset = projectile.position - self.position;
+                float distance = offset.magnitude;
+                if (distance <= 0.01f || distance >= bestDistance)
+                {
+                    continue;
+                }
+
+                bestDistance = distance;
+                bestDirection = offset / distance;
+            }
+
+            if (bestDistance == float.MaxValue)
+            {
+                return;
+            }
+
+            semantics.hasCollectibleProjectile = true;
+            semantics.collectibleProjectileDistance = bestDistance;
+            semantics.collectibleProjectileDirection = bestDirection;
         }
 
         private static bool IsWithinBoxThreat(Vector2 point, Vector2 center, Vector2 size, float padding)

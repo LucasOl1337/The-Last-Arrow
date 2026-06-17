@@ -8,7 +8,8 @@
     "ProjectPVP.Gameplay",
     "ProjectPVP.Input",
     "ProjectPVP.Match",
-    "ProjectPVP.Presentation"
+    "ProjectPVP.Presentation",
+    "ProjectPVP.Editor"
   ],
   "includePlatforms": [
     "Editor"

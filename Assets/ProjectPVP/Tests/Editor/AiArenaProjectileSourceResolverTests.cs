@@ -53,7 +53,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(found, Is.True);
                 Assert.That(results, Has.Count.EqualTo(1));
                 Assert.That(results[0], Is.SameAs(registered));
-                Assert.That(results, Does.Not.Contain(sceneProjectile));
+                Assert.That(results, Has.None.SameAs(sceneProjectile));
             }
             finally
             {

@@ -71,6 +71,8 @@ SYSTEM_PROMPT = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8").strip()
 
 VALID_MODES = {"pressure", "zone", "retreat", "punish", "stabilize"}
 VALID_ANTI_PROJECTILE = {"hold", "jump", "dash", "parry_prefer"}
+HEURISTIC_PROVIDER = "heuristic"
+HEURISTIC_MODEL = "local-heuristic"
 
 
 def log(message: str) -> None:
@@ -124,6 +126,23 @@ def clamp01(value: Any, fallback: float) -> float:
     return max(0.0, min(1.0, number))
 
 
+def resolve_runtime_provider(selected_provider: str, codex_available: bool) -> str:
+    normalized = str(selected_provider or "openai_codex").strip().lower()
+    if normalized == HEURISTIC_PROVIDER:
+        return HEURISTIC_PROVIDER
+    if normalized not in {"openai_codex", "openrouter", "ollama"}:
+        normalized = "openai_codex"
+    if normalized in {"openai_codex", "ollama"} and not codex_available:
+        return HEURISTIC_PROVIDER
+    return normalized
+
+
+def resolve_agent_model(runtime_provider: str) -> str:
+    if runtime_provider == HEURISTIC_PROVIDER:
+        return HEURISTIC_MODEL
+    return DISPLAY_MODEL
+
+
 def validate_intent(candidate: Any) -> dict[str, Any] | None:
     if not isinstance(candidate, dict):
         return None
@@ -165,10 +184,12 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     arena = prompt_state.get("arena") or {}
     target = prompt_state.get("target") or {}
     self_state = prompt_state.get("self") or {}
+    has_prompt_target = bool(target.get("slotId")) or bool(target.get("botId")) or bool(target.get("displayName"))
+    has_prompt_projectiles = bool(prompt_state.get("dangerousProjectiles"))
 
     round_reset = bool(arena.get("roundResetPending")) or bool(feedback.get("roundResetPending"))
-    target_visible = bool(feedback.get("targetVisible"))
-    projectile_risk = bool(feedback.get("projectileThreatActive"))
+    target_visible = bool(feedback.get("targetVisible")) or has_prompt_target
+    projectile_risk = bool(feedback.get("projectileThreatActive")) or has_prompt_projectiles
     self_cornered = bool(arena.get("selfCornered"))
     target_cornered = bool(arena.get("targetCornered"))
     in_melee = bool(arena.get("targetInMeleeRange"))
@@ -176,11 +197,66 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     target_above = bool(arena.get("targetAbove"))
     target_vulnerable = bool(target.get("isHitStunned")) or bool(target.get("isMeleeActive")) or bool(target.get("isUltimateActive"))
     self_hitstunned = bool(self_state.get("isHitStunned"))
+    self_arrows = max(0, int(self_state.get("arrows", 0) or 0))
+    target_arrows = max(0, int(target.get("arrows", 0) or 0))
+    arrow_lead = self_arrows - target_arrows
 
     if round_reset or self_hitstunned:
         return tuned
 
     if not target_visible or projectile_risk:
+        return tuned
+
+    if target_vulnerable:
+        tuned["mode"] = "punish"
+        tuned["preferredRange"] = min(tuned["preferredRange"], 180)
+        tuned["advanceBias"] = max(tuned["advanceBias"], 0.9)
+        tuned["shootBias"] = max(tuned["shootBias"], 0.58 if in_shoot else 0.4)
+        tuned["meleeBias"] = max(tuned["meleeBias"], 0.88 if in_melee else 0.76)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.8)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.22)
+        tuned["antiProjectile"] = "hold"
+        tuned["cornerEscapeBias"] = min(tuned["cornerEscapeBias"], 0.2)
+        tuned["reason"] = "target_vulnerable"
+        return tuned
+
+    if target_arrows <= 0 and self_arrows > 0:
+        tuned["mode"] = "pressure"
+        tuned["preferredRange"] = min(tuned["preferredRange"], 180)
+        tuned["advanceBias"] = max(tuned["advanceBias"], 0.92)
+        tuned["shootBias"] = max(tuned["shootBias"], 0.58 if in_shoot else 0.42)
+        tuned["meleeBias"] = max(tuned["meleeBias"], 0.86 if in_melee else 0.74)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.8)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.26)
+        tuned["antiProjectile"] = "hold"
+        tuned["cornerEscapeBias"] = min(tuned["cornerEscapeBias"], 0.22)
+        tuned["reason"] = "last_arrow_pressure"
+        return tuned
+
+    if self_arrows <= 0 and target_arrows > 0:
+        tuned["mode"] = "retreat"
+        tuned["preferredRange"] = max(tuned["preferredRange"], 320)
+        tuned["advanceBias"] = min(tuned["advanceBias"], 0.2)
+        tuned["shootBias"] = min(tuned["shootBias"], 0.22)
+        tuned["meleeBias"] = min(tuned["meleeBias"], 0.3)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.78)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.34 if not self_cornered else 0.2)
+        tuned["antiProjectile"] = "parry_prefer" if bool(self_state.get("canParryProjectile", False)) else "hold"
+        tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.78)
+        tuned["reason"] = "arrow_disadvantage"
+        return tuned
+
+    if arrow_lead > 0 and target_arrows <= 1 and self_arrows > 0:
+        tuned["mode"] = "pressure"
+        tuned["preferredRange"] = min(tuned["preferredRange"], 240)
+        tuned["advanceBias"] = max(tuned["advanceBias"], 0.88)
+        tuned["shootBias"] = max(tuned["shootBias"], 0.56 if in_shoot else 0.38)
+        tuned["meleeBias"] = max(tuned["meleeBias"], 0.8 if in_melee else 0.66)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.72)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.24)
+        tuned["antiProjectile"] = "hold"
+        tuned["cornerEscapeBias"] = min(tuned["cornerEscapeBias"], 0.26)
+        tuned["reason"] = "arrow_advantage"
         return tuned
 
     if tuned["mode"] in {"stabilize", "retreat"}:
@@ -232,6 +308,338 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["reason"] = (tuned["reason"] or "forced aggressive follow-up")[:120]
 
     return tuned
+
+
+def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
+    def as_dict(value: Any) -> dict[str, Any]:
+        return value if isinstance(value, dict) else {}
+
+    def as_list(value: Any) -> list[Any]:
+        return value if isinstance(value, list) else []
+
+    def read_float(source: dict[str, Any], key: str, fallback: float) -> float:
+        try:
+            return float(source.get(key, fallback))
+        except (TypeError, ValueError):
+            return fallback
+
+    def read_int(source: dict[str, Any], key: str, fallback: int) -> int:
+        try:
+            return int(source.get(key, fallback))
+        except (TypeError, ValueError):
+            return fallback
+
+    prompt_state = as_dict(state.get("promptState"))
+    feedback = as_dict(state.get("executorFeedback"))
+    self_state = as_dict(prompt_state.get("self"))
+    target_state = as_dict(prompt_state.get("target"))
+    arena = as_dict(prompt_state.get("arena"))
+    events = [str(item) for item in as_list(prompt_state.get("events"))]
+    dangerous_projectiles = [as_dict(item) for item in as_list(prompt_state.get("dangerousProjectiles"))]
+
+    target_visible = bool(read_int(target_state, "slotId", 0)) or bool(target_state.get("botId")) or bool(target_state.get("displayName")) or bool(feedback.get("targetVisible"))
+    self_dead = bool(self_state.get("isDead", False))
+    round_reset = bool(arena.get("roundResetPending", False)) or bool(feedback.get("roundResetPending", False)) or "round_reset_started" in events
+
+    target_slot = read_int(target_state, "slotId", 1) or 1
+    horizontal_distance = read_float(arena, "horizontalDistance", 9999.0)
+    vertical_distance = read_float(arena, "verticalDistance", 9999.0)
+    target_in_melee = bool(arena.get("targetInMeleeRange", False))
+    target_in_ultimate = bool(arena.get("targetInUltimateRange", False))
+    target_in_shoot = bool(arena.get("targetInShootRange", False))
+    target_cornered = bool(arena.get("targetCornered", False))
+    self_cornered = bool(arena.get("selfCornered", False))
+    target_above = bool(arena.get("targetAbove", False))
+    self_grounded = bool(self_state.get("isGrounded", True))
+    self_arrows = max(0, read_int(self_state, "arrows", 0))
+    target_arrows = max(0, read_int(target_state, "arrows", 0))
+    arrow_lead = self_arrows - target_arrows
+    self_has_arrows = self_arrows > 0
+    can_shoot = self_has_arrows and read_float(self_state, "shootCooldownLeft", 0.0) <= 0.01
+    can_melee = read_float(self_state, "meleeCooldownLeft", 0.0) <= 0.01 and not bool(self_state.get("isMeleeActive", False))
+    can_dash = read_float(self_state, "dashCooldownLeft", 0.0) <= 0.01 and not bool(self_state.get("isDashing", False))
+    can_ultimate = read_float(self_state, "ultimateCooldownLeft", 0.0) <= 0.01 and not bool(self_state.get("isUltimateActive", False))
+    target_vulnerable = bool(target_state.get("isHitStunned", False)) or "target_became_vulnerable" in events
+
+    projectile_eta: float | None = None
+    for projectile in dangerous_projectiles:
+        try:
+            eta = float(projectile.get("etaSeconds", -1.0))
+        except (TypeError, ValueError):
+            continue
+        if eta < 0.0:
+            continue
+        projectile_eta = eta if projectile_eta is None else min(projectile_eta, eta)
+
+    intent: dict[str, Any] = {
+        "mode": "pressure",
+        "preferredRange": 320,
+        "advanceBias": 0.72,
+        "shootBias": 0.5,
+        "meleeBias": 0.62,
+        "dashBias": 0.6,
+        "jumpBias": 0.24,
+        "antiProjectile": "hold",
+        "antiAir": target_above,
+        "punishRecovery": True,
+        "cornerEscapeBias": 0.28,
+        "focusTargetSlot": target_slot,
+        "expiresInMs": 360,
+        "reason": "heuristic_neutral_pressure",
+    }
+
+    if not target_visible or self_dead:
+        intent.update({
+            "mode": "stabilize",
+            "preferredRange": 280,
+            "advanceBias": 0.2,
+            "shootBias": 0.2,
+            "meleeBias": 0.2,
+            "dashBias": 0.15,
+            "jumpBias": 0.15,
+            "antiProjectile": "hold",
+            "antiAir": target_above,
+            "cornerEscapeBias": 0.4,
+            "reason": "heuristic_waiting_for_target",
+        })
+        return intent
+
+    if round_reset:
+        intent.update({
+            "mode": "stabilize",
+            "preferredRange": 260,
+            "advanceBias": 0.2,
+            "shootBias": 0.25,
+            "meleeBias": 0.25,
+            "dashBias": 0.2,
+            "jumpBias": 0.2,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.75,
+            "reason": "heuristic_round_reset",
+        })
+        return intent
+
+    if projectile_eta is not None:
+        if projectile_eta <= 0.2 and can_dash:
+            intent.update({
+                "mode": "retreat",
+                "preferredRange": 260,
+                "advanceBias": 0.15,
+                "shootBias": 0.25,
+                "meleeBias": 0.2,
+                "dashBias": 0.95,
+                "jumpBias": 0.25,
+                "antiProjectile": "dash",
+                "cornerEscapeBias": 0.8,
+                "reason": "heuristic_projectile_dash",
+            })
+        elif projectile_eta <= 0.35 and self_grounded:
+            intent.update({
+                "mode": "retreat",
+                "preferredRange": 260,
+                "advanceBias": 0.18,
+                "shootBias": 0.3,
+                "meleeBias": 0.2,
+                "dashBias": 0.55,
+                "jumpBias": 0.9,
+                "antiProjectile": "jump",
+                "cornerEscapeBias": 0.72,
+                "reason": "heuristic_projectile_jump",
+            })
+        else:
+            intent.update({
+                "mode": "stabilize",
+                "preferredRange": 280,
+                "advanceBias": 0.25,
+                "shootBias": 0.35,
+                "meleeBias": 0.25,
+                "dashBias": 0.3,
+                "jumpBias": 0.3,
+                "antiProjectile": "parry_prefer" if bool(self_state.get("canParryProjectile", False)) else "hold",
+                "cornerEscapeBias": 0.62,
+                "reason": "heuristic_projectile_hold",
+            })
+        return intent
+
+    if self_cornered and horizontal_distance < 280:
+        intent.update({
+            "mode": "retreat",
+            "preferredRange": 260,
+            "advanceBias": 0.2,
+            "shootBias": 0.4 if can_shoot else 0.2,
+            "meleeBias": 0.3,
+            "dashBias": 0.82,
+            "jumpBias": 0.35 if self_grounded else 0.15,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.85,
+            "reason": "heuristic_escape_corner",
+        })
+        return intent
+
+    if target_arrows <= 0 and self_arrows > 0 and not target_vulnerable:
+        intent.update({
+            "mode": "pressure",
+            "preferredRange": 180,
+            "advanceBias": 0.92,
+            "shootBias": 0.58 if can_shoot else 0.4,
+            "meleeBias": 0.88 if can_melee else 0.72,
+            "dashBias": 0.82 if can_dash else 0.56,
+            "jumpBias": 0.26,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.2,
+            "reason": "heuristic_last_arrow_pressure",
+        })
+        return intent
+
+    if self_arrows <= 0 and target_arrows > 0 and not target_vulnerable:
+        intent.update({
+            "mode": "retreat",
+            "preferredRange": 320,
+            "advanceBias": 0.18,
+            "shootBias": 0.2,
+            "meleeBias": 0.28,
+            "dashBias": 0.78 if can_dash else 0.45,
+            "jumpBias": 0.36 if self_grounded else 0.18,
+            "antiProjectile": "parry_prefer" if bool(self_state.get("canParryProjectile", False)) else "hold",
+            "cornerEscapeBias": 0.82,
+            "reason": "heuristic_arrow_disadvantage",
+        })
+        return intent
+
+    if arrow_lead > 0 and target_arrows <= 1 and not target_vulnerable:
+        intent.update({
+            "mode": "pressure",
+            "preferredRange": 240,
+            "advanceBias": 0.84,
+            "shootBias": 0.62 if can_shoot else 0.38,
+            "meleeBias": 0.82 if can_melee else 0.68,
+            "dashBias": 0.72 if can_dash else 0.5,
+            "jumpBias": 0.24,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.24,
+            "reason": "heuristic_arrow_advantage",
+        })
+        return intent
+
+    if target_vulnerable and (target_in_melee or target_in_ultimate or target_in_shoot):
+        intent.update({
+            "mode": "punish",
+            "preferredRange": min(180, max(120, int(horizontal_distance))),
+            "advanceBias": 0.9,
+            "shootBias": 0.68 if can_shoot else 0.42,
+            "meleeBias": 0.92 if can_melee else 0.74,
+            "dashBias": 0.84 if can_dash else 0.6,
+            "jumpBias": 0.18,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.18,
+            "reason": "heuristic_punish_window",
+        })
+        return intent
+
+    if target_cornered:
+        intent.update({
+            "mode": "pressure",
+            "preferredRange": 220,
+            "advanceBias": 0.88,
+            "shootBias": 0.64 if can_shoot else 0.42,
+            "meleeBias": 0.84,
+            "dashBias": 0.74,
+            "jumpBias": 0.28,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.22,
+            "reason": "heuristic_corner_pressure",
+        })
+        return intent
+
+    if target_in_melee and can_melee:
+        intent.update({
+            "mode": "pressure",
+            "preferredRange": 140,
+            "advanceBias": 0.86,
+            "shootBias": 0.36 if can_shoot else 0.24,
+            "meleeBias": 0.92,
+            "dashBias": 0.68,
+            "jumpBias": 0.2,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.25,
+            "reason": "heuristic_melee_pressure",
+        })
+        return intent
+
+    if target_in_shoot and self_has_arrows and (horizontal_distance <= 420 or can_shoot):
+        intent.update({
+            "mode": "zone",
+            "preferredRange": 420,
+            "advanceBias": 0.56,
+            "shootBias": 0.84,
+            "meleeBias": 0.24,
+            "dashBias": 0.46,
+            "jumpBias": 0.3,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.26,
+            "reason": "heuristic_zone_spacing",
+        })
+        return intent
+
+    if target_above:
+        intent.update({
+            "mode": "pressure",
+            "preferredRange": 300,
+            "advanceBias": 0.74,
+            "shootBias": 0.78 if can_shoot else 0.42,
+            "meleeBias": 0.44,
+            "dashBias": 0.58,
+            "jumpBias": 0.42,
+            "antiAir": True,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.24,
+            "reason": "heuristic_anti_air",
+        })
+        return intent
+
+    if horizontal_distance > 520 and can_dash:
+        intent.update({
+            "mode": "pressure",
+            "preferredRange": 360,
+            "advanceBias": 0.9,
+            "shootBias": 0.58 if can_shoot else 0.28,
+            "meleeBias": 0.54,
+            "dashBias": 0.82,
+            "jumpBias": 0.26,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.24,
+            "reason": "heuristic_close_distance",
+        })
+        return intent
+
+    if horizontal_distance < 220:
+        intent.update({
+            "mode": "stabilize",
+            "preferredRange": 260,
+            "advanceBias": 0.28,
+            "shootBias": 0.4 if can_shoot else 0.24,
+            "meleeBias": 0.46,
+            "dashBias": 0.38,
+            "jumpBias": 0.22,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.34,
+            "reason": "heuristic_hold_space",
+        })
+        return intent
+
+    intent.update({
+        "mode": "pressure",
+        "preferredRange": 320,
+        "advanceBias": 0.78,
+        "shootBias": 0.54 if can_shoot else 0.28,
+        "meleeBias": 0.6,
+        "dashBias": 0.66,
+        "jumpBias": 0.24,
+        "antiProjectile": "hold",
+        "cornerEscapeBias": 0.28,
+        "reason": "heuristic_default_pressure",
+    })
+    return intent
 
 
 def horizontal_distance(arena: dict[str, Any]) -> float:
@@ -547,13 +955,14 @@ def send_heartbeat(
     error: str = "",
     turn_started_ms: int = 0,
     turn_completed_ms: int = 0,
+    model: str = "",
 ) -> None:
     if not session_id:
         return
 
     payload: dict[str, Any] = {
         "sessionId": session_id,
-        "model": DISPLAY_MODEL,
+        "model": str(model).strip() or DISPLAY_MODEL,
         "phase": phase,
         "thinking": thinking,
         "note": note[:160],
@@ -568,9 +977,9 @@ def send_heartbeat(
 
 
 def main() -> int:
-    if not CODEX_PATH.exists():
-        log(f"codex executable not found: {CODEX_PATH}")
-        return 1
+    runtime_provider = resolve_runtime_provider(CODEX_MODEL_PROVIDER, CODEX_PATH.exists())
+    heuristic_mode = runtime_provider == HEURISTIC_PROVIDER
+    agent_model = resolve_agent_model(runtime_provider)
 
     # ── Account rotation state ────────────────────────────────────────────
     account_index = 0
@@ -595,43 +1004,52 @@ def main() -> int:
         return True
     # ─────────────────────────────────────────────────────────────────────
 
-    log(f"starting live agent for slot {SLOT_ID} bot={BOT_ID or '-'} via {BROKER_BASE}")
+    if heuristic_mode:
+        log(f"codex executable not found: {CODEX_PATH}; using local heuristic fallback")
+    log(f"starting live agent for slot {SLOT_ID} bot={BOT_ID or '-'} via {BROKER_BASE} provider={runtime_provider}")
     log(f"[auth-fallback] contas disponiveis: {CODEX_HOME_CANDIDATES}")
-    codex_session_id = ""
+
+    codex_session_id = f"heuristic-slot-{SLOT_ID}-{now_ms()}" if heuristic_mode else ""
     broker_session_id = ""
     last_frame = -1
     last_turn_at = 0.0
     warmup_posted_session_id = ""
     memory = MemoryTracker(bot_id=BOT_ID, slot_id=SLOT_ID)
 
-    warmup_prompt = build_warmup_prompt()
-    append_trace_event("warmup_request", {
-        "slotId": SLOT_ID,
-        "botId": BOT_ID,
-        "provider": CODEX_MODEL_PROVIDER,
-        "model": CODEX_MODEL or "codex-cli-default",
-        "prompt": warmup_prompt,
-    })
-    thread_id, warmup_intent, warmup_error, warmup_meta = run_codex_new(warmup_prompt, codex_home=current_codex_home())
-    append_trace_event("warmup_response", {
-        "slotId": SLOT_ID,
-        "botId": BOT_ID,
-        "provider": CODEX_MODEL_PROVIDER,
-        "model": CODEX_MODEL or "codex-cli-default",
-        "threadId": thread_id or "",
-        "intent": warmup_intent,
-        "error": warmup_error,
-        "stdout": warmup_meta.get("stdout", ""),
-        "stderr": warmup_meta.get("stderr", ""),
-        "returncode": warmup_meta.get("returncode", -1),
-    })
-    if thread_id and warmup_intent is not None:
-        codex_session_id = thread_id
-        log(f"warmup ready session={codex_session_id[:8]} mode={warmup_intent['mode']}")
+    warmup_intent: dict[str, Any] | None = None
+    warmup_error = ""
+    warmup_meta: dict[str, Any] = {"stdout": "", "stderr": "", "returncode": 0}
+    if not heuristic_mode:
+        warmup_prompt = build_warmup_prompt()
+        append_trace_event("warmup_request", {
+            "slotId": SLOT_ID,
+            "botId": BOT_ID,
+            "provider": runtime_provider,
+            "model": agent_model,
+            "prompt": warmup_prompt,
+        })
+        thread_id, warmup_intent, warmup_error, warmup_meta = run_codex_new(warmup_prompt, codex_home=current_codex_home())
+        append_trace_event("warmup_response", {
+            "slotId": SLOT_ID,
+            "botId": BOT_ID,
+            "provider": runtime_provider,
+            "model": agent_model,
+            "threadId": thread_id or "",
+            "intent": warmup_intent,
+            "error": warmup_error,
+            "stdout": warmup_meta.get("stdout", ""),
+            "stderr": warmup_meta.get("stderr", ""),
+            "returncode": warmup_meta.get("returncode", -1),
+        })
+        if thread_id and warmup_intent is not None:
+            codex_session_id = thread_id
+            log(f"warmup ready session={codex_session_id[:8]} mode={warmup_intent['mode']}")
+        else:
+            log(f"warmup skipped error={warmup_error or 'unknown'}")
+            if warmup_error and _is_quota_or_auth_error(warmup_error):
+                rotate_account(warmup_error)
     else:
-        log(f"warmup skipped error={warmup_error or 'unknown'}")
-        if warmup_error and _is_quota_or_auth_error(warmup_error):
-            rotate_account(warmup_error)
+        log("warmup skipped: local heuristic fallback does not need a Codex session")
 
     while True:
         status, state = http_get(f"/agent/next?slotId={SLOT_ID}")
@@ -666,6 +1084,8 @@ def main() -> int:
                 "botId": BOT_ID,
                 "brokerSessionId": broker_session_id,
                 "codexSessionId": codex_session_id,
+                "provider": runtime_provider,
+                "model": agent_model,
             })
             send_heartbeat(
                 broker_session_id,
@@ -673,6 +1093,7 @@ def main() -> int:
                 "idle",
                 thinking=False,
                 note="Attached to broker session",
+                model=agent_model,
             )
             if warmup_intent is not None and warmup_posted_session_id != broker_session_id:
                 if post_intent(broker_session_id, warmup_intent):
@@ -684,6 +1105,7 @@ def main() -> int:
                         "idle",
                         thinking=False,
                         note=f"Posted warmup {warmup_intent['mode']} ({warmup_intent['reason'] or 'no-reason'})",
+                        model=agent_model,
                     )
                 else:
                     log("failed to post warmup action to broker")
@@ -692,47 +1114,73 @@ def main() -> int:
             time.sleep(POLL_INTERVAL_SECONDS)
             continue
 
+        frame = int(state.get("frame", -1))
         payload = format_prompt_payload(state, memory)
-        append_trace_event("prompt_payload_created", {
-            "slotId": SLOT_ID,
-            "botId": BOT_ID or payload.get("botId", ""),
-            "brokerSessionId": broker_session_id,
-            "codexSessionId": codex_session_id,
-            "frame": int(state.get("frame", -1)),
-            "payload": payload,
-        })
         turn_started_ms = now_ms()
-        send_heartbeat(
-            broker_session_id,
-            codex_session_id,
-            "thinking",
-            thinking=True,
-            note=f"Thinking for frame {int(state.get('frame', -1))}",
-            turn_started_ms=turn_started_ms,
-        )
-        if not codex_session_id:
+
+        if heuristic_mode:
+            append_trace_event("heuristic_request", {
+                "slotId": SLOT_ID,
+                "botId": BOT_ID or payload.get("botId", ""),
+                "brokerSessionId": broker_session_id,
+                "codexSessionId": codex_session_id,
+                "frame": frame,
+                "provider": runtime_provider,
+                "model": agent_model,
+                "payload": payload,
+            })
+            send_heartbeat(
+                broker_session_id,
+                codex_session_id,
+                "thinking",
+                thinking=True,
+                note=f"Heuristic thinking for frame {frame}",
+                turn_started_ms=turn_started_ms,
+                model=agent_model,
+            )
+            intent = apply_aggression_bias(build_heuristic_intent(state), state)
+            append_trace_event("heuristic_response", {
+                "slotId": SLOT_ID,
+                "botId": BOT_ID or payload.get("botId", ""),
+                "brokerSessionId": broker_session_id,
+                "codexSessionId": codex_session_id,
+                "frame": frame,
+                "provider": runtime_provider,
+                "model": agent_model,
+                "intent": intent,
+            })
+        elif not codex_session_id:
             prompt = build_start_prompt(payload)
             append_trace_event("codex_request", {
                 "slotId": SLOT_ID,
                 "botId": BOT_ID or payload.get("botId", ""),
                 "brokerSessionId": broker_session_id,
                 "codexSessionId": codex_session_id,
-                "frame": int(state.get("frame", -1)),
+                "frame": frame,
                 "requestType": "start",
-                "provider": CODEX_MODEL_PROVIDER,
-                "model": CODEX_MODEL or "codex-cli-default",
+                "provider": runtime_provider,
+                "model": agent_model,
                 "prompt": prompt,
             })
+            send_heartbeat(
+                broker_session_id,
+                codex_session_id,
+                "thinking",
+                thinking=True,
+                note=f"Thinking for frame {frame}",
+                turn_started_ms=turn_started_ms,
+                model=agent_model,
+            )
             thread_id, intent, error, meta = run_codex_new(prompt, codex_home=current_codex_home())
             append_trace_event("codex_response", {
                 "slotId": SLOT_ID,
                 "botId": BOT_ID or payload.get("botId", ""),
                 "brokerSessionId": broker_session_id,
                 "codexSessionId": thread_id or "",
-                "frame": int(state.get("frame", -1)),
+                "frame": frame,
                 "requestType": "start",
-                "provider": CODEX_MODEL_PROVIDER,
-                "model": CODEX_MODEL or "codex-cli-default",
+                "provider": runtime_provider,
+                "model": agent_model,
                 "intent": intent,
                 "error": error,
                 "codexHome": current_codex_home(),
@@ -756,6 +1204,7 @@ def main() -> int:
                     error=error,
                     turn_started_ms=turn_started_ms,
                     turn_completed_ms=now_ms(),
+                    model=agent_model,
                 )
                 time.sleep(IDLE_INTERVAL_SECONDS)
                 continue
@@ -770,22 +1219,31 @@ def main() -> int:
                 "botId": BOT_ID or payload.get("botId", ""),
                 "brokerSessionId": broker_session_id,
                 "codexSessionId": codex_session_id,
-                "frame": int(state.get("frame", -1)),
+                "frame": frame,
                 "requestType": "resume",
-                "provider": CODEX_MODEL_PROVIDER,
-                "model": CODEX_MODEL or "codex-cli-default",
+                "provider": runtime_provider,
+                "model": agent_model,
                 "prompt": prompt,
             })
+            send_heartbeat(
+                broker_session_id,
+                codex_session_id,
+                "thinking",
+                thinking=True,
+                note=f"Thinking for frame {frame}",
+                turn_started_ms=turn_started_ms,
+                model=agent_model,
+            )
             intent, error, meta = run_codex_resume(codex_session_id, prompt, codex_home=current_codex_home())
             append_trace_event("codex_response", {
                 "slotId": SLOT_ID,
                 "botId": BOT_ID or payload.get("botId", ""),
                 "brokerSessionId": broker_session_id,
                 "codexSessionId": codex_session_id,
-                "frame": int(state.get("frame", -1)),
+                "frame": frame,
                 "requestType": "resume",
-                "provider": CODEX_MODEL_PROVIDER,
-                "model": CODEX_MODEL or "codex-cli-default",
+                "provider": runtime_provider,
+                "model": agent_model,
                 "intent": intent,
                 "error": error,
                 "codexHome": current_codex_home(),
@@ -809,12 +1267,12 @@ def main() -> int:
                     error=error,
                     turn_started_ms=turn_started_ms,
                     turn_completed_ms=now_ms(),
+                    model=agent_model,
                 )
                 time.sleep(POLL_INTERVAL_SECONDS)
                 continue
             account_consecutive_failures = 0
-
-        intent = apply_aggression_bias(intent, state)
+            intent = apply_aggression_bias(intent, state)
 
         send_heartbeat(
             broker_session_id,
@@ -823,8 +1281,9 @@ def main() -> int:
             thinking=False,
             note=f"Posting {intent['mode']} ({intent['reason'] or 'no-reason'})",
             turn_started_ms=turn_started_ms,
+            model=agent_model,
         )
-        last_frame = int(state.get("frame", -1))
+        last_frame = frame
         last_turn_at = time.time()
         if post_intent(broker_session_id, intent):
             log(f"posted action frame={last_frame} mode={intent['mode']} reason={intent['reason']}")
@@ -834,6 +1293,8 @@ def main() -> int:
                 "brokerSessionId": broker_session_id,
                 "codexSessionId": codex_session_id,
                 "frame": last_frame,
+                "provider": runtime_provider,
+                "model": agent_model,
                 "intent": intent,
             })
             send_heartbeat(
@@ -844,6 +1305,7 @@ def main() -> int:
                 note=f"Posted {intent['mode']} ({intent['reason'] or 'no-reason'})",
                 turn_started_ms=turn_started_ms,
                 turn_completed_ms=now_ms(),
+                model=agent_model,
             )
         else:
             log("failed to post action to broker")
@@ -856,6 +1318,7 @@ def main() -> int:
                 error="post_action_failed",
                 turn_started_ms=turn_started_ms,
                 turn_completed_ms=now_ms(),
+                model=agent_model,
             )
 
         time.sleep(POLL_INTERVAL_SECONDS)

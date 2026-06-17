@@ -49,9 +49,6 @@ namespace ProjectPVP.Presentation
             {
                 DrawNotesPanel(new Rect(Screen.width - 348f, 18f, 330f, 120f));
             }
-
-            DrawRoundCounters();
-            DrawWinnerBanner();
         }
 
         private void Start()
@@ -331,6 +328,16 @@ namespace ProjectPVP.Presentation
                     GUILayout.Space(4f);
                     GUILayout.Label(matchController.PendingRoundWinnerSlot.ToDisplayName() + " venceu o round.", _bodyStyle);
                 }
+
+                if (!string.IsNullOrWhiteSpace(matchController.LastRoundDeathSummary)
+                    && (matchController.IsRoundResetPending
+                        || matchController.PendingRoundWinnerSlot != CombatantSlotId.None
+                        || matchController.PendingChampionSlot != CombatantSlotId.None
+                        || matchController.ChampionAnnouncementSlot != CombatantSlotId.None))
+                {
+                    GUILayout.Space(4f);
+                    GUILayout.Label("Abate final: " + matchController.LastRoundDeathSummary, _bodyStyle);
+                }
             }
 
             GUILayout.EndArea();
@@ -499,6 +506,7 @@ namespace ProjectPVP.Presentation
                 "Slot: " + player.SlotId.ToDisplayName() + "\n" +
                 "Control: " + controlMode + "\n" +
                 "Arrows: " + player.CurrentArrows + "\n" +
+                "Shield: " + (player.HasShield ? "Yes" : "No") + "\n" +
                 "Facing: " + (player.Facing < 0 ? "Left" : "Right") + "\n" +
                 "Grounded: " + (player.IsGrounded ? "Yes" : "No") + " | Wall: " + (player.IsTouchingWall ? "Yes" : "No") + "\n" +
                 "Action: " + player.CurrentVisualActionKey + " | Dash: " + (player.IsDashAnimationActive ? "Yes" : "No") + "\n" +
@@ -508,7 +516,7 @@ namespace ProjectPVP.Presentation
                 "Axis: " + frame.axis.ToString("0.00") + "\n" +
                 "Aim: (" + frame.aim.x.ToString("0.00") + ", " + frame.aim.y.ToString("0.00") + ")" + "\n" +
                 "AimHoldDir: (" + aimHoldDirection.x.ToString("0.00") + ", " + aimHoldDirection.y.ToString("0.00") + ")" + "\n" +
-                "Assist: " + assistEnabled + " | Locked: " + assistLocked + " | Angle: " + assistAngle + " | Strength: " + assistAppliedStrength + "\n" +
+                "DeathFlash: " + player.DeathFlashTimeLeft.ToString("0.00") + " | ProjAssist: " + assistEnabled + " | Locked: " + assistLocked + " | Angle: " + assistAngle + " | Strength: " + assistAppliedStrength + "\n" +
                 codexStatus +
                 "FaceBtns: " + faceButtonDebug + "\n" +
                 "Jump: " + (frame.jumpPressed ? "Pressed" : "-") + " | Shoot: " + (frame.shootHeld ? "Held" : "-") + " | UltBtn: " + (frame.ultimatePressed ? "Pressed" : "-") + " | DashBtn: " + ((frame.dashPrimaryPressed || frame.dashSecondaryPressed) ? "Pressed" : "-");

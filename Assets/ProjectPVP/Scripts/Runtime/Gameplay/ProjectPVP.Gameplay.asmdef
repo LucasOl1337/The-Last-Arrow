@@ -3,6 +3,7 @@
   "rootNamespace": "ProjectPVP",
   "references": [
     "ProjectPVP.Data",
+    "ProjectPVP.Core",
     "ProjectPVP.Input",
     "UnityEngine.AudioModule"
   ],

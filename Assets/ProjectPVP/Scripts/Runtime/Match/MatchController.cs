@@ -49,6 +49,9 @@ namespace ProjectPVP.Match
         public float roundResetDelay = 1.25f;
         public float respawnFreezeDuration = 0.5f;
         public float championAnnouncementDuration = 2f;
+        [FormerlySerializedAs("autoBalanceShieldsEnabled")]
+        public bool autoBalanceLoadoutEnabled = true;
+        public bool corpsesDropArrowsEnabled = true;
         [SerializeField] private List<RoundRespawnSeed> roundRespawnSeeds = CreateDefaultRespawnSeeds();
         [SerializeField] private int currentRespawnSeedIndex;
         public Vector2 defaultPlayerOneSpawn = new Vector2(-420f, -540f);
@@ -71,6 +74,10 @@ namespace ProjectPVP.Match
         private bool _slotTwoBotShortcutEnabled;
         private CombatantSlotId _pendingRoundWinnerSlot = CombatantSlotId.None;
         private CombatantSlotId _pendingChampionSlot = CombatantSlotId.None;
+        private string _lastRoundDeathSummary = string.Empty;
+        private Vector2 _lastRoundDeathPosition = Vector2.zero;
+        private readonly List<PlayerController> _pendingDeadPlayers = new List<PlayerController>(2);
+        private bool _resolveQueuedDeathsPending;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void BootstrapSlotTwoCodexBot()
@@ -98,7 +105,7 @@ namespace ProjectPVP.Match
         public IReadOnlyList<CombatantSlotConfig> Slots => roster != null ? roster.Slots : System.Array.Empty<CombatantSlotConfig>();
         public IReadOnlyList<CharacterBootstrapProfile> AvailableCharacters => characterCatalog != null ? characterCatalog.Characters : System.Array.Empty<CharacterBootstrapProfile>();
         public IReadOnlyList<RoundRespawnSeed> RoundRespawnSeeds => roundRespawnSeeds != null
-            ? roundRespawnSeeds
+            ? (IReadOnlyList<RoundRespawnSeed>)roundRespawnSeeds
             : System.Array.Empty<RoundRespawnSeed>();
         public int PlayerOneWins => GetWins(CombatantSlotId.SlotOne);
         public int PlayerTwoWins => GetWins(CombatantSlotId.SlotTwo);
@@ -112,6 +119,8 @@ namespace ProjectPVP.Match
         public CombatantSlotId PendingRoundWinnerSlot => _pendingRoundWinnerSlot;
         public CombatantSlotId PendingChampionSlot => _pendingChampionSlot;
         public CombatantSlotId ChampionAnnouncementSlot => _roundTimers.ChampionAnnouncementSlot;
+        public string LastRoundDeathSummary => _lastRoundDeathSummary;
+        public Vector2 LastRoundDeathPosition => _lastRoundDeathPosition;
         public Rect ActiveWrapBounds => arenaDefinition != null ? arenaDefinition.wrapBounds : defaultWrapBounds;
         public Vector2 PlayerOneSpawnPoint => GetSpawnPoint(CombatantSlotId.SlotOne);
         public Vector2 PlayerTwoSpawnPoint => GetSpawnPoint(CombatantSlotId.SlotTwo);
@@ -165,6 +174,7 @@ namespace ProjectPVP.Match
         private void OnDisable()
         {
             AiArenaSnapshotSourceRegistry.Unregister(this);
+            ResetTransientRoundState();
             UnsubscribePlayers();
         }
 
@@ -598,20 +608,61 @@ namespace ProjectPVP.Match
                 return;
             }
 
-            RoundDeathResolution deathResolution = RoundDeathService.ResolveDeath(Slots, deadPlayer);
-            if (!deathResolution.HasWinner)
+            if (deadPlayer != null && !_pendingDeadPlayers.Contains(deadPlayer))
+            {
+                DropCorpseArrows(deadPlayer);
+                _pendingDeadPlayers.Add(deadPlayer);
+            }
+
+            if (_resolveQueuedDeathsPending)
             {
                 return;
             }
 
-            for (int index = 0; index < deathResolution.WinningSlots.Count; index += 1)
+            _resolveQueuedDeathsPending = true;
+            StartCoroutine(ResolveQueuedDeathsAfterFrame());
+        }
+
+        private IEnumerator ResolveQueuedDeathsAfterFrame()
+        {
+            yield return null;
+            ResolveQueuedDeaths();
+        }
+
+        private void ResolveQueuedDeaths()
+        {
+            _resolveQueuedDeathsPending = false;
+            if (_roundResetRoutine != null || _pendingDeadPlayers.Count == 0)
             {
-                AddWin(deathResolution.WinningSlots[index]);
+                _pendingDeadPlayers.Clear();
+                return;
             }
 
-            _pendingRoundWinnerSlot = deathResolution.RoundWinnerSlot;
+            PlayerController resolvedDeadPlayer = _pendingDeadPlayers[_pendingDeadPlayers.Count - 1];
+            _pendingDeadPlayers.Clear();
+
+            RoundDeathResolution deathResolution = RoundDeathService.ResolveDeath(Slots, resolvedDeadPlayer);
+            if (deathResolution.HasWinner)
+            {
+                for (int index = 0; index < deathResolution.WinningSlots.Count; index += 1)
+                {
+                    AddWin(deathResolution.WinningSlots[index]);
+                }
+
+                _pendingRoundWinnerSlot = deathResolution.RoundWinnerSlot;
+                _lastRoundDeathSummary = ResolveDeathSummary(resolvedDeadPlayer);
+                _lastRoundDeathPosition = ResolveDeathPosition(resolvedDeadPlayer);
+                _pendingChampionSlot = ResolveChampionSlot();
+            }
+            else
+            {
+                _pendingRoundWinnerSlot = CombatantSlotId.None;
+                _pendingChampionSlot = CombatantSlotId.None;
+                _lastRoundDeathSummary = string.Empty;
+                _lastRoundDeathPosition = Vector2.zero;
+            }
+
             AdvanceRespawnSeed();
-            _pendingChampionSlot = ResolveChampionSlot();
             _roundResetRoutine = StartCoroutine(ResetRoundAfterDelay());
         }
 
@@ -642,12 +693,20 @@ namespace ProjectPVP.Match
         {
             SyncRosterAliases();
             ApplyCodexBotAutomationForPlay();
+            ProjectileController.DestroyActiveProjectilesForRoundReset();
 
             List<RespawnSlotCommand> respawnCommands = RespawnService.BuildRespawnCommands(
                 Slots,
                 GetSpawnPoint,
                 applyFreeze);
             RespawnService.ApplyRespawnCommands(respawnCommands, HandleRespawnCommandApplied);
+            ApplyAutoBalanceLoadout();
+
+            if (!applyFreeze)
+            {
+                _lastRoundDeathSummary = string.Empty;
+                _lastRoundDeathPosition = Vector2.zero;
+            }
 
             if (applyFreeze)
             {
@@ -761,9 +820,127 @@ namespace ProjectPVP.Match
             ResetRespawnSeedCycle();
         }
 
-        private void BeginRespawnFreeze()
+        private void ResetTransientRoundState()
         {
-            SetPlayersExternalControlLock(_roundTimers.BeginRespawnFreeze(respawnFreezeDuration));
+            StopRoundResetRoutine();
+            _roundTimers.ClearRespawnFreeze();
+            _roundTimers.ClearChampionAnnouncement();
+            _pendingRoundWinnerSlot = CombatantSlotId.None;
+            _pendingChampionSlot = CombatantSlotId.None;
+            _lastRoundDeathSummary = string.Empty;
+            _lastRoundDeathPosition = Vector2.zero;
+            _pendingDeadPlayers.Clear();
+            _resolveQueuedDeathsPending = false;
+        }
+
+        private void StopRoundResetRoutine()
+        {
+            if (_roundResetRoutine == null)
+            {
+                return;
+            }
+
+            StopCoroutine(_roundResetRoutine);
+            _roundResetRoutine = null;
+        }
+
+        private void ApplyAutoBalanceLoadout()
+        {
+            int highestWins = 0;
+            int leaderCount = 0;
+            for (int index = 0; index < Slots.Count; index += 1)
+            {
+                CombatantSlotConfig slot = Slots[index];
+                if (slot == null || slot.controller == null)
+                {
+                    continue;
+                }
+
+                int wins = GetWins(slot.slotId);
+                if (wins > highestWins)
+                {
+                    highestWins = wins;
+                    leaderCount = 1;
+                    continue;
+                }
+
+                if (wins == highestWins)
+                {
+                    leaderCount += 1;
+                }
+            }
+
+            // TowerFall-style autobalance: leaders start a little lighter on arrows,
+            // and players behind by 3+ rounds get a shield to help close the gap.
+            for (int index = 0; index < Slots.Count; index += 1)
+            {
+                CombatantSlotConfig slot = Slots[index];
+                PlayerController player = slot != null ? slot.controller : null;
+                if (player == null)
+                {
+                    continue;
+                }
+
+                int wins = GetWins(slot.slotId);
+                bool isLeader = autoBalanceLoadoutEnabled && highestWins > 0 && leaderCount == 1 && wins == highestWins;
+                int arrowPenalty = isLeader ? 1 : 0;
+                int targetArrows = isLeader ? Mathf.Max(1, player.CurrentArrows - arrowPenalty) : player.CurrentArrows;
+                player.SetRoundArrowCount(targetArrows);
+
+                bool hasShield = autoBalanceLoadoutEnabled && highestWins - wins >= 3;
+                player.SetRoundShield(hasShield);
+            }
+        }
+
+        private void DropCorpseArrows(PlayerController deadPlayer)
+        {
+            if (!corpsesDropArrowsEnabled || deadPlayer == null || deadPlayer.projectilePrefab == null)
+            {
+                return;
+            }
+
+            int arrowCount = Mathf.Max(0, deadPlayer.CurrentArrows);
+            if (arrowCount == 0)
+            {
+                return;
+            }
+
+            Vector2 corpsePosition = ResolveDeathPosition(deadPlayer);
+            float lateralSpacing = 8f;
+            float verticalNudge = 4f;
+            for (int index = 0; index < arrowCount; index += 1)
+            {
+                float centeredIndex = index - ((arrowCount - 1) * 0.5f);
+                Vector2 dropOrigin = corpsePosition + new Vector2(centeredIndex * lateralSpacing, verticalNudge);
+                ProjectileController.SpawnDroppedArrow(
+                    deadPlayer.projectilePrefab,
+                    deadPlayer.characterDefinition,
+                    dropOrigin);
+            }
+        }
+
+        private string ResolveDeathSummary(PlayerController deadPlayer)
+        {
+            if (deadPlayer == null || string.IsNullOrWhiteSpace(deadPlayer.LastFatalHitCause))
+            {
+                return string.Empty;
+            }
+
+            string sourceLabel = deadPlayer.LastFatalHitSource != null
+                ? deadPlayer.LastFatalHitSource.BotDisplayName
+                : "Environment";
+            return sourceLabel + " via " + deadPlayer.LastFatalHitCause;
+        }
+
+        private Vector2 ResolveDeathPosition(PlayerController deadPlayer)
+        {
+            return deadPlayer != null ? deadPlayer.LastFatalHitPosition : Vector2.zero;
+        }
+
+        private void BeginRespawnFreeze(float durationOverride = -1f)
+        {
+            float duration = durationOverride >= 0f ? durationOverride : respawnFreezeDuration;
+            SetPlayersExternalControlLock(_roundTimers.BeginRespawnFreeze(duration));
         }
 
         private void TickFreezeAndAnnouncements(float deltaTime)
@@ -772,12 +949,24 @@ namespace ProjectPVP.Match
             if (result.RespawnFreezeEnded)
             {
                 SetPlayersExternalControlLock(false);
+                if (_roundTimers.ChampionAnnouncementSlot == CombatantSlotId.None)
+                {
+                    _lastRoundDeathSummary = string.Empty;
+                    _lastRoundDeathPosition = Vector2.zero;
+                }
+            }
+
+            if (result.ChampionAnnouncementEnded)
+            {
+                _lastRoundDeathSummary = string.Empty;
+                _lastRoundDeathPosition = Vector2.zero;
             }
         }
 
-        private void ShowChampionAnnouncement(CombatantSlotId championSlot)
+        private void ShowChampionAnnouncement(CombatantSlotId championSlot, float durationOverride = -1f)
         {
-            _roundTimers.ShowChampionAnnouncement(championSlot, championAnnouncementDuration);
+            float duration = durationOverride >= 0f ? durationOverride : championAnnouncementDuration;
+            _roundTimers.ShowChampionAnnouncement(championSlot, duration);
         }
 
         private void SetPlayersExternalControlLock(bool locked)
@@ -940,24 +1129,53 @@ namespace ProjectPVP.Match
             }
 
             CharacterBootstrapProfile characterProfile = slot.ResolveCharacterProfile();
+            bool createdFallbackProfile = false;
             if (characterProfile == null)
             {
-                return null;
+                CharacterDefinition selectedCharacter = slot.ResolveCharacterDefinition();
+                if (selectedCharacter == null)
+                {
+                    return null;
+                }
+
+                if (characterCatalog != null)
+                {
+                    characterProfile = characterCatalog.FindByDefinition(selectedCharacter);
+                }
+
+                if (characterProfile == null)
+                {
+                    characterProfile = ScriptableObject.CreateInstance<CharacterBootstrapProfile>();
+                    characterProfile.hideFlags = HideFlags.HideAndDontSave;
+                    characterProfile.characterDefinition = selectedCharacter;
+                    characterProfile.displayName = selectedCharacter.displayName;
+                    createdFallbackProfile = true;
+                }
             }
 
-            Transform parent = transform.parent != null ? transform.parent : transform;
-            PlayerController spawnedController = CharacterBootstrapFactory.CreateCombatant(
-                characterProfile,
-                slot.slotId,
-                slot.ResolvePlayerProfile(),
-                parent);
-
-            if (spawnedController != null && slot.fallbackSpawnPoint != Vector2.zero)
+            try
             {
-                spawnedController.transform.position = slot.fallbackSpawnPoint;
-            }
+                Transform parent = transform.parent != null ? transform.parent : transform;
+                PlayerController spawnedController = CharacterBootstrapFactory.CreateCombatant(
+                    characterProfile,
+                    slot.slotId,
+                    slot.ResolvePlayerProfile(),
+                    parent);
 
-            return spawnedController;
+                if (spawnedController != null && slot.fallbackSpawnPoint != Vector2.zero)
+                {
+                    spawnedController.transform.position = slot.fallbackSpawnPoint;
+                }
+
+                return spawnedController;
+            }
+            finally
+            {
+                if (createdFallbackProfile && characterProfile != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(characterProfile);
+                }
+            }
         }
 
         private void EnsureMusicSource()
@@ -1025,7 +1243,7 @@ namespace ProjectPVP.Match
             Vector3 position = player.transform.position;
             if (verticalRingOutEnabled && position.y < wrapBounds.yMin - wrapPadding.y)
             {
-                player.Kill();
+                player.Kill(null, "Ring Out");
                 return;
             }
 

@@ -5,6 +5,7 @@ using NUnit.Framework;
 using ProjectPVP.Input;
 using ProjectPVP.Match;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace ProjectPVP.Tests.Editor
 {
@@ -22,6 +23,32 @@ namespace ProjectPVP.Tests.Editor
             typeof(MatchController).GetMethod("ResolveSlotTwoAutoBotBrain", BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly MethodInfo EnsurePlayerTwoDebugBotEnabledMethod =
             typeof(MatchController).GetMethod("EnsurePlayerTwoDebugBotEnabled", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo ResolveDeathSummaryMethod =
+            typeof(MatchController).GetMethod("ResolveDeathSummary", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo ResolveDeathPositionMethod =
+            typeof(MatchController).GetMethod("ResolveDeathPosition", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo BeginRespawnFreezeMethod =
+            typeof(MatchController).GetMethod("BeginRespawnFreeze", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo ShowChampionAnnouncementMethod =
+            typeof(MatchController).GetMethod("ShowChampionAnnouncement", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo TickFreezeAndAnnouncementsMethod =
+            typeof(MatchController).GetMethod("TickFreezeAndAnnouncements", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo ShouldShowFinalKillInfoMethod =
+            typeof(ProjectPvpMatchRoundHudOverlay).GetMethod("ShouldShowFinalKillInfo", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo RespawnPlayersMethod =
+            typeof(MatchController).GetMethod("RespawnPlayers", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo MatchAwakeMethod =
+            typeof(MatchController).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo HandlePlayerDeathMethod =
+            typeof(MatchController).GetMethod("HandlePlayerDeath", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo ResolveQueuedDeathsMethod =
+            typeof(MatchController).GetMethod("ResolveQueuedDeaths", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo PlayerContextField =
+            typeof(ProjectPVP.Gameplay.PlayerController).GetField("_context", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo ClearActiveProjectilesForTestsMethod =
+            typeof(ProjectPVP.Gameplay.ProjectileController).GetMethod("ClearActiveProjectilesForTests", BindingFlags.Static | BindingFlags.NonPublic);
+        private static readonly MethodInfo RegisterActiveProjectileMethod =
+            typeof(ProjectPVP.Gameplay.ProjectileController).GetMethod("RegisterActiveProjectile", BindingFlags.Static | BindingFlags.NonPublic);
 
         [Test]
         public void GetSpawnPoint_UsesCurrentRespawnSeedPair()
@@ -76,6 +103,9 @@ namespace ProjectPVP.Tests.Editor
 
                 Assert.That(player.IsDead, Is.True);
                 Assert.That(player.transform.position.y, Is.EqualTo(-61f).Within(0.001f));
+                Assert.That(player.LastFatalHitSource, Is.Null);
+                Assert.That(player.LastFatalHitCause, Is.EqualTo("Ring Out"));
+                Assert.That(player.LastFatalHitSummary, Is.EqualTo("Environment via Ring Out"));
             }
             finally
             {
@@ -234,6 +264,46 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void ApplyRuntimeBotMenuAssignments_DuplicateRuntimeSlotsUseLastAssignmentForSlot()
+        {
+            Assert.That(ApplyRuntimeBotMenuAssignmentsMethod, Is.Not.Null);
+
+            GameObject gameObject = new GameObject("MatchControllerRuntimeBotDuplicateTests");
+            MatchController matchController = gameObject.AddComponent<MatchController>();
+
+            try
+            {
+                CombatantSlotConfig slot = matchController.GetSlot(CombatantSlotId.SlotTwo);
+                Assert.That(slot, Is.Not.Null);
+
+                object payload = CreateRuntimeAssignmentsPayload(
+                    CombatantSlotId.SlotTwo,
+                    enabled: true,
+                    botId: "bot-one",
+                    displayName: "Bot One");
+                AppendRuntimeAssignment(
+                    payload,
+                    CombatantSlotId.SlotTwo,
+                    enabled: true,
+                    botId: "bot-two",
+                    displayName: "Bot Two");
+
+                object[] arguments = { payload, false };
+                bool processed = (bool)ApplyRuntimeBotMenuAssignmentsMethod.Invoke(matchController, arguments);
+
+                Assert.That(processed, Is.True);
+                Assert.That((bool)arguments[1], Is.True);
+                Assert.That(slot.playerProfile, Is.Not.Null);
+                Assert.That(slot.playerProfile.botId, Is.EqualTo("bot-two"));
+                Assert.That(slot.playerProfile.ResolveBotDisplayName(CombatantSlotId.SlotTwo), Is.EqualTo("Bot Two"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
         public void SlotTwoBotFallback_RespectsAutoEnableAndForceBrainFlags()
         {
             Assert.That(ShouldApplySlotTwoBotFallbackMethod, Is.Not.Null);
@@ -288,6 +358,593 @@ namespace ProjectPVP.Tests.Editor
             finally
             {
                 Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void ResolveDeathSummary_UsesFatalHitSourceAndCause()
+        {
+            Assert.That(ResolveDeathSummaryMethod, Is.Not.Null);
+            Assert.That(ResolveDeathPositionMethod, Is.Not.Null);
+            Assert.That(PlayerAwakeMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerResolveDeathSummaryTests");
+            GameObject sourceObject = new GameObject("ResolveDeathSourcePlayer");
+            GameObject deadObject = new GameObject("ResolveDeathTargetPlayer");
+
+            try
+            {
+                MatchController matchController = matchObject.AddComponent<MatchController>();
+                ProjectPVP.Gameplay.PlayerController source = CreatePlayer(sourceObject, 1);
+                ProjectPVP.Gameplay.PlayerController dead = CreatePlayer(deadObject, 2);
+
+                PlayerAwakeMethod.Invoke(source, null);
+                PlayerAwakeMethod.Invoke(dead, null);
+                dead.transform.position = new Vector3(120f, -34f, 0f);
+                dead.body.position = new Vector2(120f, -34f);
+
+                Assert.That(dead.TryKill(source, "Projectile"), Is.True);
+
+                string summary = (string)ResolveDeathSummaryMethod.Invoke(matchController, new object[] { dead });
+                Vector2 deathPosition = (Vector2)ResolveDeathPositionMethod.Invoke(matchController, new object[] { dead });
+
+                Assert.That(summary, Is.EqualTo(source.BotDisplayName + " via Projectile"));
+                Assert.That(deathPosition, Is.EqualTo(new Vector2(120f, -34f)));
+            }
+            finally
+            {
+                Object.DestroyImmediate(matchObject);
+                Object.DestroyImmediate(sourceObject);
+                Object.DestroyImmediate(deadObject);
+            }
+        }
+
+        [Test]
+        public void RespawnFreeze_ClearsLastRoundDeathSummaryWhenNoChampionAnnouncementIsActive()
+        {
+            Assert.That(BeginRespawnFreezeMethod, Is.Not.Null);
+            Assert.That(TickFreezeAndAnnouncementsMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerRespawnFreezeClearTests");
+            MatchController matchController = matchObject.AddComponent<MatchController>();
+
+            try
+            {
+                SetPrivateField(matchController, "_lastRoundDeathSummary", "Slot 1 via Projectile");
+                SetPrivateField(matchController, "_lastRoundDeathPosition", new Vector2(12f, 34f));
+
+                BeginRespawnFreezeMethod.Invoke(matchController, new object[] { 0.05f });
+                TickFreezeAndAnnouncementsMethod.Invoke(matchController, new object[] { 0.1f });
+
+                Assert.That(matchController.LastRoundDeathSummary, Is.Empty);
+                Assert.That(matchController.LastRoundDeathPosition, Is.EqualTo(Vector2.zero));
+            }
+            finally
+            {
+                Object.DestroyImmediate(matchObject);
+            }
+        }
+
+        [Test]
+        public void FinalKillHud_RemainsVisibleDuringRespawnFreeze()
+        {
+            Assert.That(BeginRespawnFreezeMethod, Is.Not.Null);
+            Assert.That(ShouldShowFinalKillInfoMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerFinalKillHudTests");
+            GameObject overlayObject = new GameObject("MatchControllerFinalKillHudOverlay");
+            MatchController matchController = matchObject.AddComponent<MatchController>();
+            ProjectPvpMatchRoundHudOverlay overlay = overlayObject.AddComponent<ProjectPvpMatchRoundHudOverlay>();
+
+            try
+            {
+                overlay.SetMatchController(matchController);
+                SetPrivateField(matchController, "_lastRoundDeathSummary", "Slot 1 via Projectile");
+                SetPrivateField(matchController, "_lastRoundDeathPosition", new Vector2(12f, 34f));
+
+                BeginRespawnFreezeMethod.Invoke(matchController, new object[] { 0.5f });
+
+                bool shouldShowFinalKillInfo = (bool)ShouldShowFinalKillInfoMethod.Invoke(overlay, null);
+
+                Assert.That(matchController.IsRespawnFreezeActive, Is.True);
+                Assert.That(shouldShowFinalKillInfo, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(overlayObject);
+                Object.DestroyImmediate(matchObject);
+            }
+        }
+
+        [Test]
+        public void ChampionAnnouncement_KeepsLastRoundDeathSummaryVisibleUntilAnnouncementEnds()
+        {
+            Assert.That(BeginRespawnFreezeMethod, Is.Not.Null);
+            Assert.That(ShowChampionAnnouncementMethod, Is.Not.Null);
+            Assert.That(TickFreezeAndAnnouncementsMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerChampionAnnouncementTests");
+            MatchController matchController = matchObject.AddComponent<MatchController>();
+
+            try
+            {
+                SetPrivateField(matchController, "_lastRoundDeathSummary", "Slot 1 via Projectile");
+                SetPrivateField(matchController, "_lastRoundDeathPosition", new Vector2(12f, 34f));
+
+                BeginRespawnFreezeMethod.Invoke(matchController, new object[] { 0.05f });
+                ShowChampionAnnouncementMethod.Invoke(matchController, new object[] { CombatantSlotId.SlotTwo, 0.2f });
+
+                TickFreezeAndAnnouncementsMethod.Invoke(matchController, new object[] { 0.06f });
+
+                Assert.That(matchController.ChampionAnnouncementSlot, Is.EqualTo(CombatantSlotId.SlotTwo));
+                Assert.That(matchController.LastRoundDeathSummary, Is.EqualTo("Slot 1 via Projectile"));
+                Assert.That(matchController.LastRoundDeathPosition, Is.EqualTo(new Vector2(12f, 34f)));
+
+                TickFreezeAndAnnouncementsMethod.Invoke(matchController, new object[] { 0.2f });
+
+                Assert.That(matchController.ChampionAnnouncementSlot, Is.EqualTo(CombatantSlotId.None));
+                Assert.That(matchController.LastRoundDeathSummary, Is.Empty);
+                Assert.That(matchController.LastRoundDeathPosition, Is.EqualTo(Vector2.zero));
+            }
+            finally
+            {
+                Object.DestroyImmediate(matchObject);
+            }
+        }
+
+        [Test]
+        public void OnDisable_ClearsTransientRoundStateAndPendingReset()
+        {
+            Assert.That(PlayerAwakeMethod, Is.Not.Null);
+            Assert.That(MatchAwakeMethod, Is.Not.Null);
+            Assert.That(HandlePlayerDeathMethod, Is.Not.Null);
+            Assert.That(ResolveQueuedDeathsMethod, Is.Not.Null);
+            Assert.That(BeginRespawnFreezeMethod, Is.Not.Null);
+            Assert.That(ShowChampionAnnouncementMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerDisableResetStateTests");
+            GameObject winnerObject = new GameObject("MatchControllerDisableResetWinner");
+            GameObject loserObject = new GameObject("MatchControllerDisableResetLoser");
+
+            try
+            {
+                MatchController matchController = matchObject.AddComponent<MatchController>();
+                ProjectPVP.Gameplay.PlayerController winner = CreatePlayer(winnerObject, 1);
+                ProjectPVP.Gameplay.PlayerController loser = CreatePlayer(loserObject, 2);
+
+                PlayerAwakeMethod.Invoke(winner, null);
+                PlayerAwakeMethod.Invoke(loser, null);
+
+                SetPrivateField(matchController, "legacySlotOneController", winner);
+                SetPrivateField(matchController, "legacySlotTwoController", loser);
+                MatchAwakeMethod.Invoke(matchController, null);
+
+                Assert.That(loser.TryKill(winner, "Projectile"), Is.True);
+                HandlePlayerDeathMethod.Invoke(matchController, new object[] { loser });
+                BeginRespawnFreezeMethod.Invoke(matchController, new object[] { 0.25f });
+                ShowChampionAnnouncementMethod.Invoke(matchController, new object[] { CombatantSlotId.SlotOne, 0.5f });
+
+                Assert.That(matchController.IsRoundResetPending, Is.True);
+                Assert.That(matchController.IsRespawnFreezeActive, Is.True);
+                Assert.That(matchController.ChampionAnnouncementSlot, Is.EqualTo(CombatantSlotId.SlotOne));
+                Assert.That(matchController.LastRoundDeathSummary, Is.Not.Empty);
+
+                matchObject.SetActive(false);
+
+                Assert.That(matchController.IsRoundResetPending, Is.False);
+                Assert.That(matchController.IsRespawnFreezeActive, Is.False);
+                Assert.That(matchController.ChampionAnnouncementSlot, Is.EqualTo(CombatantSlotId.None));
+                Assert.That(matchController.LastRoundDeathSummary, Is.Empty);
+                Assert.That(matchController.LastRoundDeathPosition, Is.EqualTo(Vector2.zero));
+
+                matchObject.SetActive(true);
+                HandlePlayerDeathMethod.Invoke(matchController, new object[] { loser });
+
+                Assert.That(matchController.IsRoundResetPending, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(loserObject);
+                Object.DestroyImmediate(winnerObject);
+                Object.DestroyImmediate(matchObject);
+            }
+        }
+
+        [Test]
+        public void ResolveQueuedDeaths_HandlesSimultaneousDeathsAsRoundResetWithoutAwardingWins()
+        {
+            Assert.That(PlayerAwakeMethod, Is.Not.Null);
+            Assert.That(MatchAwakeMethod, Is.Not.Null);
+            Assert.That(HandlePlayerDeathMethod, Is.Not.Null);
+            Assert.That(ResolveQueuedDeathsMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerSimultaneousDeathTests");
+            GameObject playerOneObject = new GameObject("MatchControllerSimultaneousDeathPlayerOne");
+            GameObject playerTwoObject = new GameObject("MatchControllerSimultaneousDeathPlayerTwo");
+
+            try
+            {
+                MatchController matchController = matchObject.AddComponent<MatchController>();
+                ProjectPVP.Gameplay.PlayerController playerOne = CreatePlayer(playerOneObject, 1);
+                ProjectPVP.Gameplay.PlayerController playerTwo = CreatePlayer(playerTwoObject, 2);
+
+                PlayerAwakeMethod.Invoke(playerOne, null);
+                PlayerAwakeMethod.Invoke(playerTwo, null);
+
+                SetPrivateField(matchController, "legacySlotOneController", playerOne);
+                SetPrivateField(matchController, "legacySlotTwoController", playerTwo);
+                MatchAwakeMethod.Invoke(matchController, null);
+
+                MarkPlayerDead(playerOne, playerTwo, "Projectile");
+                MarkPlayerDead(playerTwo, playerOne, "Projectile");
+
+                HandlePlayerDeathMethod.Invoke(matchController, new object[] { playerOne });
+                HandlePlayerDeathMethod.Invoke(matchController, new object[] { playerTwo });
+                ResolveQueuedDeathsMethod.Invoke(matchController, null);
+
+                Assert.That(matchController.PlayerOneWins, Is.Zero);
+                Assert.That(matchController.PlayerTwoWins, Is.Zero);
+                Assert.That(matchController.PendingRoundWinnerSlot, Is.EqualTo(CombatantSlotId.None));
+                Assert.That(matchController.IsRoundResetPending, Is.True);
+                Assert.That(matchController.LastRoundDeathSummary, Is.Empty);
+            }
+            finally
+            {
+                Object.DestroyImmediate(playerOneObject);
+                Object.DestroyImmediate(playerTwoObject);
+                Object.DestroyImmediate(matchObject);
+            }
+        }
+
+        [Test]
+        public void HandlePlayerDeath_DropsHeldArrowsAsCollectibleProjectiles()
+        {
+            Assert.That(PlayerAwakeMethod, Is.Not.Null);
+            Assert.That(MatchAwakeMethod, Is.Not.Null);
+            Assert.That(HandlePlayerDeathMethod, Is.Not.Null);
+            Assert.That(ClearActiveProjectilesForTestsMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerCorpseDropTests");
+            GameObject deadObject = new GameObject("CorpseDropDeadPlayer");
+            GameObject liveObject = new GameObject("CorpseDropLivePlayer");
+            GameObject projectilePrefabObject = new GameObject("CorpseDropProjectilePrefab");
+            var droppedProjectiles = new List<ProjectPVP.Gameplay.ProjectileController>();
+
+            try
+            {
+                MatchController matchController = matchObject.AddComponent<MatchController>();
+                ProjectPVP.Gameplay.PlayerController deadPlayer = CreatePlayer(deadObject, 1);
+                ProjectPVP.Gameplay.PlayerController livePlayer = CreatePlayer(liveObject, 2);
+                ProjectPVP.Gameplay.ProjectileController projectilePrefab = projectilePrefabObject.AddComponent<ProjectPVP.Gameplay.ProjectileController>();
+
+                deadPlayer.projectilePrefab = projectilePrefab;
+                deadPlayer.transform.position = new Vector3(24f, 18f, 0f);
+                deadPlayer.body.position = new Vector2(24f, 18f);
+                livePlayer.transform.position = new Vector3(96f, 18f, 0f);
+                livePlayer.body.position = new Vector2(96f, 18f);
+
+                PlayerAwakeMethod.Invoke(deadPlayer, null);
+                PlayerAwakeMethod.Invoke(livePlayer, null);
+
+                SetPrivateField(matchController, "legacySlotOneController", deadPlayer);
+                SetPrivateField(matchController, "legacySlotTwoController", livePlayer);
+                MatchAwakeMethod.Invoke(matchController, null);
+                matchController.corpsesDropArrowsEnabled = true;
+                ClearActiveProjectilesForTestsMethod.Invoke(null, null);
+                deadPlayer.SetRoundArrowCount(2);
+
+                Assert.That(deadPlayer.TryKill(livePlayer, "Projectile"), Is.True);
+
+                HandlePlayerDeathMethod.Invoke(matchController, new object[] { deadPlayer });
+                ProjectPVP.Gameplay.ProjectileController.CopyActiveProjectiles(droppedProjectiles);
+
+                Assert.That(droppedProjectiles, Has.Count.EqualTo(2));
+                foreach (ProjectPVP.Gameplay.ProjectileController droppedProjectile in droppedProjectiles)
+                {
+                    Assert.That(droppedProjectile.SourceObject, Is.Null);
+                    Assert.That(droppedProjectile.IsStuck, Is.True);
+                    Assert.That(droppedProjectile.IsCollectible, Is.True);
+                    Assert.That(droppedProjectile.IsDisarmed, Is.False);
+                    Assert.That(droppedProjectile.CurrentVelocity, Is.EqualTo(Vector2.zero));
+                }
+            }
+            finally
+            {
+                foreach (ProjectPVP.Gameplay.ProjectileController droppedProjectile in droppedProjectiles)
+                {
+                    if (droppedProjectile != null)
+                    {
+                        Object.DestroyImmediate(droppedProjectile.gameObject);
+                    }
+                }
+
+                ClearActiveProjectilesForTestsMethod.Invoke(null, null);
+                Object.DestroyImmediate(projectilePrefabObject);
+                Object.DestroyImmediate(liveObject);
+                Object.DestroyImmediate(deadObject);
+                Object.DestroyImmediate(matchObject);
+            }
+        }
+
+        [Test]
+        public void HandlePlayerDeath_DoesNotDuplicateCorpseDropsForRepeatedDeathEvent()
+        {
+            Assert.That(PlayerAwakeMethod, Is.Not.Null);
+            Assert.That(MatchAwakeMethod, Is.Not.Null);
+            Assert.That(HandlePlayerDeathMethod, Is.Not.Null);
+            Assert.That(ClearActiveProjectilesForTestsMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerCorpseDropDuplicateTests");
+            GameObject deadObject = new GameObject("CorpseDropDuplicateDeadPlayer");
+            GameObject liveObject = new GameObject("CorpseDropDuplicateLivePlayer");
+            GameObject projectilePrefabObject = new GameObject("CorpseDropDuplicateProjectilePrefab");
+            var droppedProjectiles = new List<ProjectPVP.Gameplay.ProjectileController>();
+
+            try
+            {
+                MatchController matchController = matchObject.AddComponent<MatchController>();
+                ProjectPVP.Gameplay.PlayerController deadPlayer = CreatePlayer(deadObject, 1);
+                ProjectPVP.Gameplay.PlayerController livePlayer = CreatePlayer(liveObject, 2);
+                ProjectPVP.Gameplay.ProjectileController projectilePrefab = projectilePrefabObject.AddComponent<ProjectPVP.Gameplay.ProjectileController>();
+
+                deadPlayer.projectilePrefab = projectilePrefab;
+                PlayerAwakeMethod.Invoke(deadPlayer, null);
+                PlayerAwakeMethod.Invoke(livePlayer, null);
+
+                SetPrivateField(matchController, "legacySlotOneController", deadPlayer);
+                SetPrivateField(matchController, "legacySlotTwoController", livePlayer);
+                MatchAwakeMethod.Invoke(matchController, null);
+                matchController.corpsesDropArrowsEnabled = true;
+                ClearActiveProjectilesForTestsMethod.Invoke(null, null);
+                deadPlayer.SetRoundArrowCount(2);
+
+                Assert.That(deadPlayer.TryKill(livePlayer, "Projectile"), Is.True);
+
+                HandlePlayerDeathMethod.Invoke(matchController, new object[] { deadPlayer });
+                HandlePlayerDeathMethod.Invoke(matchController, new object[] { deadPlayer });
+                ProjectPVP.Gameplay.ProjectileController.CopyActiveProjectiles(droppedProjectiles);
+
+                Assert.That(droppedProjectiles, Has.Count.EqualTo(2));
+            }
+            finally
+            {
+                foreach (ProjectPVP.Gameplay.ProjectileController droppedProjectile in droppedProjectiles)
+                {
+                    if (droppedProjectile != null)
+                    {
+                        Object.DestroyImmediate(droppedProjectile.gameObject);
+                    }
+                }
+
+                ClearActiveProjectilesForTestsMethod.Invoke(null, null);
+                Object.DestroyImmediate(projectilePrefabObject);
+                Object.DestroyImmediate(liveObject);
+                Object.DestroyImmediate(deadObject);
+                Object.DestroyImmediate(matchObject);
+            }
+        }
+
+        [Test]
+        public void RespawnPlayers_RemovesActiveProjectilesFromPreviousRound()
+        {
+            Assert.That(PlayerAwakeMethod, Is.Not.Null);
+            Assert.That(MatchAwakeMethod, Is.Not.Null);
+            Assert.That(RespawnPlayersMethod, Is.Not.Null);
+            Assert.That(ClearActiveProjectilesForTestsMethod, Is.Not.Null);
+            Assert.That(RegisterActiveProjectileMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerRoundProjectileCleanupTests");
+            GameObject slotOneObject = new GameObject("RoundProjectileCleanupSlotOne");
+            GameObject slotTwoObject = new GameObject("RoundProjectileCleanupSlotTwo");
+            GameObject projectileObject = new GameObject("RoundProjectileCleanupProjectile");
+            var activeProjectiles = new List<ProjectPVP.Gameplay.ProjectileController>();
+
+            try
+            {
+                MatchController matchController = matchObject.AddComponent<MatchController>();
+                ProjectPVP.Gameplay.PlayerController slotOne = CreatePlayer(slotOneObject, 1);
+                ProjectPVP.Gameplay.PlayerController slotTwo = CreatePlayer(slotTwoObject, 2);
+                ProjectPVP.Gameplay.ProjectileController projectile = projectileObject.AddComponent<ProjectPVP.Gameplay.ProjectileController>();
+
+                PlayerAwakeMethod.Invoke(slotOne, null);
+                PlayerAwakeMethod.Invoke(slotTwo, null);
+
+                SetPrivateField(matchController, "legacySlotOneController", slotOne);
+                SetPrivateField(matchController, "legacySlotTwoController", slotTwo);
+                MatchAwakeMethod.Invoke(matchController, null);
+                ClearActiveProjectilesForTestsMethod.Invoke(null, null);
+
+                projectile.Launch(
+                    slotOneObject,
+                    Vector2.zero,
+                    Vector2.right,
+                    null,
+                    false,
+                    0f,
+                    0f,
+                    0f,
+                    0f,
+                    0f,
+                    0f,
+                    Vector2.zero,
+                    0f,
+                    null);
+                projectile.Stick(true);
+                RegisterActiveProjectileMethod.Invoke(null, new object[] { projectile });
+
+                ProjectPVP.Gameplay.ProjectileController.CopyActiveProjectiles(activeProjectiles);
+                Assert.That(activeProjectiles, Has.Count.EqualTo(1));
+
+                RespawnPlayersMethod.Invoke(matchController, new object[] { true });
+
+                ProjectPVP.Gameplay.ProjectileController.CopyActiveProjectiles(activeProjectiles);
+                Assert.That(activeProjectiles, Is.Empty);
+            }
+            finally
+            {
+                ClearActiveProjectilesForTestsMethod.Invoke(null, null);
+                Object.DestroyImmediate(projectileObject);
+                Object.DestroyImmediate(slotTwoObject);
+                Object.DestroyImmediate(slotOneObject);
+                Object.DestroyImmediate(matchObject);
+            }
+        }
+
+        [Test]
+        public void RespawnPlayers_AutoBalanceLoadoutGivesTrailingPlayerShieldAndLeaderFewerArrows()
+        {
+            Assert.That(PlayerAwakeMethod, Is.Not.Null);
+            Assert.That(RespawnPlayersMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerAutoBalanceShieldGrantTests");
+            GameObject slotOneObject = new GameObject("MatchControllerAutoBalanceShieldGrantSlotOne");
+            GameObject slotTwoObject = new GameObject("MatchControllerAutoBalanceShieldGrantSlotTwo");
+
+            try
+            {
+                MatchController matchController = matchObject.AddComponent<MatchController>();
+                ProjectPVP.Gameplay.PlayerController slotOne = CreatePlayer(slotOneObject, 1);
+                ProjectPVP.Gameplay.PlayerController slotTwo = CreatePlayer(slotTwoObject, 2);
+
+                PlayerAwakeMethod.Invoke(slotOne, null);
+                PlayerAwakeMethod.Invoke(slotTwo, null);
+
+                SetPrivateField(matchController, "legacySlotOneController", slotOne);
+                SetPrivateField(matchController, "legacySlotTwoController", slotTwo);
+                SetPrivateField(matchController, "slotWins", new int[] { 4, 1 });
+                matchController.autoBalanceLoadoutEnabled = true;
+
+                RespawnPlayersMethod.Invoke(matchController, new object[] { false });
+
+                Assert.That(slotOne.CurrentArrows, Is.EqualTo(2));
+                Assert.That(slotOne.HasShield, Is.False);
+                Assert.That(slotTwo.CurrentArrows, Is.EqualTo(3));
+                Assert.That(slotTwo.HasShield, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(matchObject);
+                Object.DestroyImmediate(slotOneObject);
+                Object.DestroyImmediate(slotTwoObject);
+            }
+        }
+
+        [Test]
+        public void RespawnPlayers_AutoBalanceLoadoutDoesNotPenalizeTiedLeaders()
+        {
+            Assert.That(PlayerAwakeMethod, Is.Not.Null);
+            Assert.That(RespawnPlayersMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerAutoBalanceTieTests");
+            GameObject slotOneObject = new GameObject("MatchControllerAutoBalanceTieSlotOne");
+            GameObject slotTwoObject = new GameObject("MatchControllerAutoBalanceTieSlotTwo");
+
+            try
+            {
+                MatchController matchController = matchObject.AddComponent<MatchController>();
+                ProjectPVP.Gameplay.PlayerController slotOne = CreatePlayer(slotOneObject, 1);
+                ProjectPVP.Gameplay.PlayerController slotTwo = CreatePlayer(slotTwoObject, 2);
+
+                PlayerAwakeMethod.Invoke(slotOne, null);
+                PlayerAwakeMethod.Invoke(slotTwo, null);
+
+                SetPrivateField(matchController, "legacySlotOneController", slotOne);
+                SetPrivateField(matchController, "legacySlotTwoController", slotTwo);
+                SetPrivateField(matchController, "slotWins", new int[] { 2, 2 });
+                matchController.autoBalanceLoadoutEnabled = true;
+
+                RespawnPlayersMethod.Invoke(matchController, new object[] { false });
+
+                Assert.That(slotOne.CurrentArrows, Is.EqualTo(3));
+                Assert.That(slotTwo.CurrentArrows, Is.EqualTo(3));
+                Assert.That(slotOne.HasShield, Is.False);
+                Assert.That(slotTwo.HasShield, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(matchObject);
+                Object.DestroyImmediate(slotOneObject);
+                Object.DestroyImmediate(slotTwoObject);
+            }
+        }
+
+        [Test]
+        public void RespawnPlayers_AutoBalanceLoadoutIgnoresUnassignedScoredSlots()
+        {
+            Assert.That(PlayerAwakeMethod, Is.Not.Null);
+            Assert.That(RespawnPlayersMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerAutoBalanceUnassignedSlotTests");
+            GameObject slotOneObject = new GameObject("MatchControllerAutoBalanceUnassignedSlotOne");
+
+            try
+            {
+                MatchController matchController = matchObject.AddComponent<MatchController>();
+                ProjectPVP.Gameplay.PlayerController slotOne = CreatePlayer(slotOneObject, 1);
+
+                PlayerAwakeMethod.Invoke(slotOne, null);
+
+                SetPrivateField(matchController, "legacySlotOneController", slotOne);
+                SetPrivateField<ProjectPVP.Gameplay.PlayerController>(matchController, "legacySlotTwoController", null);
+                SetPrivateField(matchController, "slotWins", new int[] { 0, 4 });
+                matchController.autoBalanceLoadoutEnabled = true;
+
+                RespawnPlayersMethod.Invoke(matchController, new object[] { false });
+
+                Assert.That(slotOne.CurrentArrows, Is.EqualTo(3));
+                Assert.That(slotOne.HasShield, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(matchObject);
+                Object.DestroyImmediate(slotOneObject);
+            }
+        }
+
+        [Test]
+        public void RespawnPlayers_AutoBalanceLoadoutClearsWhenGapShrinksBelowThreshold()
+        {
+            Assert.That(PlayerAwakeMethod, Is.Not.Null);
+            Assert.That(RespawnPlayersMethod, Is.Not.Null);
+
+            GameObject matchObject = new GameObject("MatchControllerAutoBalanceShieldClearTests");
+            GameObject slotOneObject = new GameObject("MatchControllerAutoBalanceShieldClearSlotOne");
+            GameObject slotTwoObject = new GameObject("MatchControllerAutoBalanceShieldClearSlotTwo");
+
+            try
+            {
+                MatchController matchController = matchObject.AddComponent<MatchController>();
+                ProjectPVP.Gameplay.PlayerController slotOne = CreatePlayer(slotOneObject, 1);
+                ProjectPVP.Gameplay.PlayerController slotTwo = CreatePlayer(slotTwoObject, 2);
+
+                PlayerAwakeMethod.Invoke(slotOne, null);
+                PlayerAwakeMethod.Invoke(slotTwo, null);
+
+                SetPrivateField(matchController, "legacySlotOneController", slotOne);
+                SetPrivateField(matchController, "legacySlotTwoController", slotTwo);
+
+                SetPrivateField(matchController, "slotWins", new int[] { 6, 3 });
+                matchController.autoBalanceLoadoutEnabled = true;
+                RespawnPlayersMethod.Invoke(matchController, new object[] { false });
+
+                Assert.That(slotOne.CurrentArrows, Is.EqualTo(2));
+                Assert.That(slotOne.HasShield, Is.False);
+                Assert.That(slotTwo.CurrentArrows, Is.EqualTo(3));
+                Assert.That(slotTwo.HasShield, Is.True);
+
+                SetPrivateField(matchController, "slotWins", new int[] { 6, 4 });
+                RespawnPlayersMethod.Invoke(matchController, new object[] { false });
+
+                Assert.That(slotOne.CurrentArrows, Is.EqualTo(2));
+                Assert.That(slotOne.HasShield, Is.False);
+                Assert.That(slotTwo.CurrentArrows, Is.EqualTo(3));
+                Assert.That(slotTwo.HasShield, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(matchObject);
+                Object.DestroyImmediate(slotOneObject);
+                Object.DestroyImmediate(slotTwoObject);
             }
         }
 
@@ -383,6 +1040,32 @@ namespace ProjectPVP.Tests.Editor
             return payload;
         }
 
+        private static void AppendRuntimeAssignment(
+            object payload,
+            CombatantSlotId slotId,
+            bool enabled,
+            string botId = "",
+            string displayName = "")
+        {
+            Assembly assembly = typeof(MatchController).Assembly;
+            Type assignmentType = assembly.GetType("ProjectPVP.Match.RuntimeBotMenuSlotAssignment", throwOnError: false);
+            Assert.That(assignmentType, Is.Not.Null);
+
+            object assignment = Activator.CreateInstance(assignmentType);
+            SetPublicField(assignmentType, assignment, "slotId", slotId.ToInt());
+            SetPublicField(assignmentType, assignment, "enabled", enabled);
+            SetPublicField(assignmentType, assignment, "botId", botId);
+            SetPublicField(assignmentType, assignment, "displayName", displayName);
+
+            FieldInfo slotsField = payload.GetType().GetField("slots", BindingFlags.Instance | BindingFlags.Public);
+            Assert.That(slotsField, Is.Not.Null);
+            object slots = slotsField.GetValue(payload);
+            Assert.That(slots, Is.Not.Null);
+            MethodInfo addMethod = slots.GetType().GetMethod("Add");
+            Assert.That(addMethod, Is.Not.Null);
+            addMethod.Invoke(slots, new[] { assignment });
+        }
+
         private static void SetPublicField(Type declaringType, object instance, string fieldName, object value)
         {
             FieldInfo field = declaringType.GetField(fieldName, BindingFlags.Instance | BindingFlags.Public);
@@ -390,7 +1073,7 @@ namespace ProjectPVP.Tests.Editor
             field.SetValue(instance, value);
         }
 
-        private static ProjectPVP.Gameplay.PlayerController CreatePlayer(GameObject root)
+        private static ProjectPVP.Gameplay.PlayerController CreatePlayer(GameObject root, int slotId = 1)
         {
             Rigidbody2D body = root.AddComponent<Rigidbody2D>();
             body.gravityScale = 0f;
@@ -398,7 +1081,31 @@ namespace ProjectPVP.Tests.Editor
             ProjectPVP.Gameplay.PlayerController controller = root.AddComponent<ProjectPVP.Gameplay.PlayerController>();
             controller.body = body;
             controller.bodyCollider = collider;
+            controller.slotId = slotId;
             return controller;
+        }
+
+        private static void MarkPlayerDead(ProjectPVP.Gameplay.PlayerController player, ProjectPVP.Gameplay.PlayerController source, string cause)
+        {
+            Assert.That(PlayerContextField, Is.Not.Null);
+            object context = PlayerContextField.GetValue(player);
+            Assert.That(context, Is.Not.Null);
+
+            Type contextType = context.GetType();
+            FieldInfo isDeadField = contextType.GetField("isDead", BindingFlags.Instance | BindingFlags.Public);
+            FieldInfo fatalSourceField = contextType.GetField("lastFatalHitSource", BindingFlags.Instance | BindingFlags.Public);
+            FieldInfo fatalCauseField = contextType.GetField("lastFatalHitCause", BindingFlags.Instance | BindingFlags.Public);
+            FieldInfo fatalPositionField = contextType.GetField("lastFatalHitPosition", BindingFlags.Instance | BindingFlags.Public);
+
+            Assert.That(isDeadField, Is.Not.Null);
+            Assert.That(fatalSourceField, Is.Not.Null);
+            Assert.That(fatalCauseField, Is.Not.Null);
+            Assert.That(fatalPositionField, Is.Not.Null);
+
+            isDeadField.SetValue(context, true);
+            fatalSourceField.SetValue(context, source);
+            fatalCauseField.SetValue(context, cause);
+            fatalPositionField.SetValue(context, player.RootPosition);
         }
     }
 }

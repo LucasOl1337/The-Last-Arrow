@@ -29,5 +29,11 @@ namespace ProjectPVP.Input
         {
             slotId = Mathf.Max(1, configuredSlotId.ToInt());
         }
+
+        public void ResetInputState()
+        {
+            _currentFrame = default;
+            _frameIndex = 0;
+        }
     }
 }

@@ -324,20 +324,30 @@ class BotManager:
     @staticmethod
     def _ensure_assignments(roster: dict[str, Any]) -> None:
         assignments = roster.setdefault("assignments", [])
-        seen_slots: set[int] = set()
+        normalized_assignments: list[dict[str, Any]] = []
+        by_slot: dict[int, dict[str, Any]] = {}
         for assignment in assignments:
+            if not isinstance(assignment, dict):
+                continue
             slot_id = safe_int(assignment.get("slotId"), 0)
             if slot_id <= 0:
                 continue
-            assignment["slotId"] = slot_id
-            assignment["enabled"] = bool(assignment.get("enabled", True))
-            assignment["botId"] = compact_line(str(assignment.get("botId", "") or ""))
-            seen_slots.add(slot_id)
+            normalized_assignment = deepcopy(assignment)
+            normalized_assignment["slotId"] = slot_id
+            normalized_assignment["enabled"] = bool(normalized_assignment.get("enabled", True))
+            normalized_assignment["botId"] = compact_line(str(normalized_assignment.get("botId", "") or ""))
+            by_slot[slot_id] = normalized_assignment
 
         defaults = default_roster()["assignments"]
         for assignment in defaults:
-            if assignment["slotId"] not in seen_slots:
-                assignments.append(deepcopy(assignment))
+            slot_id = int(assignment["slotId"])
+            if slot_id not in by_slot:
+                by_slot[slot_id] = deepcopy(assignment)
+
+        for slot_id in sorted(by_slot):
+            normalized_assignments.append(by_slot[slot_id])
+
+        roster["assignments"] = normalized_assignments
 
     def _save_roster(self, roster: dict[str, Any] | None = None) -> None:
         payload = deepcopy(roster or self.roster)
@@ -431,7 +441,7 @@ class BotManager:
 
     def get_assignment(self, slot_id: int) -> dict[str, Any]:
         normalized_slot = safe_int(slot_id, 0)
-        for assignment in self.roster.get("assignments", []):
+        for assignment in reversed(self.roster.get("assignments", [])):
             if safe_int(assignment.get("slotId"), 0) == normalized_slot:
                 return deepcopy(assignment)
         fallback_bot_id = f"bot-slot-{normalized_slot}" if normalized_slot > 0 else "bot-auto"

@@ -43,42 +43,37 @@ Input → Action (Melee/Shoot/Dash/Ultimate)
 
 ### Areas for Enhancement
 
-#### 1. **Hitstun System** (HIGH IMPACT)
+#### 1. **Death Feedback** (HIGH IMPACT)
 - Currently: Hit registers → instant death
-- Proposed: Hit registers → brief stun/animation lock
+- Proposed: Hit registers → death flash / sound / camera cue
 - Benefits:
-  - Adds reaction time for counterplay
-  - Makes hitting feel more satisfying
-  - Enables combo windows
-  - Reduces "instant death" feel
+  - Makes kills readable at speed
+  - Reinforces the Towerfall-style hitkill loop
+  - Gives players a clean read on who died and why
 
 **Implementation Path**:
 ```
-PlayerController:
-  - Add `_hitStunTimeLeft` variable
-  - Add `IsHitStunned` property
-  - Add `ApplyHitstun(float duration)` method
-  - In movement/action handlers, check `IsHitStunned` before accepting input
-  - On melee/projectile hit: Call ApplyHitstun(0.1f) instead of Kill()
+Presentation layer:
+  - Add a death flash / tint on the victim
+  - Trigger a distinct hit-kill SFX
+  - Optional brief camera impulse on lethal hits
+  - Keep respawn/death transition legible
 ```
 
-#### 2. **Knockback System** (HIGH IMPACT)
-- Currently: No physics response to hits
-- Proposed: Apply impulse velocity on impact
+#### 2. **Hitkill Clarity** (HIGH IMPACT)
+- Currently: Combat is instant-kill on melee, projectile, ultimate, and stomp
+- Proposed: Keep the lethality, but make the kill event unmistakable
 - Benefits:
-  - Visual feedback of impact force
-  - Creates spacing/zoning gameplay
-  - Pushes toward walls/hazards (environmental gameplay)
-  - Adds weight to attacks
+  - Preserves Towerfall rules
+  - Prevents deaths from reading as generic movement bugs
+  - Makes projectile and melee exchanges easier to follow
 
 **Implementation Path**:
 ```
-PlayerController:
-  - Add `_knockbackVelocity` Vector2
-  - Add `_knockbackTimeLeft` for duration
-  - Add `ApplyKnockback(Vector2 direction, float force, float duration)` method
-  - In movement: Add knockback velocity to total velocity
-  - In CharacterDefinition: Add knockback params per action
+PlayerController / Presentation:
+  - Use death animation timing to pace respawn feedback
+  - Ensure dead players clear hit reaction state immediately
+  - Add kill-confirmation VFX/SFX for direct hits
 ```
 
 #### 3. **Visual Feedback** (MEDIUM IMPACT)
@@ -94,6 +89,7 @@ PlayerController:
 Add to existing presentation layer:
   - CameraScreenShake component or method
   - CharacterSpriteAnimator: Add flash/tint coroutine
+  - PlayerController: Add short death flash on lethal hits
   - Instantiate impact VFX on hit detection
   - Play impact SFX (separate from animation SFX)
 ```
@@ -148,15 +144,15 @@ StormDragon (Strong/Tanky):
 
 ## Recommended Implementation Order
 
-### Phase 1: Core Feel (Hitstun + Knockback)
-**Goal**: Make hits feel impactful and allow counterplay
+### Phase 1: Core Feel (Hitkill Clarity)
+**Goal**: Make lethal hits read clearly and feel immediate
 **Time**: 2-3 hours
 **Files**:
-- `PlayerController.cs` - Add hitstun/knockback system
-- `CharacterDefinition.cs` - Add knockback parameters
-- Hit detection methods - Use new system instead of instant kill
+- `PlayerController.cs` - Tighten death cleanup / respawn reset
+- Presentation layer - Add hit-kill feedback
+- Hit detection methods - Keep instant kill behavior consistent
 
-**Deliverable**: Hits apply stun + knockback, characters can react
+**Deliverable**: Hits kill instantly and the death is obvious on screen
 
 ### Phase 2: Visual Feedback
 **Goal**: Make impacts visually satisfying
@@ -164,7 +160,7 @@ StormDragon (Strong/Tanky):
 **Files**:
 - New: `ScreenShakeController.cs` or similar
 - `CharacterSpriteAnimator.cs` - Add flash/tint
-- `ProjectPvpDebugHud.cs` - Show hitstun/knockback state
+- `ProjectPvpDebugHud.cs` - Show lethal-hit feedback state
 - Audio: Trigger hit SFX
 
 **Deliverable**: Screen shake, character flash, impact sounds
@@ -194,7 +190,7 @@ StormDragon (Strong/Tanky):
 
 ## Code Architecture for New Systems
 
-### Hitstun System
+### Legacy Hitstun Sketch
 ```csharp
 // In PlayerController.cs
 private float _hitStunTimeLeft = 0f;
@@ -214,7 +210,7 @@ if (IsHitStunned)
 }
 ```
 
-### Knockback System
+### Legacy Knockback Sketch
 ```csharp
 // In PlayerController.cs
 private Vector2 _knockbackVelocity = Vector2.zero;
@@ -237,7 +233,7 @@ if (_knockbackTimeLeft > 0f)
 ### Hit Detection Refactor
 ```csharp
 // Current: target.Kill()
-// Proposed: target.ReceiveHit(hitForce, hitDirection, knockbackPower)
+// Legacy sketch only: hit reactions are not part of the live combat model
 
 private void HandleActiveMelee()
 {
@@ -265,19 +261,17 @@ public void ReceiveHit(float hitForce, Vector2 hitDirection, float knockbackPowe
 
 ## Testing & Validation Checklist
 
-### Hitstun
-- [ ] Melee hit applies 0.1-0.15s stun
-- [ ] Player cannot move during stun
-- [ ] Player cannot attack during stun
-- [ ] Dash can break out of stun? (TBD)
-- [ ] Stun cancels on landing/wall contact
+### Hitkill
+- [ ] Melee kills on contact
+- [ ] Projectile kills on contact
+- [ ] Ultimate kills on contact
+- [ ] Head stomp kills on contact
+- [ ] Death clears hit reaction state immediately
 
-### Knockback
-- [ ] Melee applies directional knockback
-- [ ] Knockback is strongest for melee, medium for projectile, high for ultimate
-- [ ] Knockback can push toward walls
-- [ ] Character can still move/input during knockback
-- [ ] Knockback respects physics (gravity, collisions)
+### Feedback
+- [ ] Lethal hits have clear audio/visual confirmation
+- [ ] Death animation reads instantly in motion
+- [ ] Respawn returns the player to a clean state
 
 ### Balance
 - [ ] Mizu feels faster/more agile
@@ -296,7 +290,7 @@ public void ReceiveHit(float hitForce, Vector2 hitDirection, float knockbackPowe
 ## Next Steps
 
 1. ✅ Repository analyzed and documented
-2. 🎯 **Start Phase 1: Implement hitstun + knockback**
+2. 🎯 **Start Phase 1: Hitkill clarity and feedback**
 3. Test and iterate
 4. Move to Phase 2: Visual feedback
 5. Phase 3: Character balance

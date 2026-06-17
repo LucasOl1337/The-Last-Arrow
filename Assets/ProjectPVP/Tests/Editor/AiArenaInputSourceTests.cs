@@ -62,6 +62,28 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void IdleCombatantInputSource_ResetInputState_ClearsCachedFrame()
+        {
+            GameObject root = new GameObject("IdleInputReset");
+            IdleCombatantInputSource input = root.AddComponent<IdleCombatantInputSource>();
+
+            try
+            {
+                input.CaptureFrame();
+                Assert.That(input.CurrentFrame.aim, Is.EqualTo(Vector2.right));
+
+                input.ResetInputState();
+
+                Assert.That(input.CurrentFrame.aim, Is.EqualTo(Vector2.zero));
+                Assert.That(input.CurrentFrame.frame, Is.Zero);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void KeyboardPlayerInputSource_PreferredFamilySelection_UsesPreferredMatchIndex()
         {
             MethodInfo method = typeof(KeyboardPlayerInputSource).GetMethod(
@@ -121,6 +143,45 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(input.ControllerOwner, Is.EqualTo("CodexDirect"));
                 Assert.That(input.CurrentIntentMode, Is.EqualTo("pressure"));
                 Assert.That(input.CurrentIntentReason, Is.EqualTo("direct broker"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void CodexBrokerCombatantInputSource_AgentDrivenStartKeepsBrokerDefaultOwnerBeforeFirstAction()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ApplyBrokerEnvelope",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+
+            GameObject root = new GameObject("AgentDrivenStartInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                input.useAgentDrivenMode = true;
+                var envelope = new CodexBrokerIntentEnvelope
+                {
+                    sessionId = "agent-session",
+                    hasAgentAction = false,
+                    intent = new CodexStrategyIntent
+                    {
+                        mode = "stabilize",
+                        reason = "waiting for first agent action",
+                    },
+                };
+
+                method.Invoke(input, new object[] { JsonUtility.ToJson(envelope) });
+
+                Assert.That(input.SessionId, Is.EqualTo("agent-session"));
+                Assert.That(input.HasAgentAction, Is.False);
+                Assert.That(input.ControllerOwner, Is.EqualTo("BrokerDefault"));
+                Assert.That(input.CurrentIntentMode, Is.EqualTo("stabilize"));
+                Assert.That(input.CurrentIntentReason, Is.EqualTo("waiting for first agent action"));
             }
             finally
             {
@@ -249,6 +310,406 @@ namespace ProjectPVP.Tests.Editor
             {
                 Object.DestroyImmediate(root);
             }
+        }
+
+        [Test]
+        public void CodexBrokerCombatantInputSource_UsesLiveIntentBeforeItsExpiry()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ResolveDecision",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo currentIntentField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_currentIntent",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo hasAgentActionField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_hasAgentAction",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo lastIntentReceivedTimeField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_lastIntentReceivedTime",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null);
+            Assert.That(currentIntentField, Is.Not.Null);
+            Assert.That(hasAgentActionField, Is.Not.Null);
+            Assert.That(lastIntentReceivedTimeField, Is.Not.Null);
+
+            GameObject root = new GameObject("LiveIntentBrokerInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                currentIntentField.SetValue(input, new CodexStrategyIntent
+                {
+                    mode = "pressure",
+                    reason = "live intent",
+                    expiresInMs = 400,
+                });
+                hasAgentActionField.SetValue(input, true);
+                lastIntentReceivedTimeField.SetValue(input, Time.realtimeSinceStartup - 0.2f);
+
+                var snapshot = new AiArenaSnapshotEnvelope
+                {
+                    self = new AiArenaCombatantObservation
+                    {
+                        slotId = 1,
+                        facing = 1,
+                        arrows = 2,
+                        shootCooldownLeft = 0f,
+                    },
+                    opponents = new List<AiArenaCombatantObservation>
+                    {
+                        new AiArenaCombatantObservation
+                        {
+                            slotId = 2,
+                            position = new Vector2(200f, 0f),
+                        },
+                    },
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                        targetSlotId = 2,
+                        horizontalDistance = 200f,
+                        targetDirection = Vector2.right,
+                        predictedTargetDirection = Vector2.right,
+                        targetInShootRange = true,
+                        selfHasArrows = true,
+                        shouldZone = true,
+                    },
+                };
+
+                AiArenaDecisionEnvelope decision = (AiArenaDecisionEnvelope)method.Invoke(input, new object[] { snapshot });
+                AiArenaDecisionEnvelope expected = AiArenaStrategicPolicy.Decide(snapshot, new CodexStrategyIntent
+                {
+                    mode = "pressure",
+                    reason = "live intent",
+                    expiresInMs = 400,
+                });
+
+                Assert.That(decision.debugSummary, Is.EqualTo(expected.debugSummary));
+                Assert.That(decision.moveAxis, Is.EqualTo(expected.moveAxis).Within(0.0001f));
+                Assert.That(decision.shootPressed, Is.EqualTo(expected.shootPressed));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void CodexBrokerCombatantInputSource_FallsBackImmediatelyWhenIntentExpiresImmediately()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ResolveDecision",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo currentIntentField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_currentIntent",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo hasAgentActionField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_hasAgentAction",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo lastIntentReceivedTimeField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_lastIntentReceivedTime",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null);
+            Assert.That(currentIntentField, Is.Not.Null);
+            Assert.That(hasAgentActionField, Is.Not.Null);
+            Assert.That(lastIntentReceivedTimeField, Is.Not.Null);
+
+            GameObject root = new GameObject("ZeroExpiryIntentBrokerInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                currentIntentField.SetValue(input, new CodexStrategyIntent
+                {
+                    mode = "pressure",
+                    reason = "zero expiry",
+                    expiresInMs = 0,
+                });
+                hasAgentActionField.SetValue(input, true);
+                lastIntentReceivedTimeField.SetValue(input, Time.realtimeSinceStartup);
+
+                var snapshot = new AiArenaSnapshotEnvelope
+                {
+                    self = new AiArenaCombatantObservation
+                    {
+                        slotId = 1,
+                        facing = 1,
+                        arrows = 2,
+                        shootCooldownLeft = 0f,
+                    },
+                    opponents = new List<AiArenaCombatantObservation>
+                    {
+                        new AiArenaCombatantObservation
+                        {
+                            slotId = 2,
+                            position = new Vector2(200f, 0f),
+                        },
+                    },
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                        targetSlotId = 2,
+                        horizontalDistance = 200f,
+                        targetDirection = Vector2.right,
+                        predictedTargetDirection = Vector2.right,
+                        targetInShootRange = true,
+                        selfHasArrows = true,
+                        shouldZone = true,
+                    },
+                };
+
+                AiArenaDecisionEnvelope decision = (AiArenaDecisionEnvelope)method.Invoke(input, new object[] { snapshot });
+                AiArenaDecisionEnvelope expected = AiArenaHeuristicPolicy.Decide(snapshot);
+
+                Assert.That(decision.debugSummary, Is.EqualTo(expected.debugSummary));
+                Assert.That(decision.moveAxis, Is.EqualTo(expected.moveAxis).Within(0.0001f));
+                Assert.That(decision.shootPressed, Is.EqualTo(expected.shootPressed));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void CodexBrokerCombatantInputSource_ForceRefreshesWhenRecoverableProjectileCountChanges()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ShouldForceRefresh",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo previousSnapshotField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_previousSnapshot",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null);
+            Assert.That(previousSnapshotField, Is.Not.Null);
+
+            GameObject root = new GameObject("RecoverableRefreshBrokerInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                previousSnapshotField.SetValue(input, new AiArenaSnapshotEnvelope
+                {
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation(),
+                    projectiles = new List<AiArenaProjectileObservation>(),
+                });
+
+                var snapshot = new AiArenaSnapshotEnvelope
+                {
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation(),
+                    projectiles = new List<AiArenaProjectileObservation>
+                    {
+                        new AiArenaProjectileObservation
+                        {
+                            isCollectible = true,
+                            isStuck = true,
+                            sourceSlotId = 1,
+                            position = new Vector2(16f, 0f),
+                        },
+                    },
+                };
+
+                bool shouldRefresh = (bool)method.Invoke(input, new object[] { snapshot });
+
+                Assert.That(shouldRefresh, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void CodexBrokerCombatantInputSource_ForceRefreshesWhenNearestRecoverableProjectileDistanceChanges()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ShouldForceRefresh",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo previousSnapshotField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_previousSnapshot",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null);
+            Assert.That(previousSnapshotField, Is.Not.Null);
+
+            GameObject root = new GameObject("RecoverableDistanceRefreshBrokerInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                previousSnapshotField.SetValue(input, new AiArenaSnapshotEnvelope
+                {
+                    self = new AiArenaCombatantObservation
+                    {
+                        position = Vector2.zero,
+                    },
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation(),
+                    projectiles = new List<AiArenaProjectileObservation>
+                    {
+                        new AiArenaProjectileObservation
+                        {
+                            isCollectible = true,
+                            isStuck = true,
+                            sourceSlotId = 1,
+                            position = new Vector2(48f, 0f),
+                        },
+                    },
+                });
+
+                var snapshot = new AiArenaSnapshotEnvelope
+                {
+                    self = new AiArenaCombatantObservation
+                    {
+                        position = Vector2.zero,
+                    },
+                    arena = new AiArenaArenaObservation(),
+                    semantics = new AiArenaSemanticObservation(),
+                    projectiles = new List<AiArenaProjectileObservation>
+                    {
+                        new AiArenaProjectileObservation
+                        {
+                            isCollectible = true,
+                            isStuck = true,
+                            sourceSlotId = 1,
+                            position = new Vector2(120f, 0f),
+                        },
+                    },
+                };
+
+                bool shouldRefresh = (bool)method.Invoke(input, new object[] { snapshot });
+
+                Assert.That(shouldRefresh, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void CodexBrokerCombatantInputSource_FallsBackWhenIntentAgeExceedsExtendedWindow()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ResolveDecision",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo currentIntentField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_currentIntent",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo hasAgentActionField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_hasAgentAction",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo lastIntentReceivedTimeField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_lastIntentReceivedTime",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null);
+            Assert.That(currentIntentField, Is.Not.Null);
+            Assert.That(hasAgentActionField, Is.Not.Null);
+            Assert.That(lastIntentReceivedTimeField, Is.Not.Null);
+
+            GameObject root = new GameObject("StaleIntentBrokerInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                currentIntentField.SetValue(input, new CodexStrategyIntent
+                {
+                    mode = "pressure",
+                    reason = "stale intent",
+                    expiresInMs = 400,
+                });
+                hasAgentActionField.SetValue(input, true);
+                lastIntentReceivedTimeField.SetValue(input, Time.realtimeSinceStartup - 0.9f);
+
+                var snapshot = new AiArenaSnapshotEnvelope
+                {
+                    self = new AiArenaCombatantObservation
+                    {
+                        slotId = 1,
+                        facing = 1,
+                        arrows = 2,
+                        shootCooldownLeft = 0f,
+                    },
+                    opponents = new List<AiArenaCombatantObservation>
+                    {
+                        new AiArenaCombatantObservation
+                        {
+                            slotId = 2,
+                            position = new Vector2(200f, 0f),
+                        },
+                    },
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                        targetSlotId = 2,
+                        horizontalDistance = 200f,
+                        targetDirection = Vector2.right,
+                        predictedTargetDirection = Vector2.right,
+                        targetInShootRange = true,
+                        selfHasArrows = true,
+                        shouldZone = true,
+                    },
+                };
+
+                AiArenaDecisionEnvelope decision = (AiArenaDecisionEnvelope)method.Invoke(input, new object[] { snapshot });
+                AiArenaDecisionEnvelope expected = AiArenaHeuristicPolicy.Decide(snapshot);
+
+                Assert.That(decision.debugSummary, Is.EqualTo(expected.debugSummary));
+                Assert.That(decision.shootPressed, Is.EqualTo(expected.shootPressed));
+                Assert.That(decision.moveAxis, Is.EqualTo(expected.moveAxis).Within(0.0001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void AiArenaHeuristicPolicy_PressesForwardWhenTargetHasNoArrows()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                },
+                opponents = new List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 0,
+                        position = new Vector2(250f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 250f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = false,
+                    targetInMeleeRange = false,
+                    targetInUltimateRange = false,
+                    selfHasArrows = true,
+                    shouldRetreat = true,
+                    selfCornered = false,
+                    targetCornered = false,
+                },
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaHeuristicPolicy.Decide(snapshot);
+
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
         }
 
         [Test]
@@ -459,7 +920,7 @@ namespace ProjectPVP.Tests.Editor
                 {
                     slotId = 1,
                     facing = 1,
-                    arrows = 3,
+                    arrows = 2,
                 },
                 opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
                 {
@@ -533,6 +994,50 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void LocalTransport_PressesVisibleMidRangeTargetForward()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 3,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        position = new Vector2(320f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    horizontalDistance = 320f,
+                    verticalDistance = 0f,
+                    targetInMeleeRange = false,
+                    targetInUltimateRange = false,
+                    targetInShootRange = true,
+                    selfHasArrows = true,
+                    shouldZone = true,
+                },
+            };
+
+            AiArenaLocalTransport transport = new AiArenaLocalTransport();
+            AiArenaTransportResult result = transport.RequestDecisionJson(JsonUtility.ToJson(snapshot), 25);
+            AiArenaDecisionEnvelope decision = JsonUtility.FromJson<AiArenaDecisionEnvelope>(result.ResponseJson);
+
+            Assert.That(result.IsSuccess, Is.True);
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+            Assert.That(decision.shootPressed, Is.True);
+        }
+
+        [Test]
         public void StrategicPolicy_UsesCodexZoneIntentToPreferShooting()
         {
             var snapshot = new AiArenaSnapshotEnvelope
@@ -585,7 +1090,478 @@ namespace ProjectPVP.Tests.Editor
             AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
 
             Assert.That(decision.shootPressed, Is.True);
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
             Assert.That(decision.meleePressed, Is.False);
+        }
+
+        [Test]
+        public void StrategicPolicy_ZoneIntentAtPreferredRangeKeepsForwardDrift()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        position = new Vector2(360f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 360f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = true,
+                    selfHasArrows = true,
+                    shouldZone = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "zone",
+                preferredRange = 360,
+                shootBias = 0.8f,
+                advanceBias = 0.5f,
+                meleeBias = 0.1f,
+                dashBias = 0.1f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = true,
+                punishRecovery = true,
+                cornerEscapeBias = 0.5f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "keep moving through preferred range",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.shootPressed, Is.True);
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+        }
+
+        [Test]
+        public void StrategicPolicy_PressesDashWhenTargetHasNoArrows()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                    dashCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 0,
+                        position = new Vector2(250f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 250f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = false,
+                    targetInMeleeRange = false,
+                    targetInUltimateRange = false,
+                    selfHasArrows = true,
+                    shouldRetreat = true,
+                    selfCornered = false,
+                    targetCornered = false,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "stabilize",
+                preferredRange = 360,
+                shootBias = 0.1f,
+                advanceBias = 0.2f,
+                meleeBias = 0.1f,
+                dashBias = 0.2f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = false,
+                punishRecovery = false,
+                cornerEscapeBias = 0.5f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "hold ground",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+        }
+
+        [Test]
+        public void StrategicPolicy_UsesLastArrowPressureToShootWhenTargetIsOutOfAmmo()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                    shootCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 0,
+                        position = new Vector2(200f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 200f,
+                    verticalDistance = 0f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = true,
+                    targetInMeleeRange = false,
+                    targetInUltimateRange = false,
+                    selfHasArrows = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "stabilize",
+                preferredRange = 360,
+                shootBias = 0.1f,
+                advanceBias = 0.1f,
+                meleeBias = 0.1f,
+                dashBias = 0.1f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = false,
+                punishRecovery = false,
+                cornerEscapeBias = 0.1f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "pressure last arrow",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.shootPressed, Is.True);
+            Assert.That(decision.shootHeld, Is.True);
+            Assert.That(decision.debugSummary, Is.EqualTo("AI LAST ARROW PRESSURE"));
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+        }
+
+        [Test]
+        public void StrategicPolicy_UsesArrowLeadPressureToTakeTheShot()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 3,
+                    shootCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 1,
+                        position = new Vector2(200f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 200f,
+                    verticalDistance = 0f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = true,
+                    targetInMeleeRange = false,
+                    targetInUltimateRange = false,
+                    selfHasArrows = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "stabilize",
+                preferredRange = 360,
+                shootBias = 0.1f,
+                advanceBias = 0.1f,
+                meleeBias = 0.1f,
+                dashBias = 0.1f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = false,
+                punishRecovery = false,
+                cornerEscapeBias = 0.1f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "press lead advantage",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.shootPressed, Is.True);
+            Assert.That(decision.shootHeld, Is.True);
+            Assert.That(decision.debugSummary, Is.EqualTo("AI ARROW LEAD PRESSURE"));
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+        }
+
+        [Test]
+        public void StrategicPolicy_CollectsNearbyArrowWhenLowOnAmmo()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 0,
+                    shootCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 3,
+                        position = new Vector2(220f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 220f,
+                    verticalDistance = 0f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = true,
+                    targetInMeleeRange = false,
+                    targetInUltimateRange = false,
+                    selfHasArrows = false,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 96f,
+                    collectibleProjectileDirection = Vector2.right,
+                    shouldCollectProjectile = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "pressure",
+                preferredRange = 360,
+                shootBias = 0.7f,
+                advanceBias = 0.5f,
+                meleeBias = 0.2f,
+                dashBias = 0.2f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = false,
+                punishRecovery = false,
+                cornerEscapeBias = 0.2f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "recover ammo",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+            Assert.That(decision.debugSummary, Is.EqualTo("AI COLLECT ARROW"));
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+        }
+
+        [Test]
+        public void HeuristicPolicy_CollectsVerticallyAlignedArrowWithoutHorizontalDrift()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 0,
+                    isGrounded = true,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 3,
+                        position = new Vector2(0f, 220f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 0f,
+                    verticalDistance = 220f,
+                    targetDirection = Vector2.up,
+                    predictedTargetDirection = Vector2.up,
+                    selfHasArrows = false,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 96f,
+                    collectibleProjectileDirection = Vector2.up,
+                    shouldCollectProjectile = true,
+                },
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaHeuristicPolicy.Decide(snapshot);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI COLLECT ARROW"));
+            Assert.That(decision.moveAxis, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(decision.jumpPressed, Is.True);
+            Assert.That(decision.jumpHeld, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+        }
+
+        [Test]
+        public void StrategicPolicy_CollectsVerticallyAlignedArrowWithoutHorizontalDrift()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 0,
+                    isGrounded = true,
+                    shootCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 3,
+                        position = new Vector2(0f, 220f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 0f,
+                    verticalDistance = 220f,
+                    targetDirection = Vector2.up,
+                    predictedTargetDirection = Vector2.up,
+                    targetInShootRange = true,
+                    selfHasArrows = false,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 96f,
+                    collectibleProjectileDirection = Vector2.up,
+                    shouldCollectProjectile = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "pressure",
+                preferredRange = 360,
+                shootBias = 0.7f,
+                advanceBias = 0.5f,
+                meleeBias = 0.2f,
+                dashBias = 0.2f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = false,
+                punishRecovery = false,
+                cornerEscapeBias = 0.2f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "recover vertical ammo",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI COLLECT ARROW"));
+            Assert.That(decision.moveAxis, Is.EqualTo(0f).Within(0.0001f));
+            Assert.That(decision.jumpPressed, Is.True);
+            Assert.That(decision.jumpHeld, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+        }
+
+        [Test]
+        public void HeuristicPolicy_PrioritizesEvasionOverCollectingWhenThreatIsImminent()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 0,
+                    isGrounded = true,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 2,
+                        position = new Vector2(240f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 240f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.12f,
+                    incomingProjectileDirection = Vector2.left,
+                    shouldDashEvade = true,
+                    shouldCollectProjectile = true,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 72f,
+                    collectibleProjectileDirection = Vector2.right,
+                    selfHasArrows = false,
+                },
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaHeuristicPolicy.Decide(snapshot);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI PARRY DASH"));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+            Assert.That(decision.shootPressed, Is.False);
         }
 
         private sealed class SnapshotSourceController : MonoBehaviour, IAiArenaControllerSnapshotSource

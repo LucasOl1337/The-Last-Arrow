@@ -188,6 +188,20 @@ namespace ProjectPVP.Input
             _eventMemory.Clear();
         }
 
+        public void ResetInputState()
+        {
+            _currentFrame = default;
+            _lastReportedFrame = default;
+            _executionState = default;
+            _frameIndex = 0;
+            _hasAgentAction = false;
+            _currentIntent = null;
+            _lastExecutorSource = "waiting_for_codex";
+            _lastExecutorSummary = string.Empty;
+            _controllerOwner = string.Empty;
+            _debugSummary = "AI | Codex pending";
+        }
+
         public void PrewarmSession()
         {
             if (!Application.isPlaying || !autoStartSession)
@@ -212,7 +226,7 @@ namespace ProjectPVP.Input
             }
 
             float ageMs = (Time.realtimeSinceStartup - _lastIntentReceivedTime) * 1000f;
-            return ageMs <= Mathf.Max(maxStrategyAgeMs, _currentIntent.expiresInMs);
+            return ageMs <= ResolveFreshIntentWindowMs();
         }
 
         private bool HasReusableIntent()
@@ -233,8 +247,18 @@ namespace ProjectPVP.Input
                 return false;
             }
 
-            float reusableWindowMs = Mathf.Max(maxStrategyAgeMs * 3f, _currentIntent.expiresInMs * 4f);
+            float reusableWindowMs = Mathf.Min(maxStrategyAgeMs, ResolveFreshIntentWindowMs() * 1.5f);
             return ageMs <= reusableWindowMs;
+        }
+
+        private float ResolveFreshIntentWindowMs()
+        {
+            if (_currentIntent == null)
+            {
+                return 0f;
+            }
+
+            return Mathf.Min(maxStrategyAgeMs, Mathf.Max(0f, _currentIntent.expiresInMs));
         }
 
         private AiArenaDecisionEnvelope ResolveDecision(AiArenaSnapshotEnvelope snapshot)
@@ -517,7 +541,9 @@ namespace ProjectPVP.Input
                 || current.targetUsingUltimate != previous.targetUsingUltimate
                 || current.hasTarget != previous.hasTarget
                 || current.shouldPunish != previous.shouldPunish
-                || current.targetVulnerable != previous.targetVulnerable;
+                || current.targetVulnerable != previous.targetVulnerable
+                || CountRecoverableProjectiles(snapshot) != CountRecoverableProjectiles(_previousSnapshot)
+                || HasMeaningfulRecoverableDistanceChange(snapshot, _previousSnapshot);
         }
 
         private CodexPromptState BuildPromptState(AiArenaSnapshotEnvelope snapshot)
@@ -529,6 +555,69 @@ namespace ProjectPVP.Input
                 _eventMemory);
             RecordPromptEvents(promptState.events);
             return promptState;
+        }
+
+        private static int CountRecoverableProjectiles(AiArenaSnapshotEnvelope snapshot)
+        {
+            if (snapshot == null || snapshot.projectiles == null)
+            {
+                return 0;
+            }
+
+            int count = 0;
+            for (int index = 0; index < snapshot.projectiles.Count; index += 1)
+            {
+                AiArenaProjectileObservation projectile = snapshot.projectiles[index];
+                if (projectile == null || !projectile.isCollectible || (!projectile.isStuck && !projectile.isDisarmed))
+                {
+                    continue;
+                }
+
+                count += 1;
+            }
+
+            return count;
+        }
+
+        private static bool HasMeaningfulRecoverableDistanceChange(AiArenaSnapshotEnvelope current, AiArenaSnapshotEnvelope previous)
+        {
+            float currentDistance = ResolveNearestRecoverableProjectileDistance(current);
+            float previousDistance = ResolveNearestRecoverableProjectileDistance(previous);
+
+            if (currentDistance < 0f || previousDistance < 0f)
+            {
+                return currentDistance != previousDistance;
+            }
+
+            return Mathf.Abs(currentDistance - previousDistance) >= 24f;
+        }
+
+        private static float ResolveNearestRecoverableProjectileDistance(AiArenaSnapshotEnvelope snapshot)
+        {
+            if (snapshot == null || snapshot.self == null || snapshot.projectiles == null)
+            {
+                return -1f;
+            }
+
+            float bestDistance = float.MaxValue;
+            for (int index = 0; index < snapshot.projectiles.Count; index += 1)
+            {
+                AiArenaProjectileObservation projectile = snapshot.projectiles[index];
+                if (projectile == null || !projectile.isCollectible || (!projectile.isStuck && !projectile.isDisarmed))
+                {
+                    continue;
+                }
+
+                float distance = Vector2.Distance(snapshot.self.position, projectile.position);
+                if (distance >= bestDistance)
+                {
+                    continue;
+                }
+
+                bestDistance = distance;
+            }
+
+            return bestDistance == float.MaxValue ? -1f : bestDistance;
         }
 
         private void RecordPromptEvents(List<string> events)

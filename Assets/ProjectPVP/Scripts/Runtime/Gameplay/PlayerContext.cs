@@ -44,6 +44,7 @@ namespace ProjectPVP.Gameplay
         public bool pendingDashSecondary = false;
         public bool isGrounded = false;
         public bool isTouchingWall = false;
+        public bool hasShield = false;
 
         // Timers
         public float dashTimeLeft = 0f;
@@ -68,6 +69,7 @@ namespace ProjectPVP.Gameplay
         public float currentOverrideLockLeft = 0f;
         public float wallJumpGraceTimer = 0f;
         public float wallDetachIgnoreTimer = 0f;
+        public float contactArrowTransferLockTimeLeft = 0f;
 
         // Ultimate-specific state
         public bool ultimateImpactApplied = false;
@@ -76,10 +78,11 @@ namespace ProjectPVP.Gameplay
         public float ultimateDashTimeLeft = 0f;
         public float ultimateProjectileBlockTimer = 0f;
 
-        // Hitstun & Knockback
+        // Legacy hit reaction state (kept for reset coverage and compatibility)
         public float hitStunTimeLeft = 0f;
         public Vector2 knockbackVelocity = Vector2.zero;
         public float knockbackTimeLeft = 0f;
+        public float deathFlashTimeLeft = 0f;
 
         // Action override state
         public string currentOverrideAction = string.Empty;
@@ -101,6 +104,9 @@ namespace ProjectPVP.Gameplay
 
         // Projectile tracking
         public ProjectileController lastLaunchedProjectile;
+        public PlayerController lastFatalHitSource;
+        public string lastFatalHitCause = string.Empty;
+        public Vector2 lastFatalHitPosition = Vector2.zero;
 
         // Physics arrays
         public RaycastHit2D[] castHits = new RaycastHit2D[8];

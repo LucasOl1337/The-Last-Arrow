@@ -2,6 +2,7 @@ using System.Reflection;
 using NUnit.Framework;
 using ProjectPVP.Data;
 using ProjectPVP.Gameplay;
+using UnityEditor;
 using UnityEngine;
 
 namespace ProjectPVP.Tests.Editor
@@ -78,6 +79,59 @@ namespace ProjectPVP.Tests.Editor
             {
                 Object.DestroyImmediate(definition);
                 Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void CharacterDefinitionAssets_KeepTowerFallLikeArrowCapacityAndMomentumProfiles()
+        {
+            CharacterDefinition mizu = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(
+                "Assets/ProjectPVP/Characters/Mizu/Data/MizuDefinition.asset");
+            CharacterDefinition stormDragon = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(
+                "Assets/ProjectPVP/Characters/StormDragon/Data/StormDragonDefinition.asset");
+
+            Assert.That(mizu, Is.Not.Null);
+            Assert.That(stormDragon, Is.Not.Null);
+            Assert.That(mizu.maxArrows, Is.EqualTo(3));
+            Assert.That(stormDragon.maxArrows, Is.EqualTo(3));
+            Assert.That(mizu.projectileAssistEnabled, Is.False);
+            Assert.That(stormDragon.projectileAssistEnabled, Is.False);
+            Assert.That(mizu.projectileInheritVelocityFactor, Is.EqualTo(1f).Within(0.001f));
+            Assert.That(stormDragon.projectileInheritVelocityFactor, Is.EqualTo(0.45f).Within(0.001f));
+        }
+
+        [Test]
+        public void CharacterDefinitionAssets_KeepDistinctAggressionAndMobilityProfiles()
+        {
+            CharacterDefinition mizu = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(
+                "Assets/ProjectPVP/Characters/Mizu/Data/MizuDefinition.asset");
+            CharacterDefinition stormDragon = AssetDatabase.LoadAssetAtPath<CharacterDefinition>(
+                "Assets/ProjectPVP/Characters/StormDragon/Data/StormDragonDefinition.asset");
+
+            Assert.That(mizu, Is.Not.Null);
+            Assert.That(stormDragon, Is.Not.Null);
+            Assert.That(mizu.meleeCooldown, Is.LessThan(stormDragon.meleeCooldown));
+            Assert.That(mizu.meleeDuration, Is.LessThan(stormDragon.meleeDuration));
+            Assert.That(mizu.runtimeMoveScale, Is.GreaterThan(stormDragon.runtimeMoveScale));
+            Assert.That(mizu.runtimeDashScale, Is.GreaterThan(stormDragon.runtimeDashScale));
+            Assert.That(mizu.dashDistance, Is.GreaterThan(stormDragon.dashDistance));
+            Assert.That(mizu.runtimeJumpScale, Is.GreaterThan(stormDragon.runtimeJumpScale));
+        }
+
+        [Test]
+        public void NewCharacterDefinitions_DefaultToTowerFallLikeArrowCapacityAndMomentum()
+        {
+            CharacterDefinition definition = ScriptableObject.CreateInstance<CharacterDefinition>();
+
+            try
+            {
+                Assert.That(definition.maxArrows, Is.EqualTo(3));
+                Assert.That(definition.projectileAssistEnabled, Is.False);
+                Assert.That(definition.projectileInheritVelocityFactor, Is.EqualTo(1f).Within(0.001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(definition);
             }
         }
 

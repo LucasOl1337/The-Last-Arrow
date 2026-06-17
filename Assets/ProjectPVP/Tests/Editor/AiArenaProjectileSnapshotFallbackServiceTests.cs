@@ -22,6 +22,7 @@ namespace ProjectPVP.Tests.Editor
                 projectile.CurrentVelocity = new Vector2(3f, 4f);
                 projectile.IsStuck = true;
                 projectile.IsDisarmed = true;
+                projectile.IsCollectible = true;
                 projectile.TravelDirection = Vector2.left;
 
                 AiArenaProjectileSnapshot snapshot = AiArenaProjectileSnapshotFallbackService.BuildFromProjectile(projectile);
@@ -30,6 +31,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(snapshot.sourceSlotId, Is.EqualTo(2));
                 Assert.That(snapshot.isStuck, Is.True);
                 Assert.That(snapshot.isDisarmed, Is.True);
+                Assert.That(snapshot.isCollectible, Is.True);
                 Assert.That(snapshot.position, Is.EqualTo(new Vector2(12f, 24f)));
                 Assert.That(snapshot.velocity, Is.EqualTo(new Vector2(3f, 4f)));
                 Assert.That(snapshot.travelDirection, Is.EqualTo(Vector2.left));
@@ -57,6 +59,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(snapshot.sourceSlotId, Is.Zero);
                 Assert.That(snapshot.isStuck, Is.False);
                 Assert.That(snapshot.isDisarmed, Is.False);
+                Assert.That(snapshot.isCollectible, Is.False);
                 Assert.That(snapshot.position, Is.EqualTo(new Vector2(-5f, 7f)));
                 Assert.That(snapshot.velocity, Is.EqualTo(Vector2.zero));
                 Assert.That(snapshot.travelDirection, Is.EqualTo(Vector2.right));
@@ -82,6 +85,7 @@ namespace ProjectPVP.Tests.Editor
             public GameObject SourceObject { get; set; }
             public bool IsStuck { get; set; }
             public bool IsDisarmed { get; set; }
+            public bool IsCollectible { get; set; }
             public Vector2 CurrentVelocity { get; set; }
             public Vector2 TravelDirection { get; set; }
         }

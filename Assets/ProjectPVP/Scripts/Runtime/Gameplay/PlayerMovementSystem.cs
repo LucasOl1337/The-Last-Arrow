@@ -31,6 +31,11 @@ namespace ProjectPVP.Gameplay
 
         public void HandleMovement(PlayerInputFrame frame, float deltaTime, ref Vector2 velocity)
         {
+            if (_context.isDead)
+            {
+                return;
+            }
+
             float targetSpeed = frame.axis * _statResolver.ResolveMoveSpeed();
             bool hasDirectionalInput = Mathf.Abs(frame.axis) > 0.01f;
             float acceleration = _statResolver.ResolveAcceleration();
@@ -65,6 +70,12 @@ namespace ProjectPVP.Gameplay
 
         public void MoveCharacter(ref Vector2 velocity, float deltaTime)
         {
+            if (_context.isDead)
+            {
+                velocity = Vector2.zero;
+                return;
+            }
+
             if (_context.body == null || _context.bodyCollider == null)
             {
                 _context.transform.position += (Vector3)(velocity * deltaTime);
@@ -245,6 +256,11 @@ namespace ProjectPVP.Gameplay
 
         public void UpdateFacing(PlayerInputFrame frame)
         {
+            if (_context.isDead)
+            {
+                return;
+            }
+
             if (Mathf.Abs(frame.axis) > 0.01f)
             {
                 _context.facing = frame.axis > 0f ? 1 : -1;
@@ -275,14 +291,23 @@ namespace ProjectPVP.Gameplay
         /// </summary>
         public bool UpdateAimHoldState(PlayerInputFrame frame)
         {
-            bool shootJustPressed  = frame.shootHeld && !_context.shootHeldLastFrame;
-            bool shootJustReleased = !frame.shootHeld && _context.shootHeldLastFrame;
-            _context.shootHeldLastFrame = frame.shootHeld;
+            if (_context.isDead)
+            {
+                _context.aimHoldActive = false;
+                _context.shootHeldLastFrame = false;
+                return false;
+            }
+
+            bool shootInputActive = frame.shootHeld || frame.shootPressed;
+            bool shootJustPressed  = shootInputActive && !_context.shootHeldLastFrame;
+            bool shootJustReleased = !shootInputActive && _context.shootHeldLastFrame;
+            _context.shootHeldLastFrame = shootInputActive;
 
             // Cannot aim without arrows.
             if (_context.arrows <= 0)
             {
                 _context.aimHoldActive = false;
+                _context.shootHeldLastFrame = false;
                 return false;
             }
 

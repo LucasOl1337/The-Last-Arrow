@@ -12,6 +12,8 @@ namespace ProjectPVP.Match
         private GUIStyle _dotInactiveStyle;
         private GUIStyle _winnerBoxStyle;
         private GUIStyle _winnerTextStyle;
+        private GUIStyle _finalKillStyle;
+        private GUIStyle _finalKillMarkerStyle;
 
         public void SetMatchController(MatchController matchController)
         {
@@ -30,6 +32,8 @@ namespace ProjectPVP.Match
             DrawRoundDots(new Rect(24f, 12f, 180f, 28f), _matchController.PlayerOneWins, true);
             DrawRoundDots(new Rect(Screen.width - 204f, 12f, 180f, 28f), _matchController.PlayerTwoWins, false);
             DrawWinnerBanner();
+            DrawFinalKillLabel();
+            DrawFinalKillMarker();
         }
 
         private void EnsureStyles()
@@ -77,6 +81,27 @@ namespace ProjectPVP.Match
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = new Color(1f, 0.96f, 0.96f, 1f) },
             };
+
+            _finalKillStyle = new GUIStyle(GUI.skin.box)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 13,
+                fontStyle = FontStyle.Bold,
+                normal =
+                {
+                    textColor = new Color(0.98f, 0.95f, 0.84f, 1f),
+                    background = Texture2D.whiteTexture,
+                },
+                padding = new RectOffset(10, 10, 4, 4),
+            };
+
+            _finalKillMarkerStyle = new GUIStyle(GUI.skin.box)
+            {
+                normal =
+                {
+                    background = Texture2D.whiteTexture,
+                },
+            };
         }
 
         private void DrawRuleLabel()
@@ -116,6 +141,59 @@ namespace ProjectPVP.Match
             GUI.color = Color.white;
             GUI.Label(rect, "VENCEDOR = " + _matchController.ResolveSlotDisplayName(_matchController.ChampionAnnouncementSlot), _winnerTextStyle);
             GUI.color = previous;
+        }
+
+        private void DrawFinalKillLabel()
+        {
+            if (!ShouldShowFinalKillInfo())
+            {
+                return;
+            }
+
+            float width = Mathf.Clamp(Screen.width - 48f, 240f, 520f);
+            Rect rect = new Rect((Screen.width - width) * 0.5f, 92f, width, 28f);
+            Color previous = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.68f);
+            GUI.Box(rect, "ABATE FINAL: " + _matchController.LastRoundDeathSummary, _finalKillStyle);
+            GUI.color = previous;
+        }
+
+        private void DrawFinalKillMarker()
+        {
+            if (!ShouldShowFinalKillInfo())
+            {
+                return;
+            }
+
+            Camera targetCamera = Camera.main != null ? Camera.main : Object.FindFirstObjectByType<Camera>();
+            if (targetCamera == null)
+            {
+                return;
+            }
+
+            Vector3 screenPoint = targetCamera.WorldToScreenPoint(_matchController.LastRoundDeathPosition);
+            if (screenPoint.z <= 0f)
+            {
+                return;
+            }
+
+            float y = Screen.height - screenPoint.y;
+            Rect markerRect = new Rect(screenPoint.x - 9f, y - 9f, 18f, 18f);
+            Color previous = GUI.color;
+            GUI.color = new Color(0.95f, 0.2f, 0.2f, 0.9f);
+            GUI.Box(markerRect, GUIContent.none, _finalKillMarkerStyle);
+            GUI.color = previous;
+        }
+
+        private bool ShouldShowFinalKillInfo()
+        {
+            return !string.IsNullOrWhiteSpace(_matchController.LastRoundDeathSummary)
+                && (
+                    _matchController.PendingRoundWinnerSlot != CombatantSlotId.None
+                    || _matchController.PendingChampionSlot != CombatantSlotId.None
+                    || _matchController.ChampionAnnouncementSlot != CombatantSlotId.None
+                    || _matchController.IsRoundResetPending
+                    || _matchController.IsRespawnFreezeActive);
         }
     }
 }

@@ -1,7 +1,9 @@
 {
   "name": "ProjectPVP.Core",
   "rootNamespace": "ProjectPVP",
-  "references": [],
+  "references": [
+    "UnityEngine.AudioModule"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

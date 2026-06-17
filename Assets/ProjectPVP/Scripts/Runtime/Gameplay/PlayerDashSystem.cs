@@ -23,11 +23,20 @@ namespace ProjectPVP.Gameplay
 
         public void TryStartDash(PlayerInputFrame frame)
         {
+            if (_context.isDead)
+            {
+                return;
+            }
+
             bool primaryPressed = frame.dashPrimaryPressed;
             bool secondaryPressed = frame.dashSecondaryPressed;
             if (primaryPressed || secondaryPressed)
             {
-                _context.dashPressTimer = DashPressParryWindow;
+                if (CanPressedDashStart(primaryPressed, secondaryPressed))
+                {
+                    _context.dashPressTimer = DashPressParryWindow;
+                }
+
                 _context.pendingDashPrimary |= primaryPressed;
                 _context.pendingDashSecondary |= secondaryPressed;
                 _context.dashComboWindowLeft = Mathf.Max(_context.dashComboWindowLeft, DashComboWindow);
@@ -82,7 +91,7 @@ namespace ProjectPVP.Gameplay
 
             _context.dashComboWindowLeft = 0f;
 
-            Vector2 direction = ResolveDashDirection();
+            Vector2 direction = ResolveDashDirection(frame);
             float dashSpeed = _statResolver.ResolveDashDistance() > 0f && _statResolver.ResolveDashDuration() > 0f
                 ? (_statResolver.ResolveDashDistance() * usedCount) / _statResolver.ResolveDashDuration()
                 : _statResolver.ResolveMoveSpeed() * _statResolver.ResolveDashMultiplier() * usedCount;
@@ -94,9 +103,20 @@ namespace ProjectPVP.Gameplay
             TriggerDashAnimation(_statResolver.ResolveActionDuration("dash", 0.3f));
         }
 
+        private bool CanPressedDashStart(bool primaryPressed, bool secondaryPressed)
+        {
+            if (_context.isDead || _context.dashTimeLeft > 0f)
+            {
+                return false;
+            }
+
+            return (primaryPressed && _context.dashPrimaryCooldownLeft <= 0f)
+                || (secondaryPressed && _context.dashSecondaryCooldownLeft <= 0f);
+        }
+
         public Vector2 UpdateDashVelocity(float deltaTime, ref Vector2 velocity)
         {
-            if (_context.dashTimeLeft <= 0f)
+            if (_context.isDead || _context.dashTimeLeft <= 0f)
             {
                 return Vector2.zero;
             }
@@ -109,8 +129,14 @@ namespace ProjectPVP.Gameplay
                 TriggerJumpStartAnimation();
             }
 
-            Vector2 dashVelocity = _context.dashVelocity;
-            _context.dashTimeLeft -= deltaTime;
+            float safeDeltaTime = Mathf.Max(0f, deltaTime);
+            float appliedDashTime = safeDeltaTime > 0f
+                ? Mathf.Min(_context.dashTimeLeft, safeDeltaTime)
+                : 0f;
+            Vector2 dashVelocity = safeDeltaTime > 0f
+                ? _context.dashVelocity * (appliedDashTime / safeDeltaTime)
+                : Vector2.zero;
+            _context.dashTimeLeft = Mathf.Max(0f, _context.dashTimeLeft - safeDeltaTime);
 
             if (_context.dashTimeLeft <= 0f)
             {
@@ -122,13 +148,38 @@ namespace ProjectPVP.Gameplay
 
         public void TriggerDashAnimation(float duration)
         {
+            if (_context.isDead)
+            {
+                return;
+            }
+
             _context.dashAnimationHoldTimeLeft = Mathf.Max(duration, 0f);
         }
 
         public Vector2 ResolveDashDirection()
         {
+            return ResolveDashDirection(default);
+        }
+
+        public Vector2 ResolveDashDirection(PlayerInputFrame frame)
+        {
             int facingDirection = _context.facing == 0 ? 1 : (_context.facing > 0 ? 1 : -1);
-            return new Vector2(facingDirection, 0f);
+            Vector2 movementDirection = frame.Movement;
+            Vector2 rawDirection = movementDirection.sqrMagnitude > 0.01f
+                ? movementDirection
+                : frame.aim;
+            Vector2 snappedDirection = PlayerMovementSystem.Snap8Dir(rawDirection);
+            if (snappedDirection.sqrMagnitude <= 0.01f)
+            {
+                snappedDirection = new Vector2(facingDirection, 0f);
+            }
+
+            if (snappedDirection.y > 0f)
+            {
+                snappedDirection.y *= Mathf.Max(0f, _statResolver.ResolveDashUpwardMultiplier());
+            }
+
+            return snappedDirection;
         }
 
         public void ApplyTransientVelocity(ref Vector2 velocity, Vector2 previousVelocity, Vector2 currentVelocity, ref Vector2 lastVelocity)

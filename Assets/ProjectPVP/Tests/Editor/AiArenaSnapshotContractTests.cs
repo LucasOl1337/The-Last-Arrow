@@ -29,6 +29,7 @@ namespace ProjectPVP.Tests.Editor
             AssertPublicField<AiArenaControllerSnapshot, bool>("canBlockProjectiles");
             AssertPublicField<AiArenaControllerSnapshot, int>("arrows");
             AssertPublicField<AiArenaControllerSnapshot, int>("facing");
+            AssertPublicField<AiArenaControllerSnapshot, float>("projectileInheritVelocityFactor");
             AssertPublicField<AiArenaControllerSnapshot, float>("shootCooldownLeft");
             AssertPublicField<AiArenaControllerSnapshot, float>("meleeCooldownLeft");
             AssertPublicField<AiArenaControllerSnapshot, float>("dashCooldownLeft");
@@ -49,6 +50,7 @@ namespace ProjectPVP.Tests.Editor
             AssertPublicField<AiArenaProjectileSnapshot, int>("sourceSlotId");
             AssertPublicField<AiArenaProjectileSnapshot, bool>("isStuck");
             AssertPublicField<AiArenaProjectileSnapshot, bool>("isDisarmed");
+            AssertPublicField<AiArenaProjectileSnapshot, bool>("isCollectible");
             AssertPublicField<AiArenaProjectileSnapshot, Vector2>("position");
             AssertPublicField<AiArenaProjectileSnapshot, Vector2>("velocity");
             AssertPublicField<AiArenaProjectileSnapshot, Vector2>("travelDirection");

@@ -10,9 +10,7 @@ namespace ProjectPVP.Gameplay
     /// </summary>
     public sealed class PlayerCombatSystem
     {
-        private const float InitialAssistAimNudge = 0.25f;
-        private const float AssistSectorHalfAngleDeg = 22f;
-        private const float ElevatedTargetBiasHeight = 24f;
+        private const float ContactArrowTransferLockDuration = 0.12f;
 
         private readonly PlayerContext _context;
         private readonly PlayerStatResolver _statResolver;
@@ -30,7 +28,7 @@ namespace ProjectPVP.Gameplay
 
         public void TryUseMelee(PlayerInputFrame frame)
         {
-            if (!frame.meleePressed || _context.meleeCooldownLeft > 0f || _context.meleeTimeLeft > 0f)
+            if (_context.isDead || !frame.meleePressed || _context.meleeCooldownLeft > 0f || _context.meleeTimeLeft > 0f)
             {
                 return;
             }
@@ -44,7 +42,7 @@ namespace ProjectPVP.Gameplay
 
         public void HandleActiveMelee()
         {
-            if (_context.meleeTimeLeft <= 0f)
+            if (_context.isDead || _context.meleeTimeLeft <= 0f)
             {
                 return;
             }
@@ -74,7 +72,7 @@ namespace ProjectPVP.Gameplay
                 }
 
                 PlayerController target = hit.GetComponentInParent<PlayerController>();
-                if (target == null || target == _context.Controller || target.IsDead)
+                if (target == null || target == _context.Controller || target.IsDead || target.IsDodgeInvulnerable)
                 {
                     continue;
                 }
@@ -86,22 +84,17 @@ namespace ProjectPVP.Gameplay
                 }
 
                 _context.meleeHitIds.Add(targetId);
-
-                Vector2 hitDirection = (target.RootPosition - _context.Controller.RootPosition).normalized;
-                float hitstunDuration = _context.characterDefinition != null
-                    ? _context.characterDefinition.meleeHitstunDuration
-                    : 0.1f;
-                float knockbackForce = _context.characterDefinition != null
-                    ? _context.characterDefinition.meleeKnockbackForce
-                    : 400f;
-
-                target.ApplyHitstun(hitstunDuration);
-                target.ApplyKnockback(hitDirection, knockbackForce, 0.2f);
+                target.Kill(_context.Controller, "Melee");
             }
         }
 
         public void HandleProjectileSeverDuringMelee()
         {
+            if (_context.isDead)
+            {
+                return;
+            }
+
             int hitCount = _anchorSystem.TryOverlapAuthoredHitbox(_context.meleeHitboxAnchor, GetProjectileSeverContactFilter(), _context.overlapHits, out int authoredHitCount)
                 ? authoredHitCount
                 : Physics2D.OverlapBox(
@@ -131,13 +124,13 @@ namespace ProjectPVP.Gameplay
 
         public bool TrySeverProjectileWithMelee(Collider2D hit)
         {
-            if (!CanSeverProjectilesWithMelee() || hit == null)
+            if (_context.isDead || !CanSeverProjectilesWithMelee() || hit == null)
             {
                 return false;
             }
 
             ProjectileController projectile = hit.GetComponentInParent<ProjectileController>();
-            if (projectile == null || projectile.IsStuck || projectile.IsDisarmed)
+            if (projectile == null || projectile.IsStuck || projectile.IsDisarmed || IsOwnProjectileSource(projectile))
             {
                 return false;
             }
@@ -159,16 +152,13 @@ namespace ProjectPVP.Gameplay
         }
 
         /// <summary>
-        /// Fires the held shot using the Last Arrow ballistic system:
-        ///   1. Aim is snapped to one of 8 compass directions.
-        ///   2. If an enemy is found inside the aimed cone, compute the exact ballistic
-        ///      arc needed to reach their current position at the arrow's launch speed.
-        ///   3. The arrow then flies with pure physics — gravity only, no homing —
-        ///      so the target can still dodge by moving.
+        /// Fires the held shot using the snapped 8-direction aim.
+        /// The arrow leaves the bow in the chosen direction, then can receive a
+        /// light in-flight seek if an opponent is already inside the aimed cone.
         /// </summary>
         public void FireHeldShot()
         {
-            if (_context.ProjectilePrefab == null || _context.shootCooldownLeft > 0f || _context.arrows <= 0)
+            if (_context.isDead || _context.ProjectilePrefab == null || _context.shootCooldownLeft > 0f || _context.arrows <= 0)
                 return;
 
             // ── 1. Resolve the snapped 8-directional aim ─────────────────────────────
@@ -180,55 +170,19 @@ namespace ProjectPVP.Gameplay
             if (shotFacing != _context.facing) _context.facing = shotFacing;
 
             Vector2 origin = GetProjectileSpawnPoint(aimDir8, shotFacing);
-
-            float arrowSpeed = _context.characterDefinition != null
-                ? _context.characterDefinition.projectileBaseSpeed : 1600f;
-            float arrowGrav = _context.characterDefinition != null
-                ? _context.characterDefinition.projectileGravity : 1500f;
-
-            // ── 2. Find the best enemy inside the aimed cone ──────────────────────────
-            // Cone is ±22° — exactly half the gap between the 8 directions (45°/2).
-            // This means ballistic assist only activates when the player genuinely
-            // aimed at the correct one of the 8 directions; picking the wrong direction
-            // fires a raw shot with no lock-on.
             Transform assistTarget = ResolveProjectileAssistTarget(origin, aimDir8);
-            PlayerController targetPlayer = assistTarget != null ? assistTarget.GetComponent<PlayerController>() : null;
 
-            // ── 3. Compute optimal ballistic arc ──────────────────────────────────────
-            // If a target is found and the arc is solvable, override the raw aim direction.
-            // Otherwise fall back to the raw 8-directional shot so the player is never stuck.
-            Vector2 launchDir = aimDir8;
-            if (targetPlayer != null)
-            {
-                Vector2 hitPoint = PlayerAnchorSystem.ResolveCombatantAimPoint(targetPlayer);
-                if (TryBallisticSolve(origin, hitPoint, arrowSpeed, arrowGrav,
-                                      out Vector2 lowArc, out Vector2 highArc))
-                {
-                    // Accept the low (fast/direct) arc only if it stays inside the aimed sector.
-                    // Allow up to +5° extra for the arc math rounding — but not more.
-                    if (!TrySelectBestBallisticDirection(origin, hitPoint, aimDir8, arrowSpeed, arrowGrav, out launchDir))
-                    {
-                        launchDir = SelectBestBallisticDirection(aimDir8, lowArc, highArc);
-                    }
-                }
-                else
-                {
-                    launchDir = ApplyInitialAssistNudge(aimDir8, origin, assistTarget);
-                }
-            }
-
-            // ── 4. Spawn the arrow ────────────────────────────────────────────────────
             ProjectileController proj = ProjectileLauncher.Spawn(
                 _context.ProjectilePrefab,
                 _context.characterDefinition,
                 _context.Controller.gameObject,
                 origin,
-                launchDir,
+                aimDir8,
                 assistTarget,
                 assistTarget != null && _statResolver.ResolveProjectileAssistEnabled(),
                 _statResolver.ResolveProjectileAssistStrength(),
                 _statResolver.ResolveProjectileAssistMaxTurnRateDeg(),
-                Mathf.Min(AssistSectorHalfAngleDeg, Mathf.Clamp(_statResolver.ResolveProjectileAssistAcquireConeDeg(), 0f, 180f)),
+                Mathf.Clamp(_statResolver.ResolveProjectileAssistAcquireConeDeg(), 0f, 180f),
                 _statResolver.ResolveProjectileAssistMaxRange(),
                 _statResolver.ResolveProjectileAssistMinDistance(),
                 _statResolver.ResolveProjectileAssistDropoffStartRatio(),
@@ -243,76 +197,6 @@ namespace ProjectPVP.Gameplay
             _context.shootCooldownLeft = _statResolver.ResolveShootCooldown();
             TriggerShootAnimation(_statResolver.ResolveActionDuration("shoot", 0.18f));
             PlayActionSfx("shoot");
-        }
-
-        /// <summary>
-        /// Solves the two ballistic launch directions that will carry an arrow from
-        /// <paramref name="origin"/> to <paramref name="target"/> at exactly
-        /// <paramref name="speed"/> under constant downward <paramref name="gravity"/>.
-        ///
-        /// Uses the standard quadratic-in-tan(θ) method:
-        ///   A·u² + B·u + C = 0   where  u = tan(launch angle)
-        ///   A =  g·dx² / (2·s²)
-        ///   B = −dx
-        ///   C =  dy + A
-        ///
-        /// Returns false when the target is out of range (negative discriminant).
-        /// <paramref name="lowArcDir"/>  = shallower, faster trajectory (preferred).
-        /// <paramref name="highArcDir"/> = steeper,   slower trajectory.
-        /// </summary>
-        private static bool TryBallisticSolve(
-            Vector2 origin, Vector2 target,
-            float speed, float gravity,
-            out Vector2 lowArcDir, out Vector2 highArcDir)
-        {
-            lowArcDir = highArcDir = Vector2.zero;
-
-            if (speed < 0.1f)
-            {
-                Vector2 fallback = (target - origin).normalized;
-                lowArcDir = highArcDir = fallback;
-                return true;
-            }
-
-            float dx = target.x - origin.x;
-            float dy = target.y - origin.y;
-
-            // Near-vertical: target almost directly above/below — aim straight at it.
-            if (Mathf.Abs(dx) < 1f)
-            {
-                Vector2 d = (target - origin).normalized;
-                lowArcDir = highArcDir = d;
-                return true;
-            }
-
-            float s2 = speed * speed;
-            float A  =  gravity * dx * dx / (2f * s2);
-            float B  = -dx;
-            float C  =  dy + A;
-
-            float disc = B * B - 4f * A * C;
-            if (disc < 0f) return false;   // target unreachable at this speed
-
-            float sqrtD = Mathf.Sqrt(disc);
-            float u1    = (-B + sqrtD) / (2f * A);
-            float u2    = (-B - sqrtD) / (2f * A);
-
-            // Convert tan(θ) → normalised launch direction.
-            // The horizontal component sign is determined by the direction to target.
-            Vector2 TanToDir(float u)
-            {
-                float cosA = 1f / Mathf.Sqrt(1f + u * u);
-                float sinA = u * cosA;
-                return new Vector2(cosA * (dx >= 0f ? 1f : -1f), sinA);
-            }
-
-            Vector2 d1 = TanToDir(u1);
-            Vector2 d2 = TanToDir(u2);
-
-            // Low arc = shallower angle = smaller absolute tan value.
-            if (Mathf.Abs(u1) <= Mathf.Abs(u2)) { lowArcDir = d1; highArcDir = d2; }
-            else                                  { lowArcDir = d2; highArcDir = d1; }
-            return true;
         }
 
         public Vector2 GetProjectileSpawnPoint(Vector2 aimDirection, int facingDirection)
@@ -395,7 +279,7 @@ namespace ProjectPVP.Gameplay
             ref float bestSqrDistance,
             ref PlayerController bestTarget)
         {
-            if (candidate == null || candidate == _context.Controller || candidate.IsDead)
+            if (candidate == null || candidate == _context.Controller || candidate.IsDead || candidate.IsDodgeInvulnerable)
             {
                 return;
             }
@@ -459,7 +343,16 @@ namespace ProjectPVP.Gameplay
                 ? _context.characterDefinition.projectileGravity
                 : 1500f;
 
-            if (!TryResolvePreferredBallisticDirection(origin, candidateAimPoint, arrowSpeed, arrowGrav, out Vector2 preferredDirection))
+            Vector2 inheritedVelocity = GetProjectileInheritedVelocity()
+                * _statResolver.ResolveProjectileInheritVelocityFactor();
+            if (!ProjectileTrajectoryMath.TryResolvePreferredTravelDirection(
+                    origin,
+                    candidateAimPoint,
+                    arrowSpeed,
+                    arrowGrav,
+                    inheritedVelocity,
+                    _context.Controller.groundMask,
+                    out Vector2 preferredDirection))
             {
                 preferredDirection = toCandidate.normalized;
             }
@@ -473,150 +366,6 @@ namespace ProjectPVP.Gameplay
             return requiredSector.sqrMagnitude > 0.01f;
         }
 
-        private static Vector2 SelectBestBallisticDirection(Vector2 preferredSector, Vector2 firstArc, Vector2 secondArc)
-        {
-            float firstAngle = Vector2.Angle(preferredSector, firstArc);
-            float secondAngle = Vector2.Angle(preferredSector, secondArc);
-            return firstAngle <= secondAngle ? firstArc : secondArc;
-        }
-
-        private bool TryResolvePreferredBallisticDirection(
-            Vector2 origin,
-            Vector2 target,
-            float baseSpeed,
-            float gravity,
-            out Vector2 preferredDirection)
-        {
-            preferredDirection = Vector2.zero;
-            if (!TryBallisticSolve(origin, target, baseSpeed, gravity, out Vector2 lowArc, out Vector2 highArc))
-            {
-                return false;
-            }
-
-            Vector2 inheritedVelocity = GetProjectileInheritedVelocity() * _statResolver.ResolveProjectileInheritVelocityFactor();
-            bool lowClear = IsBallisticPathClear(origin, lowArc, baseSpeed, gravity, inheritedVelocity, target);
-            bool highClear = IsBallisticPathClear(origin, highArc, baseSpeed, gravity, inheritedVelocity, target);
-            bool favorHighArc = target.y - origin.y > ElevatedTargetBiasHeight;
-
-            if (lowClear && highClear)
-            {
-                preferredDirection = favorHighArc ? highArc : lowArc;
-                return true;
-            }
-
-            if (highClear)
-            {
-                preferredDirection = highArc;
-                return true;
-            }
-
-            if (lowClear)
-            {
-                preferredDirection = lowArc;
-                return true;
-            }
-
-            preferredDirection = favorHighArc ? highArc : lowArc;
-            return true;
-        }
-
-        private bool TrySelectBestBallisticDirection(
-            Vector2 origin,
-            Vector2 target,
-            Vector2 preferredSector,
-            float baseSpeed,
-            float gravity,
-            out Vector2 selectedDirection)
-        {
-            selectedDirection = preferredSector;
-            if (!TryBallisticSolve(origin, target, baseSpeed, gravity, out Vector2 lowArc, out Vector2 highArc))
-            {
-                return false;
-            }
-
-            Vector2 inheritedVelocity = GetProjectileInheritedVelocity() * _statResolver.ResolveProjectileInheritVelocityFactor();
-            bool lowClear = IsBallisticPathClear(origin, lowArc, baseSpeed, gravity, inheritedVelocity, target);
-            bool highClear = IsBallisticPathClear(origin, highArc, baseSpeed, gravity, inheritedVelocity, target);
-
-            if (lowClear && highClear)
-            {
-                selectedDirection = SelectBestBallisticDirection(preferredSector, lowArc, highArc);
-                return true;
-            }
-
-            if (lowClear)
-            {
-                selectedDirection = lowArc;
-                return true;
-            }
-
-            if (highClear)
-            {
-                selectedDirection = highArc;
-                return true;
-            }
-
-            return false;
-        }
-
-        private bool IsBallisticPathClear(
-            Vector2 origin,
-            Vector2 launchDirection,
-            float baseSpeed,
-            float gravity,
-            Vector2 inheritedVelocity,
-            Vector2 target)
-        {
-            float initialSpeed = baseSpeed + Mathf.Max(0f, Vector2.Dot(inheritedVelocity, launchDirection.normalized));
-            if (initialSpeed <= 0.01f)
-            {
-                return false;
-            }
-
-            const int sampleCount = 24;
-            const float targetRadius = 24f;
-            float estimatedFlightTime = ResolveEstimatedFlightTime(origin, target, launchDirection.normalized, initialSpeed);
-            Vector2 previous = origin;
-
-            for (int step = 1; step <= sampleCount; step += 1)
-            {
-                float t = estimatedFlightTime * (step / (float)sampleCount);
-                Vector2 current = origin
-                    + (launchDirection.normalized * initialSpeed * t)
-                    + (Vector2.down * (0.5f * gravity * t * t));
-
-                if (Physics2D.Linecast(previous, current, _context.Controller.groundMask))
-                {
-                    return false;
-                }
-
-                if ((current - target).sqrMagnitude <= targetRadius * targetRadius)
-                {
-                    return true;
-                }
-
-                previous = current;
-            }
-
-            return (previous - target).sqrMagnitude <= targetRadius * targetRadius;
-        }
-
-        private static float ResolveEstimatedFlightTime(Vector2 origin, Vector2 target, Vector2 direction, float speed)
-        {
-            float horizontalSpeed = direction.x * speed;
-            float dx = target.x - origin.x;
-            if (Mathf.Abs(horizontalSpeed) > 0.01f)
-            {
-                float time = dx / horizontalSpeed;
-                if (time > 0f)
-                {
-                    return Mathf.Clamp(time, 0.05f, 2.5f);
-                }
-            }
-
-            return Mathf.Clamp(Vector2.Distance(origin, target) / Mathf.Max(speed, 0.01f), 0.05f, 2.5f);
-        }
-
         private static bool IsSameEightDirection(Vector2 a, Vector2 b)
         {
             if (a.sqrMagnitude <= 0.01f || b.sqrMagnitude <= 0.01f)
@@ -627,36 +376,101 @@ namespace ProjectPVP.Gameplay
             return Vector2.Dot(a.normalized, b.normalized) >= 0.999f;
         }
 
-        public Vector2 ApplyInitialAssistNudge(Vector2 shotDirection, Vector2 origin, Transform assistTarget)
-        {
-            if (assistTarget == null || !_statResolver.ResolveProjectileAssistEnabled())
-            {
-                return shotDirection;
-            }
-
-            Vector2 toTarget = (Vector2)assistTarget.position - origin;
-            if (toTarget.sqrMagnitude <= 0.0001f)
-            {
-                return shotDirection;
-            }
-
-            float weight = Mathf.Clamp01(_statResolver.ResolveProjectileAssistStrength() * InitialAssistAimNudge);
-            return Vector2.Lerp(shotDirection, toTarget.normalized, weight).normalized;
-        }
-
         public Vector2 GetProjectileInheritedVelocity()
         {
             return _context.body != null ? _context.body.linearVelocity : Vector2.zero;
         }
 
-        public bool HandleIncomingProjectile(ProjectileController projectile)
+        public bool HandleArrowTransferOnContact()
+        {
+            if (_context.isDead || _context.contactArrowTransferLockTimeLeft > 0f || _context.bodyCollider == null || _context.Controller == null)
+            {
+                return false;
+            }
+
+            PlayerController.CopyActivePlayers(_playerQueryBuffer);
+            PlayerController bestTarget = null;
+            int bestTargetArrows = int.MaxValue;
+
+            for (int index = 0; index < _playerQueryBuffer.Count; index += 1)
+            {
+                PlayerController candidate = _playerQueryBuffer[index];
+                if (!CanReceiveArrowFromContact(candidate))
+                {
+                    continue;
+                }
+
+                if (!ArePlayersTouching(candidate))
+                {
+                    continue;
+                }
+
+                int candidateArrows = candidate.CurrentArrows;
+                if (candidateArrows < bestTargetArrows)
+                {
+                    bestTargetArrows = candidateArrows;
+                    bestTarget = candidate;
+                }
+            }
+
+            _playerQueryBuffer.Clear();
+            return bestTarget != null && TryTransferLastArrow(bestTarget);
+        }
+
+        private bool TryTransferLastArrow(PlayerController target)
+        {
+            if (target == null || target == _context.Controller || target.IsDead || target.bodyCollider == null)
+            {
+                return false;
+            }
+
+            // Any positive ammo lead can be converted into contact pressure.
+            if (_context.arrows - target.CurrentArrows < 1)
+            {
+                return false;
+            }
+
+            if (!_context.bodyCollider.Distance(target.bodyCollider).isOverlapped)
+            {
+                return false;
+            }
+
+            _context.arrows = Mathf.Max(0, _context.arrows - 1);
+            target.AddArrows(1);
+            _context.contactArrowTransferLockTimeLeft = ContactArrowTransferLockDuration;
+            target.LockContactArrowTransfer(ContactArrowTransferLockDuration);
+            return true;
+        }
+
+        private bool CanReceiveArrowFromContact(PlayerController target)
+        {
+            return target != null
+                && target != _context.Controller
+                && !target.IsDead
+                && !target.IsContactArrowTransferLocked
+                && !target.HasShield
+                && !target.IsDodgeInvulnerable
+                && target.CurrentArrows < target.MaxArrows;
+        }
+
+        private bool ArePlayersTouching(PlayerController target)
+        {
+            if (target == null || target.bodyCollider == null || _context.bodyCollider == null)
+            {
+                return false;
+            }
+
+            return _context.bodyCollider.Distance(target.bodyCollider).isOverlapped;
+        }
+
+        public bool HandleIncomingProjectile(ProjectileController projectile, bool preserveParryEvent = false)
         {
             if (projectile == null || _context.isDead)
             {
                 return false;
             }
 
-            if (projectile.SourceObject == _context.Controller.gameObject)
+            if (IsOwnProjectileSource(projectile))
             {
                 return false;
             }
@@ -669,11 +483,18 @@ namespace ProjectPVP.Gameplay
 
             if (CanBlockProjectileWithUltimate())
             {
+                projectile.Stick(true);
                 return true;
             }
 
             if (CanParryProjectile())
             {
+                projectile.ReflectFromParry(_context.Controller != null ? _context.Controller.gameObject : null);
+                if (!preserveParryEvent)
+                {
+                    projectile.ConsumeParryEvent();
+                }
+
                 AddArrows(1);
                 _context.dashParryTimer = 0f;
                 _context.dashPressTimer = 0f;
@@ -690,9 +511,35 @@ namespace ProjectPVP.Gameplay
             HandleIncomingProjectile(projectile);
         }
 
+        private bool IsOwnProjectileSource(ProjectileController projectile)
+        {
+            if (_context.Controller == null || projectile == null || projectile.SourceObject == null)
+            {
+                return false;
+            }
+
+            PlayerController sourcePlayer = projectile.SourceObject.GetComponentInParent<PlayerController>();
+            if (sourcePlayer != null)
+            {
+                return sourcePlayer == _context.Controller;
+            }
+
+            return projectile.SourceObject == _context.Controller.gameObject;
+        }
+
         public bool TryCollectProjectile(ProjectileController projectile)
         {
-            if (projectile == null || _context.isDead)
+            if (projectile == null || _context.isDead || !projectile.IsCollectible)
+            {
+                return false;
+            }
+
+            if (_context.arrows >= _statResolver.ResolveMaxArrows())
+            {
+                return false;
+            }
+
+            if (!projectile.TryConsumeCollectible())
             {
                 return false;
             }
@@ -703,62 +550,32 @@ namespace ProjectPVP.Gameplay
 
         public bool CanParryProjectile()
         {
-            return _context.dashParryTimer > 0f || _context.dashPressTimer > 0f;
+            return !_context.isDead
+                && (_context.dashParryTimer > 0f || _context.dashPressTimer > 0f)
+                && (_context.Controller == null || !_context.Controller.HasShield);
         }
 
         private void ApplyProjectileHitReaction(ProjectileController projectile)
         {
-            CharacterDefinition sourceDefinition = ResolveProjectileSourceDefinition(projectile);
-            Vector2 hitDirection = ResolveProjectileHitDirection(projectile);
-            float hitstunDuration = sourceDefinition != null
-                ? sourceDefinition.projectileHitstunDuration
-                : 0.08f;
-            float knockbackForce = sourceDefinition != null
-                ? sourceDefinition.projectileKnockbackForce
-                : 300f;
-
-            ApplyHitstun(hitstunDuration);
-            ApplyKnockback(hitDirection, knockbackForce, 0.2f);
-        }
-
-        private CharacterDefinition ResolveProjectileSourceDefinition(ProjectileController projectile)
-        {
-            if (projectile == null || projectile.SourceObject == null)
+            bool hadShield = _context.Controller != null && _context.Controller.HasShield;
+            PlayerController sourcePlayer = projectile != null && projectile.SourceObject != null
+                ? projectile.SourceObject.GetComponentInParent<PlayerController>()
+                : null;
+            bool killed = _context.Controller != null && _context.Controller.TryKill(sourcePlayer, "Projectile");
+            if (projectile != null && (killed || hadShield))
             {
-                return null;
+                projectile.Stick(true);
             }
-
-            PlayerController source = projectile.SourceObject.GetComponentInParent<PlayerController>();
-            return source != null ? source.characterDefinition : null;
-        }
-
-        private Vector2 ResolveProjectileHitDirection(ProjectileController projectile)
-        {
-            Vector2 hitDirection = projectile != null ? projectile.TravelDirection : Vector2.zero;
-            if (hitDirection.sqrMagnitude > 0.01f)
-            {
-                return hitDirection.normalized;
-            }
-
-            if (projectile != null && projectile.SourceObject != null)
-            {
-                PlayerController source = projectile.SourceObject.GetComponentInParent<PlayerController>();
-                if (source != null)
-                {
-                    hitDirection = _context.Controller.RootPosition - source.RootPosition;
-                    if (hitDirection.sqrMagnitude > 0.01f)
-                    {
-                        return hitDirection.normalized;
-                    }
-                }
-            }
-
-            return Vector2.right;
         }
 
         public bool CanSeverIncomingProjectile(ProjectileController projectile)
         {
-            if (!CanSeverProjectilesWithMelee() || !(_context.meleeTimeLeft > 0f) || projectile == null || projectile.IsStuck || projectile.IsDisarmed)
+            if (!CanSeverProjectilesWithMelee()
+                || !(_context.meleeTimeLeft > 0f)
+                || projectile == null
+                || projectile.IsStuck
+                || projectile.IsDisarmed
+                || IsOwnProjectileSource(projectile))
             {
                 return false;
             }
@@ -782,7 +599,7 @@ namespace ProjectPVP.Gameplay
 
         public void TryUseUltimate(PlayerInputFrame frame)
         {
-            if (!frame.ultimatePressed || _context.ultimateCooldownLeft > 0f || _context.ultimateTimeLeft > 0f || !_statResolver.HasUltimateConfigured())
+            if (_context.isDead || !frame.ultimatePressed || _context.ultimateCooldownLeft > 0f || _context.ultimateTimeLeft > 0f || !_statResolver.HasUltimateConfigured())
             {
                 return;
             }
@@ -799,7 +616,7 @@ namespace ProjectPVP.Gameplay
 
         public void HandleActiveUltimate(float deltaTime)
         {
-            if (_context.ultimateTimeLeft <= 0f)
+            if (_context.isDead || _context.ultimateTimeLeft <= 0f)
             {
                 return;
             }
@@ -832,6 +649,11 @@ namespace ProjectPVP.Gameplay
 
         public void ApplyUltimateImpact()
         {
+            if (_context.isDead)
+            {
+                return;
+            }
+
             int hitCount = CollectCurrentUltimateHits(_context.overlapHits);
             ApplyUltimateDamageHits(_context.overlapHits, hitCount);
         }
@@ -843,8 +665,14 @@ namespace ProjectPVP.Gameplay
                 return Vector2.zero;
             }
 
-            Vector2 dashVelocity = _context.ultimateDashVelocity;
-            _context.ultimateDashTimeLeft = Mathf.Max(0f, _context.ultimateDashTimeLeft - deltaTime);
+            float safeDeltaTime = Mathf.Max(0f, deltaTime);
+            float appliedDashTime = safeDeltaTime > 0f
+                ? Mathf.Min(_context.ultimateDashTimeLeft, safeDeltaTime)
+                : 0f;
+            Vector2 dashVelocity = safeDeltaTime > 0f
+                ? _context.ultimateDashVelocity * (appliedDashTime / safeDeltaTime)
+                : Vector2.zero;
+            _context.ultimateDashTimeLeft = Mathf.Max(0f, _context.ultimateDashTimeLeft - safeDeltaTime);
             if (_context.ultimateDashTimeLeft <= 0f)
             {
                 _context.ultimateDashVelocity = Vector2.zero;
@@ -889,6 +717,7 @@ namespace ProjectPVP.Gameplay
 
         public void ApplyUltimateDamageHits(Collider2D[] hits, int hitCount)
         {
+            HashSet<int> appliedTargetIds = new HashSet<int>();
             for (int index = 0; index < hitCount; index += 1)
             {
                 Collider2D hit = hits[index];
@@ -898,32 +727,29 @@ namespace ProjectPVP.Gameplay
                 }
 
                 PlayerController target = hit.GetComponentInParent<PlayerController>();
-                if (target == null || target == _context.Controller || target.IsDead)
+                if (target == null || target == _context.Controller || target.IsDead || target.IsDodgeInvulnerable)
                 {
                     continue;
                 }
 
-                Vector2 hitDirection = (target.RootPosition - _context.Controller.RootPosition).normalized;
-                float hitstunDuration = _context.characterDefinition != null
-                    ? _context.characterDefinition.ultimateHitstunDuration
-                    : 0.15f;
-                float knockbackForce = _context.characterDefinition != null
-                    ? _context.characterDefinition.ultimateKnockbackForce
-                    : 600f;
+                int targetId = target.GetInstanceID();
+                if (!appliedTargetIds.Add(targetId))
+                {
+                    continue;
+                }
 
-                target.ApplyHitstun(hitstunDuration);
-                target.ApplyKnockback(hitDirection, knockbackForce, 0.25f);
+                target.Kill(_context.Controller, "Ultimate");
             }
         }
 
         public bool CanBlockProjectileWithUltimate()
         {
-            return _context.ultimateProjectileBlockTimer > 0f;
+            return !_context.isDead && _context.ultimateProjectileBlockTimer > 0f;
         }
 
         public void ApplyHitstun(float duration)
         {
-            if (duration <= 0f)
+            if (_context.isDead || duration <= 0f)
             {
                 return;
             }
@@ -933,7 +759,7 @@ namespace ProjectPVP.Gameplay
 
         public void ApplyKnockback(Vector2 direction, float force, float duration)
         {
-            if (duration <= 0f || force <= 0f)
+            if (_context.isDead || duration <= 0f || force <= 0f)
             {
                 return;
             }
@@ -950,8 +776,12 @@ namespace ProjectPVP.Gameplay
             }
 
             _context.isDead = true;
+            _context.currentInputFrame = default;
             _context.aimHoldActive = false;
             _context.shootHeldLastFrame = false;
+            _context.hitStunTimeLeft = 0f;
+            _context.knockbackVelocity = Vector2.zero;
+            _context.knockbackTimeLeft = 0f;
             _context.dashTimeLeft = 0f;
             _context.dashVelocity = Vector2.zero;
             _context.lastDashVelocity = Vector2.zero;
@@ -968,6 +798,7 @@ namespace ProjectPVP.Gameplay
             _context.dashParryTimer = 0f;
             _context.dashPressTimer = 0f;
             _context.dashComboWindowLeft = 0f;
+            _context.contactArrowTransferLockTimeLeft = 0f;
             _context.currentOverrideLockLeft = 0f;
             _context.pendingDashPrimary = false;
             _context.pendingDashSecondary = false;

@@ -5,6 +5,8 @@ namespace ProjectPVP.Input
 {
     internal static class CodexPromptStateBuilder
     {
+        private const float DangerousProjectileLateralTolerance = 140f;
+
         internal static CodexPromptState Build(
             AiArenaSnapshotEnvelope snapshot,
             AiArenaSnapshotEnvelope previousSnapshot,
@@ -36,7 +38,26 @@ namespace ProjectPVP.Input
                 for (int index = 0; index < snapshot.projectiles.Count; index += 1)
                 {
                     AiArenaProjectileObservation projectile = snapshot.projectiles[index];
-                    if (projectile == null || projectile.isStuck || projectile.isDisarmed)
+                    if (projectile == null)
+                    {
+                        continue;
+                    }
+
+                    if (projectile.isCollectible && (projectile.isStuck || projectile.isDisarmed))
+                    {
+                        float distance = EstimateProjectileDistance(snapshot.self, projectile);
+                        if (distance >= 0f)
+                        {
+                            promptState.recoverableProjectiles.Add(new CodexPromptProjectileRecovery
+                            {
+                                sourceSlotId = projectile.sourceSlotId,
+                                distanceToSelf = distance,
+                                position = projectile.position,
+                            });
+                        }
+                    }
+
+                    if (projectile.isStuck || projectile.isDisarmed)
                     {
                         continue;
                     }
@@ -148,6 +169,7 @@ namespace ProjectPVP.Input
                 canBlockProjectiles = source.canBlockProjectiles,
                 arrows = source.arrows,
                 facing = source.facing,
+                projectileInheritVelocityFactor = source.projectileInheritVelocityFactor,
                 shootCooldownLeft = source.shootCooldownLeft,
                 meleeCooldownLeft = source.meleeCooldownLeft,
                 dashCooldownLeft = source.dashCooldownLeft,
@@ -192,14 +214,28 @@ namespace ProjectPVP.Input
                 return -1f;
             }
 
-            Vector2 toSelf = self.position - projectile.position;
-            float speedSqr = projectile.velocity.sqrMagnitude;
-            if (speedSqr <= 1f || Vector2.Dot(toSelf, projectile.velocity) <= 0f)
+            if (!AiArenaProjectileThreatMath.TryEstimateClosestApproach(
+                self.position,
+                self.velocity,
+                projectile.position,
+                projectile.velocity,
+                out float etaSeconds,
+                out Vector2 closestOffset))
             {
                 return -1f;
             }
 
-            return Mathf.Clamp(Vector2.Dot(toSelf, projectile.velocity) / speedSqr, 0f, 1.5f);
+            return closestOffset.magnitude <= DangerousProjectileLateralTolerance ? etaSeconds : -1f;
+        }
+
+        private static float EstimateProjectileDistance(AiArenaCombatantObservation self, AiArenaProjectileObservation projectile)
+        {
+            if (self == null || projectile == null)
+            {
+                return -1f;
+            }
+
+            return Vector2.Distance(self.position, projectile.position);
         }
     }
 }

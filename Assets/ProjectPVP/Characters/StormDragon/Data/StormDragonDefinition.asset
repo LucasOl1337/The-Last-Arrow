@@ -50,10 +50,10 @@ MonoBehaviour:
   jumpVelocity: 660
   gravity: 1500
   maxFallSpeed: 1500
-  shootCooldown: 0.001
-  maxArrows: 50
-  meleeCooldown: 0.45
-  meleeDuration: 0.3
+  shootCooldown: 0.02
+  maxArrows: 3
+  meleeCooldown: 0.68
+  meleeDuration: 0.42
   meleeCanSeverProjectiles: 1
   meleeHitstunDuration: 0.1
   projectileHitstunDuration: 0.08
@@ -71,14 +71,14 @@ MonoBehaviour:
   wallJumpVerticalForce: 720
   wallSlideSpeed: 60
   wallGravityScale: 0.2
-  runtimeMoveScale: 1
-  runtimeJumpScale: 1
-  runtimeGravityScale: 1
-  runtimeDashScale: 1
+  runtimeMoveScale: 0.78
+  runtimeJumpScale: 0.82
+  runtimeGravityScale: 1.14
+  runtimeDashScale: 0.8
   dashMultiplier: 1.8
   dashDuration: 0.12
   dashCooldown: 0.45
-  dashDistance: 100
+  dashDistance: 88
   dashUpwardMultiplier: 0.5
   ultimateWindupRatio: 0.45
   ultimateDashDistance: 0
@@ -92,7 +92,7 @@ MonoBehaviour:
   projectileForward: 0
   projectileForwardFacing: 0
   projectileVerticalOffset: 0
-  projectileInheritVelocityFactor: 1
+  projectileInheritVelocityFactor: 0.45
   projectileScale: 1.5
   projectileOriginMode: 0
   projectileOriginOffset:
@@ -118,7 +118,7 @@ MonoBehaviour:
   projectileRotateWithVelocity: 1
   projectileCollectableWhenStuck: 1
   projectileAssistEnabled: 0
-  projectileAssistStrength: 0.32
+  projectileAssistStrength: 0.2
   projectileAssistMaxTurnRateDeg: 420
   projectileAssistAcquireConeDeg: 36
   projectileAssistMaxRange: 1600
@@ -169,7 +169,7 @@ MonoBehaviour:
     skipLeft: 0
     targetVisualHeight: 0
     groundAnchorRatio: 1
-    duration: 0.3
+    duration: 0.34
     cancelable: 0
     speed: 10
     spriteScale: 1
@@ -307,7 +307,7 @@ MonoBehaviour:
     skipLeft: 0
     targetVisualHeight: 0
     groundAnchorRatio: 1
-    duration: 0.3
+    duration: 0.34
     cancelable: 0
     speed: 15
     spriteScale: 1
@@ -587,7 +587,7 @@ MonoBehaviour:
     skipLeft: 0
     targetVisualHeight: 0
     groundAnchorRatio: 1
-    duration: 0.9166667
+    duration: 0.5
     cancelable: 0
     speed: 12
     spriteScale: 1
@@ -733,7 +733,7 @@ MonoBehaviour:
     skipLeft: 0
     targetVisualHeight: 0
     groundAnchorRatio: 1
-    duration: 0.1
+    duration: 0.2
     cancelable: 1
     speed: 12
     spriteScale: 1

@@ -116,6 +116,62 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CreateCombatant_RuntimeProjectileFallbackDoesNotLeakDefinitionStateBetweenCharacters()
+        {
+            CharacterBootstrapProfile firstProfile = ScriptableObject.CreateInstance<CharacterBootstrapProfile>();
+            CharacterBootstrapProfile secondProfile = ScriptableObject.CreateInstance<CharacterBootstrapProfile>();
+            CharacterDefinition firstDefinition = ScriptableObject.CreateInstance<CharacterDefinition>();
+            CharacterDefinition secondDefinition = ScriptableObject.CreateInstance<CharacterDefinition>();
+            CombatantSlotProfile firstSlotProfile = ScriptableObject.CreateInstance<CombatantSlotProfile>();
+            CombatantSlotProfile secondSlotProfile = ScriptableObject.CreateInstance<CombatantSlotProfile>();
+
+            try
+            {
+                firstDefinition.displayName = "Mizu";
+                firstDefinition.projectileBaseSpeed = 1111f;
+                secondDefinition.displayName = "Storm Dragon";
+                secondDefinition.projectileBaseSpeed = 2222f;
+
+                firstProfile.characterDefinition = firstDefinition;
+                secondProfile.characterDefinition = secondDefinition;
+
+                PlayerController firstController = CharacterBootstrapFactory.CreateCombatant(
+                    firstProfile,
+                    CombatantSlotId.SlotOne,
+                    firstSlotProfile,
+                    null);
+                PlayerController secondController = CharacterBootstrapFactory.CreateCombatant(
+                    secondProfile,
+                    CombatantSlotId.SlotTwo,
+                    secondSlotProfile,
+                    null);
+
+                try
+                {
+                    Assert.That(firstController.projectilePrefab, Is.Not.Null);
+                    Assert.That(secondController.projectilePrefab, Is.Not.Null);
+                    Assert.That(firstController.projectilePrefab, Is.Not.SameAs(secondController.projectilePrefab));
+                    Assert.That(firstController.projectilePrefab.baseSpeed, Is.EqualTo(1111f));
+                    Assert.That(secondController.projectilePrefab.baseSpeed, Is.EqualTo(2222f));
+                }
+                finally
+                {
+                    Object.DestroyImmediate(firstController.gameObject);
+                    Object.DestroyImmediate(secondController.gameObject);
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(firstProfile);
+                Object.DestroyImmediate(secondProfile);
+                Object.DestroyImmediate(firstDefinition);
+                Object.DestroyImmediate(secondDefinition);
+                Object.DestroyImmediate(firstSlotProfile);
+                Object.DestroyImmediate(secondSlotProfile);
+            }
+        }
+
+        [Test]
         public void EnsureRuntimeCombatantsForConfiguredSlots_CreatesRuntimeControllers_FromCharacterBootstrapProfiles()
         {
             GameObject matchRoot = new GameObject("MatchControllerTests");
@@ -176,6 +232,64 @@ namespace ProjectPVP.Tests.Editor
                 Object.DestroyImmediate(inputProfileOne);
                 Object.DestroyImmediate(inputProfileTwo);
                 Object.DestroyImmediate(projectilePrefabRoot);
+            }
+        }
+
+        [Test]
+        public void EnsureRuntimeCombatantsForConfiguredSlots_CreatesRuntimeControllers_FromSelectedCharacters()
+        {
+            GameObject matchRoot = new GameObject("MatchControllerSelectedCharacterTests");
+            MatchController matchController = matchRoot.AddComponent<MatchController>();
+            MatchRoster roster = new MatchRoster();
+            roster.EnsureDefaults();
+
+            CharacterDefinition slotOneDefinition = ScriptableObject.CreateInstance<CharacterDefinition>();
+            CharacterDefinition slotTwoDefinition = ScriptableObject.CreateInstance<CharacterDefinition>();
+            CombatantSlotProfile inputProfileOne = ScriptableObject.CreateInstance<CombatantSlotProfile>();
+            CombatantSlotProfile inputProfileTwo = ScriptableObject.CreateInstance<CombatantSlotProfile>();
+
+            try
+            {
+                slotOneDefinition.displayName = "Mizu";
+                slotTwoDefinition.displayName = "Storm Dragon";
+
+                CombatantSlotConfig slotOne = roster.GetSlot(CombatantSlotId.SlotOne);
+                slotOne.playerProfile = inputProfileOne;
+                slotOne.characterProfile = null;
+                slotOne.selectedCharacter = slotOneDefinition;
+                slotOne.fallbackSpawnPoint = new Vector2(-639f, -572f);
+
+                CombatantSlotConfig slotTwo = roster.GetSlot(CombatantSlotId.SlotTwo);
+                slotTwo.playerProfile = inputProfileTwo;
+                slotTwo.characterProfile = null;
+                slotTwo.selectedCharacter = slotTwoDefinition;
+                slotTwo.fallbackSpawnPoint = new Vector2(690f, -576f);
+
+                Assert.That(MatchRosterField, Is.Not.Null);
+                MatchRosterField.SetValue(matchController, roster);
+                matchController.characterCatalog = null;
+
+                matchController.EnsureRuntimeCombatantsForConfiguredSlots();
+
+                CombatantSlotConfig resolvedSlotOne = matchController.GetSlot(CombatantSlotId.SlotOne);
+                CombatantSlotConfig resolvedSlotTwo = matchController.GetSlot(CombatantSlotId.SlotTwo);
+
+                Assert.That(resolvedSlotOne.controller, Is.Not.Null);
+                Assert.That(resolvedSlotTwo.controller, Is.Not.Null);
+                Assert.That(resolvedSlotOne.controller.characterDefinition, Is.SameAs(slotOneDefinition));
+                Assert.That(resolvedSlotTwo.controller.characterDefinition, Is.SameAs(slotTwoDefinition));
+                Assert.That(resolvedSlotOne.controller.projectilePrefab, Is.Not.Null);
+                Assert.That(resolvedSlotTwo.controller.projectilePrefab, Is.Not.Null);
+                Assert.That(resolvedSlotOne.controller.projectilePrefab.gameObject.activeSelf, Is.False);
+                Assert.That(resolvedSlotTwo.controller.projectilePrefab.gameObject.activeSelf, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(matchRoot);
+                Object.DestroyImmediate(slotOneDefinition);
+                Object.DestroyImmediate(slotTwoDefinition);
+                Object.DestroyImmediate(inputProfileOne);
+                Object.DestroyImmediate(inputProfileTwo);
             }
         }
 

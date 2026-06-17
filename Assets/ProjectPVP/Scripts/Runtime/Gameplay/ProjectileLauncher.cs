@@ -51,6 +51,10 @@ namespace ProjectPVP.Gameplay
                 inheritFactor,
                 overrideSprite);
             projectile.transform.localScale = Vector3.one * Mathf.Max(0.01f, scale);
+            if (!projectile.gameObject.activeSelf)
+            {
+                projectile.gameObject.SetActive(true);
+            }
             return projectile;
         }
     }

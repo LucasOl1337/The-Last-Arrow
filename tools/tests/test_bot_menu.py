@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+import json
 
 import tools.bot_manager as bot_manager
 from tools.bot_manager import BotManager
@@ -57,6 +58,36 @@ class BotMenuHelpersTestCase(unittest.TestCase):
         self.assertEqual("Arena Alpha", profile["displayName"])
         self.assertEqual("openai_codex", profile["provider"])
         self.assertEqual("unvalidated", profile["modelValidation"]["status"])
+
+    def test_load_roster_deduplicates_assignments_and_keeps_last_slot_definition(self) -> None:
+        bot_manager.ROSTER_PATH.parent.mkdir(parents=True, exist_ok=True)
+        bot_manager.ROSTER_PATH.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "updatedAt": "2026-06-16T00:00:00",
+                    "bots": {
+                        "bot-slot-1": bot_manager.default_bot_profile("bot-slot-1", "Bot Slot 1"),
+                        "bot-alpha": bot_manager.default_bot_profile("bot-alpha", "Alpha"),
+                        "bot-beta": bot_manager.default_bot_profile("bot-beta", "Beta"),
+                    },
+                    "assignments": [
+                        {"slotId": 1, "botId": "bot-alpha", "enabled": True},
+                        {"slotId": 2, "botId": "bot-alpha", "enabled": False},
+                        {"slotId": 2, "botId": "bot-beta", "enabled": True},
+                    ],
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        manager = BotManager()
+
+        self.assertEqual(2, len(manager.roster["assignments"]))
+        self.assertEqual("bot-beta", manager.get_assignment(2)["botId"])
+        self.assertTrue(manager.get_assignment(2)["enabled"])
 
 
 if __name__ == "__main__":

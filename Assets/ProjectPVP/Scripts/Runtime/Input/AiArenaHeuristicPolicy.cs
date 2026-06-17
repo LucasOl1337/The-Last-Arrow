@@ -26,6 +26,8 @@ namespace ProjectPVP.Input
             AiArenaCombatantObservation target = snapshot.opponents != null && snapshot.opponents.Count > 0
                 ? snapshot.opponents[0]
                 : new AiArenaCombatantObservation();
+            int selfArrows = Mathf.Max(0, self.arrows);
+            int targetArrows = Mathf.Max(0, target.arrows);
 
             if (!semantics.hasTarget || self.isDead)
             {
@@ -39,10 +41,12 @@ namespace ProjectPVP.Input
             bool canDash = self.dashCooldownLeft <= 0.01f && !self.isDashing;
             bool canUltimate = self.ultimateCooldownLeft <= 0.01f && !self.isUltimateActive;
 
-            float axis = ResolveNeutralAxis(snapshot.frame, semantics, self, target);
+            float axis = ResolveNeutralAxis(snapshot.frame, semantics, self, target, selfArrows, targetArrows);
             Vector2 aim = semantics.predictedTargetDirection.sqrMagnitude > 0.001f
                 ? semantics.predictedTargetDirection.normalized
                 : semantics.targetDirection.normalized;
+            bool prioritizeCollection = semantics.shouldCollectProjectile
+                && (selfArrows <= 1 || targetArrows > selfArrows);
 
             bool useJump = false;
             bool useShoot = false;
@@ -69,8 +73,14 @@ namespace ProjectPVP.Input
                     decision.debugSummary = "AI JUMP EVADE";
                 }
             }
+            else if (prioritizeCollection)
+            {
+                axis = ResolveCollectionMoveAxis(semantics.collectibleProjectileDirection);
+                useJump = ShouldJumpForCollectible(semantics.collectibleProjectileDirection, self);
+                decision.debugSummary = "AI COLLECT ARROW";
+            }
 
-            if (!useDash && !useJump && semantics.targetUsingUltimate)
+            if (!prioritizeCollection && !useDash && !useJump && semantics.targetUsingUltimate)
             {
                 if (canDash)
                 {
@@ -84,7 +94,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!useDash && !useJump && semantics.shouldPunish)
+            if (!prioritizeCollection && !useDash && !useJump && semantics.shouldPunish)
             {
                 if (canUltimate && semantics.targetInUltimateRange && !semantics.incomingProjectileThreat)
                 {
@@ -105,7 +115,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!useDash && !useJump && !useUltimate && !useMelee)
+            if (!prioritizeCollection && !useDash && !useJump && !useUltimate && !useMelee)
             {
                 if (semantics.shouldAntiAir && canShoot)
                 {
@@ -178,12 +188,29 @@ namespace ProjectPVP.Input
             int frame,
             AiArenaSemanticObservation semantics,
             AiArenaCombatantObservation self,
-            AiArenaCombatantObservation target)
+            AiArenaCombatantObservation target,
+            int selfArrows,
+            int targetArrows)
         {
             float towardTarget = semantics.targetDirection.x >= 0f ? 1f : -1f;
             float awayFromTarget = -towardTarget;
 
             if (semantics.selfCornered && semantics.horizontalDistance < 240f)
+            {
+                return towardTarget;
+            }
+
+            if (targetArrows <= 0 && selfArrows > 0)
+            {
+                return towardTarget;
+            }
+
+            if (selfArrows <= 0 && targetArrows > 0)
+            {
+                return awayFromTarget;
+            }
+
+            if (selfArrows > targetArrows && targetArrows <= 1)
             {
                 return towardTarget;
             }
@@ -205,6 +232,30 @@ namespace ProjectPVP.Input
             }
 
             return 0f;
+        }
+
+        internal static float ResolveCollectionMoveAxis(Vector2 collectibleDirection)
+        {
+            if (collectibleDirection.x > 0.1f)
+            {
+                return 1f;
+            }
+
+            if (collectibleDirection.x < -0.1f)
+            {
+                return -1f;
+            }
+
+            return 0f;
+        }
+
+        internal static bool ShouldJumpForCollectible(
+            Vector2 collectibleDirection,
+            AiArenaCombatantObservation self)
+        {
+            return self != null
+                && self.isGrounded
+                && collectibleDirection.y > 0.35f;
         }
     }
 }

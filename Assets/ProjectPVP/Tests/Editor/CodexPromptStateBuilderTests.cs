@@ -37,6 +37,7 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(prompt.arena.roundResetPending, Is.False);
             Assert.That(prompt.arena.currentRespawnSeedLabel, Is.EqualTo(string.Empty));
             Assert.That(prompt.dangerousProjectiles, Is.Empty);
+            Assert.That(prompt.recoverableProjectiles, Is.Empty);
             Assert.That(prompt.events, Is.Empty);
             Assert.That(prompt.memory, Has.Count.EqualTo(2));
             Assert.That(prompt.memory[0], Is.EqualTo("prior-a"));
@@ -54,6 +55,7 @@ namespace ProjectPVP.Tests.Editor
                     slotId = 1,
                     botId = "bot-alpha",
                     botDisplayName = "Alpha",
+                    projectileInheritVelocityFactor = 0.45f,
                     position = new Vector2(32f, 16f),
                 },
                 arena = new AiArenaArenaObservation
@@ -77,6 +79,7 @@ namespace ProjectPVP.Tests.Editor
 
             Assert.That(prompt.botId, Is.EqualTo("bot-alpha"));
             Assert.That(prompt.botDisplayName, Is.EqualTo("Alpha"));
+            Assert.That(prompt.self.projectileInheritVelocityFactor, Is.EqualTo(0.45f).Within(0.001f));
             Assert.That(prompt.events, Has.Count.EqualTo(1));
             Assert.That(prompt.events[0], Is.EqualTo("round_context_initialized"));
             Assert.That(prompt.memory, Has.Count.EqualTo(1));
@@ -91,7 +94,6 @@ namespace ProjectPVP.Tests.Editor
                 frame = 12,
                 self = new AiArenaCombatantObservation
                 {
-                    isValid = true,
                     slotId = 1,
                     isGrounded = true,
                     position = Vector2.zero,
@@ -127,6 +129,15 @@ namespace ProjectPVP.Tests.Editor
                         velocity = new Vector2(100f, 0f),
                         travelDirection = Vector2.right,
                     },
+                    new AiArenaProjectileObservation
+                    {
+                        isStuck = false,
+                        isDisarmed = false,
+                        sourceSlotId = 5,
+                        position = new Vector2(200f, -20f),
+                        velocity = new Vector2(0f, 120f),
+                        travelDirection = Vector2.up,
+                    },
                 },
             };
 
@@ -141,6 +152,114 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(prompt.dangerousProjectiles[0].etaSeconds, Is.EqualTo(0.1f).Within(0.001f));
             Assert.That(prompt.dangerousProjectiles[0].position, Is.EqualTo(new Vector2(-10f, 0f)));
             Assert.That(prompt.dangerousProjectiles[0].travelDirection, Is.EqualTo(Vector2.right));
+        }
+
+        [Test]
+        public void Build_SeparatesRecoverableProjectilesFromImmediateThreats()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                frame = 24,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    position = Vector2.zero,
+                    velocity = Vector2.zero,
+                },
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation(),
+                projectiles = new List<AiArenaProjectileObservation>
+                {
+                    new AiArenaProjectileObservation
+                    {
+                        isStuck = true,
+                        isDisarmed = false,
+                        isCollectible = true,
+                        sourceSlotId = 1,
+                        position = new Vector2(32f, 0f),
+                    },
+                    new AiArenaProjectileObservation
+                    {
+                        isStuck = false,
+                        isDisarmed = false,
+                        isCollectible = false,
+                        sourceSlotId = 2,
+                        position = new Vector2(-10f, 0f),
+                        velocity = new Vector2(100f, 0f),
+                        travelDirection = Vector2.right,
+                    },
+                },
+            };
+
+            CodexPromptState prompt = CodexPromptStateBuilder.Build(
+                snapshot,
+                previousSnapshot: null,
+                fallbackFrame: 0,
+                memoryHistory: null);
+
+            Assert.That(prompt.recoverableProjectiles, Has.Count.EqualTo(1));
+            Assert.That(prompt.recoverableProjectiles[0].sourceSlotId, Is.EqualTo(1));
+            Assert.That(prompt.recoverableProjectiles[0].distanceToSelf, Is.EqualTo(32f).Within(0.001f));
+            Assert.That(prompt.recoverableProjectiles[0].position, Is.EqualTo(new Vector2(32f, 0f)));
+            Assert.That(prompt.dangerousProjectiles, Has.Count.EqualTo(1));
+            Assert.That(prompt.dangerousProjectiles[0].sourceSlotId, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Build_UsesRelativeVelocityForProjectileEta()
+        {
+            var stationarySnapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    position = Vector2.zero,
+                    velocity = Vector2.zero,
+                },
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation(),
+                projectiles = new List<AiArenaProjectileObservation>
+                {
+                    new AiArenaProjectileObservation
+                    {
+                        isStuck = false,
+                        isDisarmed = false,
+                        sourceSlotId = 2,
+                        position = new Vector2(-20f, 0f),
+                        velocity = new Vector2(100f, 0f),
+                        travelDirection = Vector2.right,
+                    },
+                },
+            };
+
+            var movingSnapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    position = Vector2.zero,
+                    velocity = new Vector2(-50f, 0f),
+                },
+                arena = new AiArenaArenaObservation(),
+                semantics = new AiArenaSemanticObservation(),
+                projectiles = stationarySnapshot.projectiles,
+            };
+
+            CodexPromptState stationaryPrompt = CodexPromptStateBuilder.Build(
+                stationarySnapshot,
+                previousSnapshot: null,
+                fallbackFrame: 0,
+                memoryHistory: null);
+
+            CodexPromptState movingPrompt = CodexPromptStateBuilder.Build(
+                movingSnapshot,
+                previousSnapshot: null,
+                fallbackFrame: 0,
+                memoryHistory: null);
+
+            Assert.That(stationaryPrompt.dangerousProjectiles, Has.Count.EqualTo(1));
+            Assert.That(movingPrompt.dangerousProjectiles, Has.Count.EqualTo(1));
+            Assert.That(movingPrompt.dangerousProjectiles[0].etaSeconds, Is.LessThan(stationaryPrompt.dangerousProjectiles[0].etaSeconds));
         }
     }
 }

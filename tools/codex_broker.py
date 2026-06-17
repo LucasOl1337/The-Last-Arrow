@@ -45,6 +45,7 @@ DEFAULT_INTENT = {
 
 VALID_MODES = {"pressure", "zone", "retreat", "punish", "stabilize"}
 VALID_ANTI_PROJECTILE = {"hold", "jump", "dash", "parry_prefer"}
+LOCAL_HEURISTIC_MODEL = "local-heuristic"
 
 
 def now_ms() -> int:
@@ -63,11 +64,28 @@ def describe_controller(source: str) -> str:
     normalized = (source or "").strip().lower()
     if normalized.startswith("codex_"):
         return "Codex"
-    if normalized == "heuristic_fallback":
+    if normalized in {"heuristic_fallback", "heuristic", LOCAL_HEURISTIC_MODEL}:
         return "LocalHeuristic"
+    if normalized == "broker_default":
+        return "BrokerDefault"
     if normalized == "human":
         return "Human"
     return normalized or "Unknown"
+
+
+def resolve_report_controller_source(source: str, agent_model: str, has_agent_action: bool) -> str:
+    normalized_source = str(source or "").strip()
+    if normalized_source:
+        return normalized_source
+
+    if not has_agent_action:
+        return "broker_default"
+
+    normalized_model = str(agent_model or "").strip().lower()
+    if normalized_model == LOCAL_HEURISTIC_MODEL:
+        return "heuristic_fallback"
+
+    return "codex_live"
 
 
 def compact_input(input_payload: dict[str, Any] | None) -> str:
@@ -397,6 +415,7 @@ class AgentDrivenSession:
             self_prompt = prompt_state.get("self") or {}
             arena = prompt_state.get("arena") or {}
             has_agent_action = self.agent_action_count > 0 and self.intent_updated_at_ms > 0
+            source = resolve_report_controller_source(source, self.agent_model, has_agent_action)
             controller_owner = describe_controller(source)
             if source.startswith("codex_") and not has_agent_action:
                 controller_owner = "BrokerDefault"
@@ -411,7 +430,7 @@ class AgentDrivenSession:
                 "intentUpdatedAtUnixMs": self.intent_updated_at_ms,
                 "forceRefresh": self.force_refresh,
                 "stopped": self.stopped,
-                "controllerSource": source or "unknown",
+                "controllerSource": source,
                 "controllerOwner": controller_owner,
                 "summary": str((self.executor_feedback or {}).get("summary", "")),
                 "intentMode": str((self.cached_intent or {}).get("mode", "")),

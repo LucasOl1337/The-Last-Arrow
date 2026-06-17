@@ -19,8 +19,34 @@ namespace ProjectPVP.Match
                 slots = new List<CombatantSlotConfig>(2);
             }
 
-            EnsureSlot(CombatantSlotId.SlotOne, slotOneController);
-            EnsureSlot(CombatantSlotId.SlotTwo, slotTwoController);
+            CombatantSlotConfig slotOne = null;
+            CombatantSlotConfig slotTwo = null;
+            for (int index = 0; index < slots.Count; index += 1)
+            {
+                CombatantSlotConfig slot = slots[index];
+                if (slot == null)
+                {
+                    continue;
+                }
+
+                if (slot.slotId == CombatantSlotId.SlotOne)
+                {
+                    slotOne = MergeDuplicateSlot(slotOne, slot);
+                    continue;
+                }
+
+                if (slot.slotId == CombatantSlotId.SlotTwo)
+                {
+                    slotTwo = MergeDuplicateSlot(slotTwo, slot);
+                }
+            }
+
+            slotOne = EnsureSlot(slotOne, CombatantSlotId.SlotOne, slotOneController);
+            slotTwo = EnsureSlot(slotTwo, CombatantSlotId.SlotTwo, slotTwoController);
+
+            slots.Clear();
+            slots.Add(slotOne);
+            slots.Add(slotTwo);
         }
 
         public CombatantSlotConfig GetSlot(CombatantSlotId slotId)
@@ -69,19 +95,62 @@ namespace ProjectPVP.Match
             }
         }
 
-        private void EnsureSlot(CombatantSlotId slotId, PlayerController legacyController)
+        private static CombatantSlotConfig MergeDuplicateSlot(CombatantSlotConfig target, CombatantSlotConfig source)
         {
-            CombatantSlotConfig slot = GetSlot(slotId);
+            if (source == null)
+            {
+                return target;
+            }
+
+            if (target == null)
+            {
+                return source;
+            }
+
+            if (target.controller == null && source.controller != null)
+            {
+                target.controller = source.controller;
+            }
+
+            if (target.playerProfile == null && source.playerProfile != null)
+            {
+                target.playerProfile = source.playerProfile;
+            }
+
+            if (target.characterProfile == null && source.characterProfile != null)
+            {
+                target.characterProfile = source.characterProfile;
+            }
+
+            if (target.selectedCharacter == null && source.selectedCharacter != null)
+            {
+                target.selectedCharacter = source.selectedCharacter;
+            }
+
+            if (string.IsNullOrWhiteSpace(target.displayName) && !string.IsNullOrWhiteSpace(source.displayName))
+            {
+                target.displayName = source.displayName;
+            }
+
+            if (target.fallbackSpawnPoint == Vector2.zero && source.fallbackSpawnPoint != Vector2.zero)
+            {
+                target.fallbackSpawnPoint = source.fallbackSpawnPoint;
+            }
+
+            return target;
+        }
+
+        private static CombatantSlotConfig EnsureSlot(
+            CombatantSlotConfig slot,
+            CombatantSlotId slotId,
+            PlayerController legacyController)
+        {
             if (slot == null)
             {
-                slot = new CombatantSlotConfig
-                {
-                    slotId = slotId,
-                    displayName = slotId.ToDisplayName(),
-                    controller = legacyController,
-                };
-                slots.Add(slot);
+                slot = new CombatantSlotConfig();
             }
+
+            slot.slotId = slotId;
 
             if (legacyController != null && slot.controller == null)
             {
@@ -92,6 +161,8 @@ namespace ProjectPVP.Match
             {
                 slot.displayName = slotId.ToDisplayName();
             }
+
+            return slot;
         }
     }
 }

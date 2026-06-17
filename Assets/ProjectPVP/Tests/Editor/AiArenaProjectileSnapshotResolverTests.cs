@@ -99,11 +99,78 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(projectiles, Is.Empty);
         }
 
+        [Test]
+        public void Resolve_ReturnsEmptyListWhenSelfSnapshotIsInvalid()
+        {
+            GameObject projectileRoot = new GameObject("ProjectileForInvalidSelf");
+            SnapshotSourceProjectile projectile = projectileRoot.AddComponent<SnapshotSourceProjectile>();
+
+            try
+            {
+                projectile.sourceSlotId = 2;
+                projectile.position = new Vector2(5f, 1f);
+
+                List<AiArenaProjectileSnapshot> defaultSelfProjectiles = AiArenaProjectileSnapshotResolver.Resolve(
+                    new MonoBehaviour[] { projectile },
+                    default);
+
+                List<AiArenaProjectileSnapshot> invalidSelfProjectiles = AiArenaProjectileSnapshotResolver.Resolve(
+                    new MonoBehaviour[] { projectile },
+                    new AiArenaControllerSnapshot
+                    {
+                        isValid = false,
+                        slotId = 1,
+                    });
+
+                Assert.That(defaultSelfProjectiles, Is.Empty);
+                Assert.That(invalidSelfProjectiles, Is.Empty);
+            }
+            finally
+            {
+                Object.DestroyImmediate(projectileRoot);
+            }
+        }
+
+        [Test]
+        public void Resolve_KeepsCollectibleProjectilesFromTheSelfSlot()
+        {
+            GameObject projectileRoot = new GameObject("SelfCollectibleProjectile");
+            SnapshotSourceProjectile projectile = projectileRoot.AddComponent<SnapshotSourceProjectile>();
+
+            try
+            {
+                projectile.sourceSlotId = 1;
+                projectile.isCollectible = true;
+                projectile.isStuck = true;
+                projectile.position = new Vector2(5f, 1f);
+
+                AiArenaControllerSnapshot self = new AiArenaControllerSnapshot
+                {
+                    isValid = true,
+                    slotId = 1,
+                };
+
+                List<AiArenaProjectileSnapshot> projectiles = AiArenaProjectileSnapshotResolver.Resolve(
+                    new MonoBehaviour[] { projectile },
+                    self);
+
+                Assert.That(projectiles, Has.Count.EqualTo(1));
+                Assert.That(projectiles[0].sourceSlotId, Is.EqualTo(1));
+                Assert.That(projectiles[0].isCollectible, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(projectileRoot);
+            }
+        }
+
         private sealed class SnapshotSourceProjectile : MonoBehaviour, IAiArenaProjectileSnapshotSource
         {
             public bool isValid = true;
             public int sourceSlotId;
             public Vector2 position;
+            public bool isCollectible;
+            public bool isStuck;
 
             public AiArenaProjectileSnapshot BuildAiArenaProjectileSnapshot()
             {
@@ -111,6 +178,8 @@ namespace ProjectPVP.Tests.Editor
                 {
                     isValid = isValid,
                     sourceSlotId = sourceSlotId,
+                    isCollectible = isCollectible,
+                    isStuck = isStuck,
                     position = position,
                 };
             }

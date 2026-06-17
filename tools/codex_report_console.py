@@ -140,6 +140,14 @@ def status_chip(session: dict[str, Any], offline: bool = False) -> str:
 
     if last_error:
         return colorize("ERROR", ANSI_RED, bold=True)
+    if owner == "BrokerDefault":
+        if phase == "thinking":
+            return colorize("THINKING", ANSI_BLUE, bold=True)
+        if phase == "waiting_for_agent":
+            return colorize("WAITING", ANSI_CYAN, bold=True)
+        if phase == "idle":
+            return colorize("DEFAULT", ANSI_YELLOW, bold=True)
+        return colorize("BROKER", ANSI_YELLOW, bold=True)
     if owner != "Codex":
         return colorize("FALLBACK", ANSI_YELLOW, bold=True)
     if phase == "thinking":
@@ -193,7 +201,11 @@ def diagnose(session: dict[str, Any], memory: MemoryTracker) -> list[str]:
     if last_error:
         hints.append(f"Erro do loop do Codex: {last_error}. Prioridade maxima e estabilizar isso antes de refinar comportamento.")
 
-    if owner != "Codex" or source == "waiting_for_codex":
+    has_agent_action = bool(session.get("hasAgentAction", False))
+
+    if owner == "BrokerDefault" and not has_agent_action:
+        hints.append("A sessao ainda esta no estado base do broker; aguardando a primeira acao executavel do agente.")
+    elif owner != "Codex" or source == "waiting_for_codex":
         hints.append("O personagem ainda caiu em fallback em algum ponto. Vale medir por que o Codex nao publicou a acao util cedo o bastante.")
 
     if heartbeat >= 2500:

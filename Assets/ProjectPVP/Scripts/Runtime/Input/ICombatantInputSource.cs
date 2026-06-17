@@ -10,5 +10,6 @@ namespace ProjectPVP.Input
 
         void CaptureFrame();
         void ConfigureForSlot(CombatantSlotId slotId);
+        void ResetInputState();
     }
 }

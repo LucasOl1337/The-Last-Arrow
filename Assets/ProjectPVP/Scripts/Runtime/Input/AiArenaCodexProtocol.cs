@@ -92,6 +92,7 @@ namespace ProjectPVP.Input
         public CodexPromptCombatant target = new CodexPromptCombatant();
         public CodexPromptArena arena = new CodexPromptArena();
         public List<CodexPromptProjectileThreat> dangerousProjectiles = new List<CodexPromptProjectileThreat>();
+        public List<CodexPromptProjectileRecovery> recoverableProjectiles = new List<CodexPromptProjectileRecovery>();
         public List<string> events = new List<string>();
         public List<string> memory = new List<string>();
     }
@@ -114,6 +115,7 @@ namespace ProjectPVP.Input
         public bool canBlockProjectiles;
         public int arrows;
         public int facing = 1;
+        public float projectileInheritVelocityFactor = 1f;
         public float shootCooldownLeft;
         public float meleeCooldownLeft;
         public float dashCooldownLeft;
@@ -156,6 +158,14 @@ namespace ProjectPVP.Input
     }
 
     [Serializable]
+    public sealed class CodexPromptProjectileRecovery
+    {
+        public int sourceSlotId;
+        public float distanceToSelf = -1f;
+        public Vector2 position = Vector2.zero;
+    }
+
+    [Serializable]
     public sealed class CodexExecutorFeedback
     {
         public string source = "heuristic_fallback";
@@ -165,6 +175,9 @@ namespace ProjectPVP.Input
         public bool projectileThreatActive;
         public bool targetVisible;
         public bool roundResetPending;
+        public bool recoverableProjectileAvailable;
+        public int recoverableProjectileCount;
+        public float nearestRecoverableProjectileDistance = -1f;
         public float intentAgeMs = -1f;
         public CodexReportedInputFrame reportedInput = new CodexReportedInputFrame();
     }

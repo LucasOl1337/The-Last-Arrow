@@ -140,7 +140,7 @@ namespace ProjectPVP.Match
             }
 
             int slotInt = slotId.ToInt();
-            for (int index = 0; index < runtimeAssignments.slots.Count; index += 1)
+            for (int index = runtimeAssignments.slots.Count - 1; index >= 0; index -= 1)
             {
                 RuntimeBotMenuSlotAssignment assignment = runtimeAssignments.slots[index];
                 if (assignment != null && assignment.slotId == slotInt)

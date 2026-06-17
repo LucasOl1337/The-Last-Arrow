@@ -44,6 +44,12 @@ namespace ProjectPVP.Match
             _respawnFreezeTimeLeft = 0f;
         }
 
+        internal void ClearChampionAnnouncement()
+        {
+            _championAnnouncementSlot = CombatantSlotId.None;
+            _championAnnouncementTimeLeft = 0f;
+        }
+
         internal void ShowChampionAnnouncement(CombatantSlotId championSlot, float duration)
         {
             _championAnnouncementSlot = championSlot;

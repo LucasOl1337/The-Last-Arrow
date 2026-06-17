@@ -35,6 +35,7 @@ namespace ProjectPVP.Match
             bool applyFreeze)
         {
             List<RespawnSlotCommand> commands = new List<RespawnSlotCommand>();
+            HashSet<CombatantSlotId> seenSlots = new HashSet<CombatantSlotId>();
             if (slots == null || resolveSpawnPoint == null)
             {
                 return commands;
@@ -44,6 +45,11 @@ namespace ProjectPVP.Match
             {
                 CombatantSlotConfig slot = slots[index];
                 if (slot?.controller == null)
+                {
+                    continue;
+                }
+
+                if (!seenSlots.Add(slot.slotId))
                 {
                     continue;
                 }

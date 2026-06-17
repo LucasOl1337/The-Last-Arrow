@@ -71,6 +71,119 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_CompensatesPredictedTargetDirectionForSelfMomentum()
+        {
+            AiArenaControllerSnapshot selfStationary = BuildSelf(Vector2.zero);
+            selfStationary.arrows = 3;
+
+            AiArenaControllerSnapshot selfMovingRight = BuildSelf(Vector2.zero);
+            selfMovingRight.arrows = 3;
+            selfMovingRight.velocity = new Vector2(400f, 0f);
+
+            AiArenaControllerSnapshot target = BuildTarget(new Vector2(200f, 100f));
+            target.velocity = Vector2.zero;
+
+            AiArenaSemanticObservation stationarySemantics = AiArenaSemanticObservationBuilder.Build(
+                selfStationary,
+                target,
+                null,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            AiArenaSemanticObservation movingSemantics = AiArenaSemanticObservationBuilder.Build(
+                selfMovingRight,
+                target,
+                null,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(movingSemantics.predictedTargetDirection.x, Is.LessThan(stationarySemantics.predictedTargetDirection.x));
+            Assert.That(movingSemantics.predictedTargetDirection.y, Is.GreaterThan(stationarySemantics.predictedTargetDirection.y));
+        }
+
+        [Test]
+        public void Build_UsesProjectileInheritVelocityFactorWhenLeadingShots()
+        {
+            AiArenaControllerSnapshot selfFullCarry = BuildSelf(Vector2.zero);
+            selfFullCarry.arrows = 3;
+            selfFullCarry.velocity = new Vector2(400f, 0f);
+            selfFullCarry.projectileInheritVelocityFactor = 1f;
+
+            AiArenaControllerSnapshot selfPartialCarry = BuildSelf(Vector2.zero);
+            selfPartialCarry.arrows = 3;
+            selfPartialCarry.velocity = new Vector2(400f, 0f);
+            selfPartialCarry.projectileInheritVelocityFactor = 0.25f;
+
+            AiArenaControllerSnapshot target = BuildTarget(new Vector2(200f, 100f));
+
+            AiArenaSemanticObservation fullCarrySemantics = AiArenaSemanticObservationBuilder.Build(
+                selfFullCarry,
+                target,
+                null,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            AiArenaSemanticObservation partialCarrySemantics = AiArenaSemanticObservationBuilder.Build(
+                selfPartialCarry,
+                target,
+                null,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(fullCarrySemantics.predictedTargetDirection.x, Is.LessThan(partialCarrySemantics.predictedTargetDirection.x));
+            Assert.That(fullCarrySemantics.predictedTargetDirection.y, Is.GreaterThan(partialCarrySemantics.predictedTargetDirection.y));
+        }
+
+        [Test]
+        public void Build_MarksVisibleMidRangeTargetsAsPressureInsteadOfParkingInZone()
+        {
+            AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
+            self.arrows = 3;
+
+            AiArenaControllerSnapshot target = BuildTarget(new Vector2(320f, 0f));
+
+            AiArenaSemanticObservation semantics = AiArenaSemanticObservationBuilder.Build(
+                self,
+                target,
+                null,
+                new AiArenaArenaSnapshot
+                {
+                    wrapBounds = new Rect(-1000f, -200f, 2000f, 400f),
+                },
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(semantics.hasTarget, Is.True);
+            Assert.That(semantics.targetInShootRange, Is.True);
+            Assert.That(semantics.shouldPressure, Is.True);
+            Assert.That(semantics.shouldZone, Is.True);
+        }
+
+        [Test]
         public void Build_SelectsClosestIncomingProjectileThreat()
         {
             AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
@@ -124,6 +237,153 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(semantics.shouldJumpEvade, Is.False);
         }
 
+        [Test]
+        public void Build_AccountsForSelfVelocityWhenEstimatingProjectileThreat()
+        {
+            AiArenaControllerSnapshot selfStationary = BuildSelf(Vector2.zero);
+            AiArenaControllerSnapshot selfMovingTowardProjectile = BuildSelf(Vector2.zero);
+            selfMovingTowardProjectile.velocity = new Vector2(-50f, 0f);
+
+            var projectiles = new List<AiArenaProjectileSnapshot>
+            {
+                new AiArenaProjectileSnapshot
+                {
+                    isValid = true,
+                    sourceSlotId = 2,
+                    position = new Vector2(-20f, 0f),
+                    velocity = new Vector2(100f, 0f),
+                    travelDirection = Vector2.right,
+                },
+            };
+
+            AiArenaSemanticObservation stationarySemantics = AiArenaSemanticObservationBuilder.Build(
+                selfStationary,
+                default,
+                projectiles,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 140f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            AiArenaSemanticObservation movingSemantics = AiArenaSemanticObservationBuilder.Build(
+                selfMovingTowardProjectile,
+                default,
+                projectiles,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 140f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(movingSemantics.incomingProjectileThreat, Is.True);
+            Assert.That(movingSemantics.incomingProjectileTime, Is.LessThan(stationarySemantics.incomingProjectileTime));
+        }
+
+        [Test]
+        public void Build_RejectsVerticalProjectilePassingOutsideLateralTolerance()
+        {
+            AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
+            self.isGrounded = true;
+
+            var projectiles = new List<AiArenaProjectileSnapshot>
+            {
+                new AiArenaProjectileSnapshot
+                {
+                    isValid = true,
+                    sourceSlotId = 2,
+                    position = new Vector2(200f, -120f),
+                    velocity = new Vector2(0f, 120f),
+                    travelDirection = Vector2.up,
+                },
+            };
+
+            AiArenaSemanticObservation semantics = AiArenaSemanticObservationBuilder.Build(
+                self,
+                default,
+                projectiles,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 140f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(semantics.incomingProjectileThreat, Is.False);
+            Assert.That(semantics.shouldDashEvade, Is.False);
+            Assert.That(semantics.shouldJumpEvade, Is.False);
+        }
+
+        [Test]
+        public void Build_TracksNearestCollectibleProjectileForRecovery()
+        {
+            AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
+            self.arrows = 0;
+
+            var projectiles = new List<AiArenaProjectileSnapshot>
+            {
+                new AiArenaProjectileSnapshot
+                {
+                    isValid = true,
+                    isCollectible = true,
+                    position = new Vector2(140f, 0f),
+                },
+                new AiArenaProjectileSnapshot
+                {
+                    isValid = true,
+                    isCollectible = true,
+                    position = new Vector2(72f, 24f),
+                },
+                new AiArenaProjectileSnapshot
+                {
+                    isValid = true,
+                    isCollectible = false,
+                    position = new Vector2(30f, 0f),
+                },
+            };
+
+            AiArenaSemanticObservation semantics = AiArenaSemanticObservationBuilder.Build(
+                self,
+                BuildTarget(new Vector2(200f, 0f)),
+                projectiles,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 140f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(semantics.hasCollectibleProjectile, Is.True);
+            Assert.That(semantics.collectibleProjectileDistance, Is.EqualTo(Mathf.Sqrt((72f * 72f) + (24f * 24f))).Within(0.001f));
+            Assert.That(Vector2.Distance(semantics.collectibleProjectileDirection, new Vector2(72f, 24f).normalized), Is.LessThan(0.001f));
+            Assert.That(semantics.shouldCollectProjectile, Is.True);
+        }
+
+        [Test]
+        public void EstimateTimeToClosestApproach_ReachesIncomingProjectileAndRejectsRetreatingOne()
+        {
+            float incoming = AiArenaProjectileThreatMath.EstimateTimeToClosestApproach(
+                selfPosition: Vector2.zero,
+                selfVelocity: Vector2.zero,
+                projectilePosition: new Vector2(-120f, 0f),
+                projectileVelocity: new Vector2(120f, 0f));
+
+            float retreating = AiArenaProjectileThreatMath.EstimateTimeToClosestApproach(
+                selfPosition: Vector2.zero,
+                selfVelocity: Vector2.zero,
+                projectilePosition: new Vector2(-120f, 0f),
+                projectileVelocity: new Vector2(-120f, 0f));
+
+            Assert.That(incoming, Is.EqualTo(1f).Within(0.0001f));
+            Assert.That(retreating, Is.EqualTo(-1f));
+        }
+
         private static AiArenaControllerSnapshot BuildSelf(Vector2 position)
         {
             return new AiArenaControllerSnapshot
@@ -132,6 +392,7 @@ namespace ProjectPVP.Tests.Editor
                 slotId = 1,
                 facing = 1,
                 isGrounded = true,
+                projectileInheritVelocityFactor = 1f,
                 position = position,
             };
         }

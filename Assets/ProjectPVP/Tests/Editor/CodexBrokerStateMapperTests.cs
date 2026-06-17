@@ -16,14 +16,29 @@ namespace ProjectPVP.Tests.Editor
             };
             var snapshot = new AiArenaSnapshotEnvelope
             {
+                self = new AiArenaCombatantObservation
+                {
+                    position = Vector2.zero,
+                },
                 semantics = new AiArenaSemanticObservation
                 {
-                    incomingProjectileThreat = true,
                     hasTarget = true,
+                    incomingProjectileThreat = true,
+                    shouldCollectProjectile = true,
                 },
                 arena = new AiArenaArenaObservation
                 {
                     roundResetPending = true,
+                },
+                projectiles = new System.Collections.Generic.List<AiArenaProjectileObservation>
+                {
+                    new AiArenaProjectileObservation
+                    {
+                        isCollectible = true,
+                        isStuck = true,
+                        sourceSlotId = 2,
+                        position = new Vector2(48f, 0f),
+                    },
                 },
             };
             var reportedInput = new CodexReportedInputFrame
@@ -49,6 +64,9 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(feedback.projectileThreatActive, Is.True);
             Assert.That(feedback.targetVisible, Is.True);
             Assert.That(feedback.roundResetPending, Is.True);
+            Assert.That(feedback.recoverableProjectileAvailable, Is.True);
+            Assert.That(feedback.recoverableProjectileCount, Is.EqualTo(1));
+            Assert.That(feedback.nearestRecoverableProjectileDistance, Is.EqualTo(48f).Within(0.001f));
             Assert.That(feedback.intentAgeMs, Is.EqualTo(123.4f).Within(0.001f));
             Assert.That(feedback.reportedInput, Is.SameAs(reportedInput));
         }
@@ -69,8 +87,52 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(feedback.projectileThreatActive, Is.False);
             Assert.That(feedback.targetVisible, Is.False);
             Assert.That(feedback.roundResetPending, Is.False);
+            Assert.That(feedback.recoverableProjectileAvailable, Is.False);
+            Assert.That(feedback.recoverableProjectileCount, Is.EqualTo(0));
+            Assert.That(feedback.nearestRecoverableProjectileDistance, Is.EqualTo(-1f).Within(0.001f));
             Assert.That(feedback.intentAgeMs, Is.EqualTo(-1f).Within(0.001f));
             Assert.That(feedback.reportedInput, Is.Not.Null);
+        }
+
+        [Test]
+        public void BuildExecutorFeedback_MarksRecoverableProjectileAvailableEvenWhenCollectionIsNotRecommended()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    position = Vector2.zero,
+                    arrows = 3,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfHasArrows = true,
+                    shouldCollectProjectile = false,
+                },
+                projectiles = new System.Collections.Generic.List<AiArenaProjectileObservation>
+                {
+                    new AiArenaProjectileObservation
+                    {
+                        isCollectible = true,
+                        isStuck = true,
+                        sourceSlotId = 2,
+                        position = new Vector2(64f, 0f),
+                    },
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI | Active",
+                currentIntent: null,
+                snapshot,
+                50f,
+                reportedInput: null);
+
+            Assert.That(feedback.recoverableProjectileAvailable, Is.True);
+            Assert.That(feedback.recoverableProjectileCount, Is.EqualTo(1));
+            Assert.That(feedback.nearestRecoverableProjectileDistance, Is.EqualTo(64f).Within(0.001f));
         }
 
         [Test]
@@ -85,14 +147,19 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
-        public void ResolveControllerOwner_ReturnsEmptyWhenNoExecutableIntentExists()
+        public void ResolveControllerOwner_ReturnsBrokerDefaultWhenNoExecutableIntentExists()
         {
-            string owner = CodexBrokerStateMapper.ResolveControllerOwner(
+            string agentDrivenOwner = CodexBrokerStateMapper.ResolveControllerOwner(
                 string.Empty,
                 hasExecutableIntent: false,
                 useAgentDrivenMode: true);
+            string directOwner = CodexBrokerStateMapper.ResolveControllerOwner(
+                string.Empty,
+                hasExecutableIntent: false,
+                useAgentDrivenMode: false);
 
-            Assert.That(owner, Is.EqualTo(string.Empty));
+            Assert.That(agentDrivenOwner, Is.EqualTo("BrokerDefault"));
+            Assert.That(directOwner, Is.EqualTo("BrokerDefault"));
         }
 
         [Test]

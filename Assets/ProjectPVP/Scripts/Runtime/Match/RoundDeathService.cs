@@ -32,11 +32,29 @@ namespace ProjectPVP.Match
             }
 
             List<CombatantSlotId> winningSlots = new List<CombatantSlotId>();
+            HashSet<CombatantSlotId> seenWinningSlots = new HashSet<CombatantSlotId>();
             CombatantSlotId roundWinner = CombatantSlotId.None;
+            bool deadPlayerBelongsToRoster = false;
             for (int index = 0; index < slots.Count; index += 1)
             {
                 CombatantSlotConfig slot = slots[index];
-                if (slot?.controller == null || slot.controller == deadPlayer)
+                if (slot?.controller == null)
+                {
+                    continue;
+                }
+
+                if (slot.controller == deadPlayer)
+                {
+                    deadPlayerBelongsToRoster = true;
+                    continue;
+                }
+
+                if (slot.controller.IsDead)
+                {
+                    continue;
+                }
+
+                if (!seenWinningSlots.Add(slot.slotId))
                 {
                     continue;
                 }
@@ -45,7 +63,7 @@ namespace ProjectPVP.Match
                 roundWinner = slot.slotId;
             }
 
-            return roundWinner == CombatantSlotId.None
+            return !deadPlayerBelongsToRoster || roundWinner == CombatantSlotId.None
                 ? RoundDeathResolution.None
                 : new RoundDeathResolution(winningSlots, roundWinner);
         }

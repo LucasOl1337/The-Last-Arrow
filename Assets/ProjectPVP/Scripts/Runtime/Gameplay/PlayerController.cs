@@ -13,6 +13,9 @@ namespace ProjectPVP.Gameplay
 {
     public sealed class PlayerController : MonoBehaviour, IAiArenaControllerSnapshotSource
     {
+        private const float DeathFlashDuration = 0.08f;
+        private static readonly Color DeathFlashColor = new Color(1f, 0.58f, 0.26f, 1f);
+
         [Header("Identity")]
         [FormerlySerializedAs("playerId")]
         [Min(1)] public int slotId = 1;
@@ -50,7 +53,10 @@ namespace ProjectPVP.Gameplay
         private PlayerActionLockSystem _actionLockSystem;
         private PlayerAnchorSystem _anchorSystem;
         private PlayerCombatSystem _combatSystem;
+        private Coroutine _deathFlashRoutine;
+        private Coroutine _deathNotifyRoutine;
         private bool _externalControlLock;
+        private bool _inputSourceEnabledBeforeExternalLock = true;
 
         public int playerId
         {
@@ -64,19 +70,22 @@ namespace ProjectPVP.Gameplay
         public string BotDisplayName => slotProfile != null ? slotProfile.ResolveBotDisplayName(SlotId) : SlotId.ToDisplayName();
         public int Facing => _context != null && _context.facing != 0 ? _context.facing : 1;
         public int CurrentArrows => _context != null ? _context.arrows : 0;
+        public int MaxArrows => _statResolver != null ? _statResolver.ResolveMaxArrows() : 0;
         public bool IsDead => _context != null && _context.isDead;
         public bool IsGrounded => _context != null && _context.isGrounded;
         public bool IsTouchingWall => _context != null && _context.isTouchingWall;
-        public bool IsDashing => _context != null && _context.dashTimeLeft > 0f;
-        public bool IsDashAnimationActive => IsDashing || (_context != null && _context.dashAnimationHoldTimeLeft > 0f);
-        public bool IsAimHoldActive => _context != null && _context.aimHoldActive;
-        public bool IsMeleeActive => _context != null && _context.meleeTimeLeft > 0f;
-        public bool IsShootAnimating => _context != null && _context.shootAnimationTimeLeft > 0f;
-        public bool IsJumpStartActive => _context != null && _context.jumpStartTimeLeft > 0f;
-        public bool IsUltimateActive => _context != null && _context.ultimateTimeLeft > 0f;
-        public bool IsHitStunned => _context != null && _context.hitStunTimeLeft > 0f;
-        public bool IsKnockedBack => _context != null && _context.knockbackTimeLeft > 0f;
+        public bool IsDashing => _context != null && !_context.isDead && _context.dashTimeLeft > 0f;
+        public bool IsDashAnimationActive => IsDashing || (_context != null && !_context.isDead && _context.dashAnimationHoldTimeLeft > 0f);
+        public bool IsAimHoldActive => _context != null && !_context.isDead && _context.aimHoldActive;
+        public bool IsMeleeActive => _context != null && !_context.isDead && _context.meleeTimeLeft > 0f;
+        public bool IsShootAnimating => _context != null && !_context.isDead && _context.shootAnimationTimeLeft > 0f;
+        public bool IsJumpStartActive => _context != null && !_context.isDead && _context.jumpStartTimeLeft > 0f;
+        public bool IsUltimateActive => _context != null && !_context.isDead && _context.ultimateTimeLeft > 0f;
+        public bool HasShield => _context != null && _context.hasShield;
+        public bool IsHitStunned => _context != null && !_context.isDead && _context.hitStunTimeLeft > 0f;
+        public bool IsKnockedBack => _context != null && !_context.isDead && _context.knockbackTimeLeft > 0f;
         public bool IsExternallyControlLocked => _externalControlLock;
+        internal bool IsContactArrowTransferLocked => _context != null && _context.contactArrowTransferLockTimeLeft > 0f;
         public float ShootCooldownLeft => _context != null ? _context.shootCooldownLeft : 0f;
         public float MeleeCooldownLeft => _context != null ? _context.meleeCooldownLeft : 0f;
         public float DashPrimaryCooldownLeft => _context != null ? _context.dashPrimaryCooldownLeft : 0f;
@@ -84,8 +93,10 @@ namespace ProjectPVP.Gameplay
         public float DashCooldownLeft => _context != null ? Mathf.Min(_context.dashPrimaryCooldownLeft, _context.dashSecondaryCooldownLeft) : 0f;
         public float UltimateCooldownLeft => _context != null ? _context.ultimateCooldownLeft : 0f;
         public float HitStunTimeLeft => _context != null ? _context.hitStunTimeLeft : 0f;
-        public float UltimateProjectileBlockTimeLeft => _context != null ? _context.ultimateProjectileBlockTimer : 0f;
+        public float DeathFlashTimeLeft => _context != null ? _context.deathFlashTimeLeft : 0f;
+        public float UltimateProjectileBlockTimeLeft => _context != null && !_context.isDead ? _context.ultimateProjectileBlockTimer : 0f;
         public Vector2 AimHoldDirection => _context != null ? _context.aimHoldDirection : Vector2.zero;
+        public bool IsDodgeInvulnerable => _context != null && !_context.isDead && (_context.dashParryTimer > 0f || _context.dashPressTimer > 0f);
         public Vector2 CurrentVelocity => body != null ? body.linearVelocity : Vector2.zero;
         public float HorizontalVelocity => body != null ? body.linearVelocity.x : 0f;
         public float VerticalVelocity => body != null ? body.linearVelocity.y : 0f;
@@ -101,14 +112,23 @@ namespace ProjectPVP.Gameplay
         public float ResolvedUltimateDashDuration => _statResolver != null ? _statResolver.ResolveUltimateDashDuration() : 0f;
         public float ResolvedUltimateReplayDelay => _statResolver != null ? _statResolver.ResolveUltimateReplayDelay() : 0f;
         public float ResolvedUltimateReplayDuration => _statResolver != null ? _statResolver.ResolveUltimateReplayDuration() : 0f;
-        public float DashParryTimeLeft => _context != null ? _context.dashParryTimer : 0f;
-        public float DashPressTimeLeft => _context != null ? _context.dashPressTimer : 0f;
+        public float DashParryTimeLeft => _context != null && !_context.isDead ? _context.dashParryTimer : 0f;
+        public float DashPressTimeLeft => _context != null && !_context.isDead ? _context.dashPressTimer : 0f;
         public PlayerInputFrame CurrentInputFrame => _context != null ? _context.currentInputFrame : default;
         public string CurrentVisualActionKey => _actionLockSystem != null ? _actionLockSystem.CurrentVisualActionKey : string.Empty;
         public ICombatantInputSource InputSource => _context != null ? _context.RuntimeInputSource : null;
         public ProjectileController LastLaunchedProjectile => _context != null ? _context.lastLaunchedProjectile : null;
+        public PlayerController LastFatalHitSource => _context != null ? _context.lastFatalHitSource : null;
+        public string LastFatalHitCause => _context != null ? _context.lastFatalHitCause : string.Empty;
+        public Vector2 LastFatalHitPosition => _context != null ? _context.lastFatalHitPosition : RootPosition;
+        public string LastFatalHitSummary => ResolveLastFatalHitSummary();
         public bool CanParryProjectile => _combatSystem != null && _combatSystem.CanParryProjectile();
         public bool CanBlockProjectileWithUltimate => _combatSystem != null && _combatSystem.CanBlockProjectileWithUltimate();
+        public float ProjectileInheritVelocityFactor => _statResolver != null
+            ? _statResolver.ResolveProjectileInheritVelocityFactor()
+            : characterDefinition != null
+                ? Mathf.Max(0f, characterDefinition.projectileInheritVelocityFactor)
+                : 1f;
         public CombatantRuntimeContext RuntimeContext => new CombatantRuntimeContext(SlotId, this, characterDefinition, anchorRig, _context != null ? _context.RuntimeInputSource : null);
 
         public static void CopyActivePlayers(List<PlayerController> results)
@@ -175,6 +195,7 @@ namespace ProjectPVP.Gameplay
             int resolvedFacing = _context != null && _context.facing != 0
                 ? _context.facing
                 : (position.x >= fallbackPosition.x ? 1 : -1);
+            bool isDead = _context != null && _context.isDead;
 
             return new AiArenaControllerSnapshot
             {
@@ -185,23 +206,24 @@ namespace ProjectPVP.Gameplay
                 characterId = characterDefinition != null ? characterDefinition.id : string.Empty,
                 displayName = name,
                 actionKey = _actionLockSystem != null ? _actionLockSystem.CurrentVisualActionKey : string.Empty,
-                isDead = _context != null && _context.isDead,
+                isDead = isDead,
                 isGrounded = _context == null || _context.isGrounded,
                 isTouchingWall = _context != null && _context.isTouchingWall,
-                isDashing = _context != null && _context.dashTimeLeft > 0f,
-                isMeleeActive = _context != null && _context.meleeTimeLeft > 0f,
-                isShootAnimating = _context != null && _context.shootAnimationTimeLeft > 0f,
-                isUltimateActive = _context != null && _context.ultimateTimeLeft > 0f,
-                isHitStunned = _context != null && _context.hitStunTimeLeft > 0f,
+                isDashing = !isDead && _context != null && _context.dashTimeLeft > 0f,
+                isMeleeActive = !isDead && _context != null && _context.meleeTimeLeft > 0f,
+                isShootAnimating = !isDead && _context != null && _context.shootAnimationTimeLeft > 0f,
+                isUltimateActive = !isDead && _context != null && _context.ultimateTimeLeft > 0f,
+                isHitStunned = !isDead && _context != null && _context.hitStunTimeLeft > 0f,
                 canParryProjectile = _combatSystem != null && _combatSystem.CanParryProjectile(),
                 canBlockProjectiles = _combatSystem != null && _combatSystem.CanBlockProjectileWithUltimate(),
                 arrows = _context != null ? _context.arrows : 0,
                 facing = resolvedFacing,
+                projectileInheritVelocityFactor = ProjectileInheritVelocityFactor,
                 shootCooldownLeft = _context != null ? _context.shootCooldownLeft : 0f,
                 meleeCooldownLeft = _context != null ? _context.meleeCooldownLeft : 0f,
                 dashCooldownLeft = _context != null ? Mathf.Min(_context.dashPrimaryCooldownLeft, _context.dashSecondaryCooldownLeft) : 0f,
                 ultimateCooldownLeft = _context != null ? _context.ultimateCooldownLeft : 0f,
-                hitStunTimeLeft = _context != null ? _context.hitStunTimeLeft : 0f,
+                hitStunTimeLeft = !isDead && _context != null ? _context.hitStunTimeLeft : 0f,
                 position = position,
                 velocity = body != null ? body.linearVelocity : Vector2.zero,
                 meleeHitboxCenter = _anchorSystem != null ? _anchorSystem.GetMeleeHitboxCenter() : position,
@@ -267,14 +289,20 @@ namespace ProjectPVP.Gameplay
             ConfigureInput();
             ConfigureRuntimeBody();
             _anchorSystem.SyncCombatAnchors();
+            if (_externalControlLock)
+            {
+                ApplyExternalControlLockState();
+            }
             RegisterActivePlayer(this);
             AiArenaSnapshotSourceRegistry.Register(this);
         }
 
         private void OnDisable()
         {
+            _context?.RuntimeInputSource?.ResetInputState();
             UnregisterActivePlayer(this);
             AiArenaSnapshotSourceRegistry.Unregister(this);
+            StopDeathNotifyRoutine();
         }
 
         private void InitializeContext()
@@ -382,6 +410,7 @@ namespace ProjectPVP.Gameplay
             _movementSystem.MoveCharacter(ref velocity, deltaTime);
             body.linearVelocity = velocity;
             _collisionSystem.RefreshCollisionState();
+            _combatSystem.HandleArrowTransferOnContact();
 
             if (shootReleasedThisFrame)
             {
@@ -428,11 +457,56 @@ namespace ProjectPVP.Gameplay
 
         public void SetExternalControlLock(bool locked)
         {
+            if (_externalControlLock == locked)
+            {
+                if (locked && _context != null)
+                {
+                    _context.RuntimeInputSource?.ResetInputState();
+                    if (inputSource != null)
+                    {
+                        inputSource.enabled = false;
+                    }
+
+                    ApplyExternalControlLockState();
+                }
+
+                return;
+            }
+
             _externalControlLock = locked;
+            if (_context == null)
+            {
+                return;
+            }
+
             if (locked)
             {
+                _context.RuntimeInputSource?.ResetInputState();
+                if (inputSource != null)
+                {
+                    _inputSourceEnabledBeforeExternalLock = inputSource.enabled;
+                    inputSource.enabled = false;
+                }
+
                 ApplyExternalControlLockState();
+                return;
             }
+
+            if (inputSource != null)
+            {
+                inputSource.enabled = _inputSourceEnabledBeforeExternalLock;
+            }
+        }
+
+        public void SetRoundShield(bool enabled)
+        {
+            if (_context == null)
+            {
+                return;
+            }
+
+            _context.hasShield = enabled;
+            UpdatePresentationState();
         }
 
         public void AddArrows(int amount)
@@ -440,25 +514,69 @@ namespace ProjectPVP.Gameplay
             _combatSystem.AddArrows(amount);
         }
 
+        public void SetRoundArrowCount(int amount)
+        {
+            EnsureCharacterMechanicsRuntime();
+            if (_context == null)
+            {
+                return;
+            }
+
+            _context.arrows = Mathf.Clamp(amount, 0, _statResolver.ResolveMaxArrows());
+        }
+
+        internal void LockContactArrowTransfer(float duration)
+        {
+            EnsureCharacterMechanicsRuntime();
+            if (_context == null || duration <= 0f)
+            {
+                return;
+            }
+
+            _context.contactArrowTransferLockTimeLeft = Mathf.Max(_context.contactArrowTransferLockTimeLeft, duration);
+        }
+
         public void Kill()
         {
             TryKill();
         }
 
+        public void Kill(PlayerController source, string cause = "")
+        {
+            TryKill(source, cause);
+        }
+
         public bool TryKill()
         {
+            return TryKill(null, string.Empty);
+        }
+
+        public bool TryKill(PlayerController source, string cause = "")
+        {
             EnsureCharacterMechanicsRuntime();
+            if (CanShieldAbsorbFatalHit(cause))
+            {
+                _context.hasShield = false;
+                UpdatePresentationState();
+                return false;
+            }
+
             if (!_combatSystem.Kill())
             {
                 return false;
             }
 
+            RecordFatalHit(source, cause);
             ApplyDefinitionToCollider();
+            BeginDeathFlash();
+            ProjectPvpCameraShake.TryShakeDefault(0.08f, 0.12f);
             UpdatePresentationState();
+            _combatSystem.PlayActionSfx("death");
             float deathEventDelay = characterDefinition != null && characterDefinition.HasActionAnimation("death")
                 ? Mathf.Clamp(_statResolver.ResolveActionDuration("death", 0.35f), 0.2f, 0.6f)
                 : 0f;
-            StartCoroutine(NotifyDeathAfterDelay(deathEventDelay));
+            StopDeathNotifyRoutine();
+            _deathNotifyRoutine = StartCoroutine(NotifyDeathAfterDelay(deathEventDelay));
             return true;
         }
 
@@ -472,9 +590,9 @@ namespace ProjectPVP.Gameplay
             _combatSystem.ApplyKnockback(direction, force, duration);
         }
 
-        public bool HandleIncomingProjectile(ProjectileController projectile)
+        public bool HandleIncomingProjectile(ProjectileController projectile, bool preserveParryEvent = false)
         {
-            return _combatSystem.HandleIncomingProjectile(projectile);
+            return _combatSystem.HandleIncomingProjectile(projectile, preserveParryEvent);
         }
 
         public void ReceiveProjectile(ProjectileController projectile)
@@ -881,7 +999,7 @@ namespace ProjectPVP.Gameplay
             }
 
             return aiBrain == AiBrainKind.CodexBroker
-                ? EnsureCodexBrokerInputSource()
+                ? (MonoBehaviour)EnsureCodexBrokerInputSource()
                 : EnsureLocalAiInputSource();
         }
 
@@ -932,7 +1050,9 @@ namespace ProjectPVP.Gameplay
                     continue;
                 }
 
-                behaviour.enabled = preferredInput != null && ReferenceEquals(behaviour, preferredInput);
+                behaviour.enabled = !_externalControlLock
+                    && preferredInput != null
+                    && ReferenceEquals(behaviour, preferredInput);
             }
 
             inputSource = preferredInput;
@@ -961,6 +1081,44 @@ namespace ProjectPVP.Gameplay
             _context.currentInputFrame = default;
             _context.shootHeldLastFrame = false;
             _context.aimHoldActive = false;
+            _context.dashTimeLeft = 0f;
+            _context.dashVelocity = Vector2.zero;
+            _context.lastDashVelocity = Vector2.zero;
+            _context.dashComboWindowLeft = 0f;
+            _context.dashParryTimer = 0f;
+            _context.dashPressTimer = 0f;
+            _context.dashJumpUsed = false;
+            _context.pendingDashPrimary = false;
+            _context.pendingDashSecondary = false;
+            _context.meleeTimeLeft = 0f;
+            _context.ultimateTimeLeft = 0f;
+            _context.ultimateTotalDuration = 0f;
+            _context.ultimateImpactApplied = false;
+            _context.ultimateDashTimeLeft = 0f;
+            _context.ultimateDashVelocity = Vector2.zero;
+            _context.lastUltimateDashVelocity = Vector2.zero;
+            _context.ultimateProjectileBlockTimer = 0f;
+            _context.meleeAnimationTimeLeft = 0f;
+            _context.shootAnimationTimeLeft = 0f;
+            _context.jumpStartTimeLeft = 0f;
+            _context.dashAnimationHoldTimeLeft = 0f;
+            _context.ultimateAnimationTimeLeft = 0f;
+            _context.jumpBufferLeft = 0f;
+            _context.coyoteTimeLeft = 0f;
+            _context.wallJumpGraceTimer = 0f;
+            _context.wallDetachIgnoreTimer = 0f;
+            _context.contactArrowTransferLockTimeLeft = 0f;
+            _context.isTouchingWall = false;
+            _context.wallNormal = Vector2.zero;
+            _context.currentOverrideLockLeft = 0f;
+            _context.currentOverrideAction = string.Empty;
+            _context.pendingOverrideAction = string.Empty;
+            _context.activeColliderAction = string.Empty;
+            _context.currentOverridePriority = -99999;
+            _context.pendingOverridePriority = -99999;
+            _context.pendingOverrideLockLeft = 0f;
+            _context.meleeHitIds.Clear();
+            _context.actionLockEntries.Clear();
 
             if (body != null)
             {
@@ -1050,6 +1208,7 @@ namespace ProjectPVP.Gameplay
             _context.dashPressTimer = Mathf.Max(0f, _context.dashPressTimer - deltaTime);
             _context.wallJumpGraceTimer = Mathf.Max(0f, _context.wallJumpGraceTimer - deltaTime);
             _context.wallDetachIgnoreTimer = Mathf.Max(0f, _context.wallDetachIgnoreTimer - deltaTime);
+            _context.contactArrowTransferLockTimeLeft = Mathf.Max(0f, _context.contactArrowTransferLockTimeLeft - deltaTime);
             _context.ultimateProjectileBlockTimer = Mathf.Max(0f, _context.ultimateProjectileBlockTimer - deltaTime);
             _context.currentOverrideLockLeft = Mathf.Max(0f, _context.currentOverrideLockLeft - deltaTime);
             _actionLockSystem.UpdateActionLockTimers(deltaTime);
@@ -1059,12 +1218,22 @@ namespace ProjectPVP.Gameplay
         private void ResetRuntimeState()
         {
             EnsureCharacterMechanicsRuntime();
+            StopDeathFlashRoutine();
+            StopDeathNotifyRoutine();
             _context.currentInputFrame = default;
             _context.lastLaunchedProjectile = null;
+            _context.lastFatalHitSource = null;
+            _context.lastFatalHitCause = string.Empty;
+            _context.lastFatalHitPosition = Vector2.zero;
             _context.arrows = _statResolver.ResolveMaxArrows();
             _context.aimHoldActive = false;
             _context.aimHoldDirection = new Vector2(_context.facing, 0f);
             _context.shootHeldLastFrame = false;
+            _context.hitStunTimeLeft = 0f;
+            _context.knockbackVelocity = Vector2.zero;
+            _context.knockbackTimeLeft = 0f;
+            _context.deathFlashTimeLeft = 0f;
+            _context.hasShield = false;
             _context.dashTimeLeft = 0f;
             _context.dashVelocity = Vector2.zero;
             _context.lastDashVelocity = Vector2.zero;
@@ -1088,6 +1257,7 @@ namespace ProjectPVP.Gameplay
             _context.dashPressTimer = 0f;
             _context.wallJumpGraceTimer = 0f;
             _context.wallDetachIgnoreTimer = 0f;
+            _context.contactArrowTransferLockTimeLeft = 0f;
             _context.ultimateProjectileBlockTimer = 0f;
             _context.currentOverrideLockLeft = 0f;
             _context.dashJumpUsed = false;
@@ -1119,7 +1289,7 @@ namespace ProjectPVP.Gameplay
 
             if (_context.isDead)
             {
-                spriteRenderer.color = Color.white;
+                spriteRenderer.color = _context.deathFlashTimeLeft > 0f ? DeathFlashColor : Color.white;
                 return;
             }
 
@@ -1141,7 +1311,53 @@ namespace ProjectPVP.Gameplay
                 return;
             }
 
+            if (_context.hasShield)
+            {
+                spriteRenderer.color = new Color(0.74f, 0.92f, 1f, 1f);
+                return;
+            }
+
             spriteRenderer.color = Color.white;
+        }
+
+        private void BeginDeathFlash()
+        {
+            _context.deathFlashTimeLeft = DeathFlashDuration;
+            StopDeathFlashRoutine();
+            UpdatePresentationState();
+            _deathFlashRoutine = StartCoroutine(ClearDeathFlashAfterDelay(DeathFlashDuration));
+        }
+
+        private void StopDeathFlashRoutine()
+        {
+            if (_deathFlashRoutine == null)
+            {
+                return;
+            }
+
+            StopCoroutine(_deathFlashRoutine);
+            _deathFlashRoutine = null;
+        }
+
+        private IEnumerator ClearDeathFlashAfterDelay(float delay)
+        {
+            if (delay > 0f)
+            {
+                yield return new WaitForSeconds(delay);
+            }
+
+            if (_context == null)
+            {
+                _deathFlashRoutine = null;
+                yield break;
+            }
+
+            _context.deathFlashTimeLeft = 0f;
+            _deathFlashRoutine = null;
+            if (_context.isDead)
+            {
+                UpdatePresentationState();
+            }
         }
 
         private IEnumerator NotifyDeathAfterDelay(float delay)
@@ -1151,7 +1367,59 @@ namespace ProjectPVP.Gameplay
                 yield return new WaitForSeconds(delay);
             }
 
-            Died?.Invoke(this);
+            if (_context != null && _context.isDead)
+            {
+                Died?.Invoke(this);
+            }
+
+            _deathNotifyRoutine = null;
+        }
+
+        private void StopDeathNotifyRoutine()
+        {
+            if (_deathNotifyRoutine == null)
+            {
+                return;
+            }
+
+            StopCoroutine(_deathNotifyRoutine);
+            _deathNotifyRoutine = null;
+        }
+
+        private bool CanShieldAbsorbFatalHit(string cause)
+        {
+            if (_context == null || !_context.hasShield)
+            {
+                return false;
+            }
+
+            string normalizedCause = string.IsNullOrWhiteSpace(cause) ? string.Empty : cause.Trim();
+            return !string.Equals(normalizedCause, "Ring Out", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void RecordFatalHit(PlayerController source, string cause)
+        {
+            if (_context == null)
+            {
+                return;
+            }
+
+            _context.lastFatalHitSource = source;
+            _context.lastFatalHitCause = string.IsNullOrWhiteSpace(cause) ? "Unknown" : cause.Trim();
+            _context.lastFatalHitPosition = RootPosition;
+        }
+
+        private string ResolveLastFatalHitSummary()
+        {
+            if (_context == null || string.IsNullOrWhiteSpace(_context.lastFatalHitCause))
+            {
+                return string.Empty;
+            }
+
+            string sourceLabel = _context.lastFatalHitSource != null
+                ? _context.lastFatalHitSource.BotDisplayName
+                : "Environment";
+            return sourceLabel + " via " + _context.lastFatalHitCause;
         }
 
     }

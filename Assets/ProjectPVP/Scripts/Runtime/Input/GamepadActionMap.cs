@@ -33,7 +33,7 @@ namespace ProjectPVP.Input
         public float deadzone = 0.18f;
         public float aimDeadzone = 0.22f;
         public float triggerPressThreshold = 0.45f;
-        public bool useMoveStickAsAimFallback = true;
+        public bool useMoveStickAsAimFallback = false;
 
         public GamepadActionMap Clone()
         {
@@ -103,7 +103,7 @@ namespace ProjectPVP.Input
                 deadzone = 0.18f,
                 aimDeadzone = 0.22f,
                 triggerPressThreshold = 0.45f,
-                useMoveStickAsAimFallback = true,
+                useMoveStickAsAimFallback = false,
             };
         }
     }

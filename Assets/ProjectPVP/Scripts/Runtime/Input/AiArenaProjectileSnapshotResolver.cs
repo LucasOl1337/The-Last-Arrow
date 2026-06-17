@@ -10,7 +10,7 @@ namespace ProjectPVP.Input
             AiArenaControllerSnapshot self)
         {
             var projectiles = new List<AiArenaProjectileSnapshot>(8);
-            if (projectileSources == null)
+            if (projectileSources == null || !self.isValid)
             {
                 return projectiles;
             }
@@ -18,7 +18,7 @@ namespace ProjectPVP.Input
             for (int index = 0; index < projectileSources.Count; index += 1)
             {
                 AiArenaProjectileSnapshot projectile = AiArenaProjectileSnapshotBuilder.Build(projectileSources[index]);
-                if (!projectile.isValid || projectile.sourceSlotId == self.slotId)
+                if (!projectile.isValid || (projectile.sourceSlotId == self.slotId && !projectile.isCollectible))
                 {
                     continue;
                 }

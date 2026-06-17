@@ -4,7 +4,7 @@ using UnityEngine;
 namespace ProjectPVP.Gameplay
 {
     /// <summary>
-    /// Visual debug overlay for the 8-directional aim and ballistic-assist system.
+    /// Visual debug overlay for the 8-directional aim and ballistic preview system.
     ///
     /// Toggle with  Ctrl + Shift + T  while in Play Mode.
     ///
@@ -12,12 +12,12 @@ namespace ProjectPVP.Gameplay
     /// ─────────────────────────────────────────
     ///   Grey  lines   → the 8 possible snap directions
     ///   Yellow line   → the direction currently being aimed (snapped)
-    ///   Dark-yellow   → ±22° cone edges (assist activates inside this cone)
-    ///   Green  line   → line to enemy whose position is inside the aimed cone
-    ///                   (ballistic assist WILL fire toward them)
-    ///   Red    line   → line to enemy outside the cone (raw shot, no assist)
-    ///   Cyan   line   → the snap direction you would need to aim to activate
-    ///                   the assist toward that enemy
+    ///   Dark-yellow   → ±22° cone edges used for previewing viable 8-way sectors
+    ///   Green  line   → line to enemy whose position matches the current snap
+    ///                   sector and ballistic lane preview
+    ///   Red    line   → line to enemy outside the current snap sector
+    ///   Cyan   line   → the snap direction you would need to aim to line up
+    ///                   with that enemy's ballistic lane
     ///
     /// The overlay is auto-installed at runtime — no scene changes needed.
     /// It is hidden in the Hierarchy and uses its own GL material so it never
@@ -31,8 +31,6 @@ namespace ProjectPVP.Gameplay
         private const float RayLength   = 150f;
         /// <summary>Half-width of one 8-way sector, used only for the visual wedge.</summary>
         private const float AimConeDeg  = 22.5f;
-        private const float ElevatedTargetBiasHeight = 24f;
-
         // Pre-built unit vectors for the 8 compass directions.
         private static readonly Vector2[] k_8Dirs = BuildEightDirs();
 
@@ -217,12 +215,9 @@ namespace ProjectPVP.Gameplay
                 {
                     bestSnap = resolvedSector;
                 }
-                bool assistEnabled = player.characterDefinition != null
-                    ? player.characterDefinition.projectileAssistEnabled
-                    : false;
-                bool sectorMatch = hasAim && assistEnabled && Vector2.Dot(aimDir8.normalized, bestSnap.normalized) >= 0.999f;
+                bool sectorMatch = hasAim && Vector2.Dot(aimDir8.normalized, bestSnap.normalized) >= 0.999f;
 
-                // Green only if the current 1-of-8 direction matches and assist is enabled.
+                // Green only if the current 1-of-8 direction matches the previewed sector.
                 Color lineColor = sectorMatch
                     ? new Color(0.15f, 1f, 0.3f,  0.80f)
                     : new Color(1f,    0.2f, 0.1f, 0.55f);
@@ -233,7 +228,7 @@ namespace ProjectPVP.Gameplay
                     GL.Vertex((Vector3)enemyPoint);
                 });
 
-                // ── Cyan: the snap direction you NEED to aim to activate assist ────
+                // ── Cyan: the snap direction you NEED to aim to line up with the lane ────
                 DrawLines(new Color(0.1f, 0.85f, 1f, 0.80f), () =>
                 {
                     GL.Vertex((Vector3)origin);
@@ -279,153 +274,22 @@ namespace ProjectPVP.Gameplay
 
             float baseSpeed = player.characterDefinition != null ? player.characterDefinition.projectileBaseSpeed : 1600f;
             float gravity = player.characterDefinition != null ? player.characterDefinition.projectileGravity : 1500f;
-            if (!TrySolveBallisticArc(origin, target, baseSpeed, gravity, out Vector2 lowArc, out Vector2 highArc))
-            {
-                return false;
-            }
-
             float inheritFactor = player.characterDefinition != null ? player.characterDefinition.projectileInheritVelocityFactor : 1f;
             Vector2 inheritedVelocity = player.CurrentVelocity * inheritFactor;
-            bool lowClear = IsBallisticPathClear(player, origin, target, lowArc, baseSpeed, gravity, inheritedVelocity);
-            bool highClear = IsBallisticPathClear(player, origin, target, highArc, baseSpeed, gravity, inheritedVelocity);
-            bool favorHighArc = target.y - origin.y > ElevatedTargetBiasHeight;
-
-            Vector2 preferredDirection;
-            if (lowClear && highClear)
+            if (!ProjectileTrajectoryMath.TryResolvePreferredTravelDirection(
+                    origin,
+                    target,
+                    baseSpeed,
+                    gravity,
+                    inheritedVelocity,
+                    player.groundMask,
+                    out Vector2 preferredDirection))
             {
-                preferredDirection = favorHighArc ? highArc : lowArc;
-            }
-            else if (highClear)
-            {
-                preferredDirection = highArc;
-            }
-            else if (lowClear)
-            {
-                preferredDirection = lowArc;
-            }
-            else
-            {
-                preferredDirection = favorHighArc ? highArc : lowArc;
+                return false;
             }
 
             requiredSector = PlayerMovementSystem.Snap8Dir(preferredDirection);
             return requiredSector.sqrMagnitude > 0.01f;
-        }
-
-        private static bool IsBallisticPathClear(PlayerController player, Vector2 origin, Vector2 target, Vector2 launchDirection, float baseSpeed, float gravity, Vector2 inheritedVelocity)
-        {
-            float initialSpeed = baseSpeed + Mathf.Max(0f, Vector2.Dot(inheritedVelocity, launchDirection.normalized));
-            if (initialSpeed <= 0.01f)
-            {
-                return false;
-            }
-
-            const int sampleCount = 24;
-            const float targetRadius = 24f;
-            float estimatedFlightTime = ResolveEstimatedFlightTime(origin, target, launchDirection.normalized, initialSpeed);
-            Vector2 previous = origin;
-
-            for (int step = 1; step <= sampleCount; step += 1)
-            {
-                float t = estimatedFlightTime * (step / (float)sampleCount);
-                Vector2 current = origin
-                    + (launchDirection.normalized * initialSpeed * t)
-                    + (Vector2.down * (0.5f * gravity * t * t));
-
-                if (Physics2D.Linecast(previous, current, player.groundMask))
-                {
-                    return false;
-                }
-
-                if ((current - target).sqrMagnitude <= targetRadius * targetRadius)
-                {
-                    return true;
-                }
-
-                previous = current;
-            }
-
-            return (previous - target).sqrMagnitude <= targetRadius * targetRadius;
-        }
-
-        private static float ResolveEstimatedFlightTime(Vector2 origin, Vector2 target, Vector2 direction, float speed)
-        {
-            float horizontalSpeed = direction.x * speed;
-            float dx = target.x - origin.x;
-            if (Mathf.Abs(horizontalSpeed) > 0.01f)
-            {
-                float time = dx / horizontalSpeed;
-                if (time > 0f)
-                {
-                    return Mathf.Clamp(time, 0.05f, 2.5f);
-                }
-            }
-
-            return Mathf.Clamp(Vector2.Distance(origin, target) / Mathf.Max(speed, 0.01f), 0.05f, 2.5f);
-        }
-
-        private static bool TrySolveBallisticArc(Vector2 origin, Vector2 target, float speed, float gravity, out Vector2 lowArcDir, out Vector2 highArcDir)
-        {
-            lowArcDir = highArcDir = Vector2.zero;
-
-            if (speed < 0.1f)
-            {
-                Vector2 fallback = (target - origin).normalized;
-                lowArcDir = fallback;
-                highArcDir = fallback;
-                return true;
-            }
-
-            float dx = target.x - origin.x;
-            float dy = target.y - origin.y;
-            if (Mathf.Abs(dx) < 1f)
-            {
-                Vector2 direct = (target - origin).normalized;
-                lowArcDir = direct;
-                highArcDir = direct;
-                return true;
-            }
-
-            float speedSq = speed * speed;
-            float a = gravity * dx * dx / (2f * speedSq);
-            if (Mathf.Abs(a) < 0.0001f)
-            {
-                return false;
-            }
-
-            float b = -dx;
-            float c = dy + a;
-            float discriminant = b * b - (4f * a * c);
-            if (discriminant < 0f)
-            {
-                return false;
-            }
-
-            float sqrtDiscriminant = Mathf.Sqrt(discriminant);
-            float tanA = (-b + sqrtDiscriminant) / (2f * a);
-            float tanB = (-b - sqrtDiscriminant) / (2f * a);
-
-            Vector2 TanToDirection(float tanValue)
-            {
-                float cos = 1f / Mathf.Sqrt(1f + (tanValue * tanValue));
-                float sin = tanValue * cos;
-                return new Vector2(cos * (dx >= 0f ? 1f : -1f), sin).normalized;
-            }
-
-            Vector2 first = TanToDirection(tanA);
-            Vector2 second = TanToDirection(tanB);
-            if (Mathf.Abs(tanA) <= Mathf.Abs(tanB))
-            {
-                lowArcDir = first;
-                highArcDir = second;
-            }
-            else
-            {
-                lowArcDir = second;
-                highArcDir = first;
-            }
-
-            return true;
         }
 
         private static Vector2 AngleToDir(float rad)

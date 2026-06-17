@@ -2,6 +2,7 @@ using System.Reflection;
 using NUnit.Framework;
 using ProjectPVP.Data;
 using ProjectPVP.Gameplay;
+using ProjectPVP.Input;
 using UnityEngine;
 
 namespace ProjectPVP.Tests.Editor
@@ -26,12 +27,30 @@ namespace ProjectPVP.Tests.Editor
             typeof(ProjectileController).GetField("_projectileSpeedDecayRuntime", BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly FieldInfo LifetimeLeftField =
             typeof(ProjectileController).GetField("_lifetimeLeft", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo DistanceTravelledField =
+            typeof(ProjectileController).GetField("_distanceTravelled", BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly FieldInfo VelocityField =
             typeof(ProjectileController).GetField("_velocity", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo LaunchDirectionField =
+            typeof(ProjectileController).GetField("_launchDirection", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo LaunchedField =
+            typeof(ProjectileController).GetField("_launched", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo SourceObjectField =
+            typeof(ProjectileController).GetField("_sourceObject", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo IsStuckField =
+            typeof(ProjectileController).GetField("_isStuck", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly FieldInfo HitColliderField =
+            typeof(ProjectileController).GetField("hitCollider", BindingFlags.Instance | BindingFlags.Public);
         private static readonly MethodInfo ResolveGravityScaleMethod =
             typeof(ProjectileController).GetMethod("ResolveGravityScale", BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly MethodInfo ApplySpeedDecayMethod =
             typeof(ProjectileController).GetMethod("ApplySpeedDecay", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo IsOpposingProjectileMethod =
+            typeof(ProjectileController).GetMethod("IsOpposingProjectile", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo DisarmIntoDropMethod =
+            typeof(ProjectileController).GetMethod("DisarmIntoDrop", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo OnDisableMethod =
+            typeof(ProjectileController).GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.NonPublic);
 
         [Test]
         public void ApplyDefinition_CopiesProjectileGravityTuning()
@@ -180,6 +199,347 @@ namespace ProjectPVP.Tests.Editor
             finally
             {
                 Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void Launch_InheritsFullVelocityVectorWhenFactorIsOne()
+        {
+            GameObject root = new GameObject("projectile_inherit_velocity");
+            ProjectileController controller = root.AddComponent<ProjectileController>();
+
+            try
+            {
+                controller.baseSpeed = 1600f;
+
+                controller.Launch(
+                    sourceObject: null,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: new Vector2(220f, 80f),
+                    inheritFactor: 1f,
+                    overrideSprite: null);
+
+                Assert.That(controller.CurrentVelocity.x, Is.EqualTo(1820f).Within(0.001f));
+                Assert.That(controller.CurrentVelocity.y, Is.EqualTo(80f).Within(0.001f));
+                Assert.That(controller.CurrentVelocity.magnitude, Is.EqualTo(new Vector2(1820f, 80f).magnitude).Within(0.001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void Launch_InheritsPerpendicularMomentumWhenFactorIsOne()
+        {
+            GameObject root = new GameObject("projectile_inherit_perpendicular");
+            ProjectileController controller = root.AddComponent<ProjectileController>();
+
+            try
+            {
+                controller.baseSpeed = 1600f;
+
+                controller.Launch(
+                    sourceObject: null,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: new Vector2(0f, 160f),
+                    inheritFactor: 1f,
+                    overrideSprite: null);
+
+                Assert.That(controller.CurrentVelocity.x, Is.EqualTo(1600f).Within(0.001f));
+                Assert.That(controller.CurrentVelocity.y, Is.EqualTo(160f).Within(0.001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void ReflectFromParry_RestartsLifetimeAndRangeBudget()
+        {
+            Assert.That(LifetimeLeftField, Is.Not.Null);
+            Assert.That(DistanceTravelledField, Is.Not.Null);
+
+            GameObject root = new GameObject("projectile_parry_budget");
+            GameObject parrySource = new GameObject("projectile_parry_budget_source");
+            ProjectileController controller = root.AddComponent<ProjectileController>();
+
+            try
+            {
+                controller.baseSpeed = 1600f;
+                controller.maxLifetime = 2f;
+                controller.maxRange = 100f;
+                controller.Launch(
+                    sourceObject: null,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: Vector2.zero,
+                    inheritFactor: 0f,
+                    overrideSprite: null);
+                LifetimeLeftField.SetValue(controller, 0.03f);
+                DistanceTravelledField.SetValue(controller, 99f);
+
+                controller.ReflectFromParry(parrySource);
+
+                Assert.That((float)LifetimeLeftField.GetValue(controller), Is.EqualTo(2f).Within(0.0001f));
+                Assert.That((float)DistanceTravelledField.GetValue(controller), Is.Zero);
+                Assert.That(controller.SourceObject, Is.SameAs(parrySource));
+                Assert.That(controller.CurrentVelocity.x, Is.LessThan(0f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(parrySource);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void BuildAiArenaProjectileSnapshot_DoesNotMarkFlyingArrowAsCollectible()
+        {
+            GameObject root = new GameObject("projectile_collectible_state");
+            ProjectileController controller = root.AddComponent<ProjectileController>();
+
+            try
+            {
+                controller.Launch(
+                    sourceObject: null,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: Vector2.zero,
+                    inheritFactor: 0f,
+                    overrideSprite: null);
+
+                AiArenaProjectileSnapshot snapshot = controller.BuildAiArenaProjectileSnapshot();
+
+                Assert.That(snapshot.isValid, Is.True);
+                Assert.That(snapshot.isStuck, Is.False);
+                Assert.That(snapshot.isDisarmed, Is.False);
+                Assert.That(snapshot.isCollectible, Is.False);
+                Assert.That(controller.IsCollectible, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void SeverByMelee_MakesProjectileDisarmedAndCollectible()
+        {
+            GameObject root = new GameObject("projectile_sever_melee");
+            ProjectileController controller = root.AddComponent<ProjectileController>();
+
+            try
+            {
+                controller.Launch(
+                    sourceObject: root,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: Vector2.zero,
+                    inheritFactor: 0f,
+                    overrideSprite: null);
+
+                controller.SeverByMelee();
+
+                Assert.That(controller.IsDisarmed, Is.True);
+                Assert.That(controller.IsStuck, Is.False);
+                Assert.That(controller.IsCollectible, Is.True);
+                Assert.That(controller.SourceObject, Is.Null);
+                Assert.That(controller.CurrentVelocity.y, Is.LessThanOrEqualTo(-120f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void DisarmIntoDrop_ClearsSourceObjectAndMarksProjectileCollectible()
+        {
+            Assert.That(DisarmIntoDropMethod, Is.Not.Null);
+            Assert.That(SourceObjectField, Is.Not.Null);
+
+            GameObject root = new GameObject("projectile_disarm_drop");
+            ProjectileController controller = root.AddComponent<ProjectileController>();
+            GameObject source = new GameObject("projectile_disarm_source");
+
+            try
+            {
+                controller.Launch(
+                    sourceObject: source,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: false,
+                    launchAssistStrength: 0f,
+                    launchAssistMaxTurnRateDeg: 0f,
+                    launchAssistAcquireConeDeg: 0f,
+                    launchAssistMaxRange: 0f,
+                    launchAssistMinDistance: 0f,
+                    launchAssistDropoffStartRatio: 0f,
+                    inheritedVelocity: Vector2.zero,
+                    inheritFactor: 0f,
+                    overrideSprite: null);
+
+                DisarmIntoDropMethod.Invoke(controller, null);
+
+                Assert.That((bool)IsStuckField.GetValue(controller), Is.False);
+                Assert.That(controller.IsDisarmed, Is.True);
+                Assert.That(controller.IsCollectible, Is.True);
+                Assert.That(SourceObjectField.GetValue(controller), Is.Null);
+                Assert.That(controller.CurrentVelocity.y, Is.EqualTo(-40f).Within(0.001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(source);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void OnDisable_ClearsRuntimeProjectileState()
+        {
+            Assert.That(LaunchedField, Is.Not.Null);
+            Assert.That(SourceObjectField, Is.Not.Null);
+            Assert.That(IsStuckField, Is.Not.Null);
+            Assert.That(HitColliderField, Is.Not.Null);
+            Assert.That(OnDisableMethod, Is.Not.Null);
+
+            GameObject root = new GameObject("projectile_disable_state");
+            ProjectileController controller = root.AddComponent<ProjectileController>();
+            GameObject source = new GameObject("projectile_disable_state_source");
+
+            try
+            {
+                controller.baseSpeed = 1600f;
+                controller.Launch(
+                    sourceObject: source,
+                    origin: Vector2.zero,
+                    direction: Vector2.right,
+                    assistTarget: null,
+                    launchAssistEnabled: true,
+                    launchAssistStrength: 0.5f,
+                    launchAssistMaxTurnRateDeg: 360f,
+                    launchAssistAcquireConeDeg: 30f,
+                    launchAssistMaxRange: 100f,
+                    launchAssistMinDistance: 1f,
+                    launchAssistDropoffStartRatio: 0.6f,
+                    inheritedVelocity: new Vector2(40f, 20f),
+                    inheritFactor: 1f,
+                    overrideSprite: null);
+
+                Assert.That((bool)LaunchedField.GetValue(controller), Is.True);
+                Assert.That(SourceObjectField.GetValue(controller), Is.SameAs(source));
+                Assert.That((bool)IsStuckField.GetValue(controller), Is.False);
+
+                OnDisableMethod.Invoke(controller, null);
+
+                Assert.That((bool)LaunchedField.GetValue(controller), Is.False);
+                Assert.That(SourceObjectField.GetValue(controller), Is.Null);
+                Assert.That((bool)IsStuckField.GetValue(controller), Is.False);
+                Assert.That(((BoxCollider2D)HitColliderField.GetValue(controller)).enabled, Is.False);
+                Assert.That(controller.CurrentVelocity, Is.EqualTo(Vector2.zero));
+                Assert.That(controller.BuildAiArenaProjectileSnapshot().isValid, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(source);
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
+        public void IsOpposingProjectile_UsesFlightDirectionInsteadOfOnlyHorizontalSign()
+        {
+            Assert.That(LaunchDirectionField, Is.Not.Null);
+            Assert.That(VelocityField, Is.Not.Null);
+            Assert.That(IsOpposingProjectileMethod, Is.Not.Null);
+
+            GameObject leftRoot = new GameObject("projectile_collision_left");
+            GameObject rightRoot = new GameObject("projectile_collision_right");
+
+            try
+            {
+                ProjectileController verticalDown = leftRoot.AddComponent<ProjectileController>();
+                ProjectileController verticalUp = rightRoot.AddComponent<ProjectileController>();
+
+                LaunchDirectionField.SetValue(verticalDown, Vector2.down);
+                LaunchDirectionField.SetValue(verticalUp, Vector2.up);
+                VelocityField.SetValue(verticalDown, new Vector2(0f, -120f));
+                VelocityField.SetValue(verticalUp, new Vector2(0f, 120f));
+
+                bool verticalCollision = (bool)IsOpposingProjectileMethod.Invoke(verticalDown, new object[] { verticalUp });
+                Assert.That(verticalCollision, Is.True);
+
+                ProjectileController parallelA = leftRoot.AddComponent<ProjectileController>();
+                ProjectileController parallelB = rightRoot.AddComponent<ProjectileController>();
+
+                LaunchDirectionField.SetValue(parallelA, Vector2.right);
+                LaunchDirectionField.SetValue(parallelB, Vector2.right);
+                VelocityField.SetValue(parallelA, new Vector2(150f, 20f));
+                VelocityField.SetValue(parallelB, new Vector2(180f, 18f));
+
+                bool parallelCollision = (bool)IsOpposingProjectileMethod.Invoke(parallelA, new object[] { parallelB });
+                Assert.That(parallelCollision, Is.False);
+
+                ProjectileController diagonalA = leftRoot.AddComponent<ProjectileController>();
+                ProjectileController diagonalB = rightRoot.AddComponent<ProjectileController>();
+
+                LaunchDirectionField.SetValue(diagonalA, new Vector2(1f, 1f));
+                LaunchDirectionField.SetValue(diagonalB, new Vector2(1f, -1f));
+                VelocityField.SetValue(diagonalA, new Vector2(140f, 140f));
+                VelocityField.SetValue(diagonalB, new Vector2(140f, -140f));
+
+                bool diagonalCollision = (bool)IsOpposingProjectileMethod.Invoke(diagonalA, new object[] { diagonalB });
+                Assert.That(diagonalCollision, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(leftRoot);
+                Object.DestroyImmediate(rightRoot);
             }
         }
 

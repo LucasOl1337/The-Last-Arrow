@@ -42,6 +42,7 @@ namespace ProjectPVP.Gameplay
         private bool _isStuck;
         private bool _isCollectible;
         private bool _isDisarmed;
+        private bool _isParried;
         private Transform _assistTarget;
         private bool _assistEnabledRuntime;
         private bool _assistTargetLocked;
@@ -66,8 +67,9 @@ namespace ProjectPVP.Gameplay
         // ── Public state ──────────────────────────────────────────────────────────
         public GameObject SourceObject => _sourceObject;
         public bool IsStuck => _isStuck;
-        public bool IsCollectible => _isCollectible;
+        public bool IsCollectible => (_isStuck || _isDisarmed) && _isCollectible;
         public bool IsDisarmed => _isDisarmed;
+        public bool IsParried => _isParried;
         public Vector2 CurrentVelocity => _velocity;
         public Vector2 TravelDirection => _velocity.sqrMagnitude > 0.01f
             ? _velocity.normalized
@@ -136,6 +138,76 @@ namespace ProjectPVP.Gameplay
             s_activeProjectiles.Clear();
         }
 
+        public static int DestroyActiveProjectilesForRoundReset()
+        {
+            PruneDestroyedActiveProjectiles();
+            if (s_activeProjectiles.Count == 0)
+            {
+                return 0;
+            }
+
+            ProjectileController[] activeProjectiles = s_activeProjectiles.ToArray();
+            s_activeProjectiles.Clear();
+
+            int destroyedCount = 0;
+            for (int index = 0; index < activeProjectiles.Length; index += 1)
+            {
+                ProjectileController projectile = activeProjectiles[index];
+                if (projectile == null || !projectile.HasRoundProjectileState())
+                {
+                    continue;
+                }
+
+                destroyedCount += 1;
+                if (Application.isPlaying)
+                {
+                    Destroy(projectile.gameObject);
+                }
+                else
+                {
+                    DestroyImmediate(projectile.gameObject);
+                }
+            }
+
+            return destroyedCount;
+        }
+
+        public static ProjectileController SpawnDroppedArrow(
+            ProjectileController projectilePrefab,
+            CharacterDefinition definition,
+            Vector2 origin)
+        {
+            ProjectileController projectile = ProjectileLauncher.Spawn(
+                projectilePrefab,
+                definition,
+                null,
+                origin,
+                Vector2.right,
+                null,
+                false,
+                0f,
+                0f,
+                0f,
+                0f,
+                0f,
+                0f,
+                Vector2.zero,
+                0f,
+                null,
+                1f);
+            if (projectile != null)
+            {
+                projectile.Stick(true);
+            }
+
+            return projectile;
+        }
+
+        private bool HasRoundProjectileState()
+        {
+            return _launched || _isStuck || _isDisarmed || _isCollectible;
+        }
+
         public AiArenaProjectileSnapshot BuildAiArenaProjectileSnapshot()
         {
             int sourceSlotId = 0;
@@ -156,6 +228,7 @@ namespace ProjectPVP.Gameplay
                 sourceSlotId = sourceSlotId,
                 isStuck = _isStuck,
                 isDisarmed = _isDisarmed,
+                isCollectible = IsCollectible,
                 position = transform.position,
                 velocity = velocity,
                 travelDirection = travelDirection.sqrMagnitude > 0.001f
@@ -199,6 +272,7 @@ namespace ProjectPVP.Gameplay
 
         private void OnDisable()
         {
+            ResetRuntimeState();
             UnregisterActiveProjectile(this);
             AiArenaSnapshotSourceRegistry.Unregister(this);
         }
@@ -283,7 +357,7 @@ namespace ProjectPVP.Gameplay
                 }
                 else if (player == null)
                 {
-                    Stick(_isCollectible);
+                    Stick(true);
                 }
 
                 return;
@@ -291,8 +365,18 @@ namespace ProjectPVP.Gameplay
 
             if (player != null)
             {
-                if (player.HandleIncomingProjectile(this))
+                if (player.HandleIncomingProjectile(this, preserveParryEvent: true))
                 {
+                    if (ConsumeParryEvent())
+                    {
+                        return;
+                    }
+
+                    if (_isStuck)
+                    {
+                        return;
+                    }
+
                     if (_isDisarmed)
                     {
                         Stick(_isCollectible);
@@ -334,16 +418,16 @@ namespace ProjectPVP.Gameplay
             _sourceObject = sourceObject;
             _launchDirection = direction == Vector2.zero ? Vector2.right : direction.normalized;
 
-            // Add player's own velocity component along the shot direction.
-            float inheritedBoost = Mathf.Max(0f, Vector2.Dot(inheritedVelocity * inheritFactor, _launchDirection));
-            _velocity = _launchDirection * (baseSpeed + inheritedBoost);
+            _velocity = _launchDirection * baseSpeed + inheritedVelocity * inheritFactor;
 
             _lifetimeLeft = maxLifetime;
             _distanceTravelled = 0f;
             _launched = true;
+            RegisterActiveProjectile(this);
             _isStuck = false;
             _isCollectible = collectableWhenStuck;
             _isDisarmed = false;
+            _isParried = false;
             _assistTarget = assistTarget;
             _assistEnabledRuntime = launchAssistEnabled && assistTarget != null;
             _assistTargetLocked = _assistEnabledRuntime;
@@ -407,6 +491,36 @@ namespace ProjectPVP.Gameplay
             ApplyFlightHitbox();
         }
 
+        private void ResetRuntimeState()
+        {
+            _sourceObject = null;
+            _velocity = Vector2.zero;
+            _launchDirection = Vector2.right;
+            _lifetimeLeft = 0f;
+            _distanceTravelled = 0f;
+            _launched = false;
+            _isStuck = false;
+            _isCollectible = false;
+            _isDisarmed = false;
+            _isParried = false;
+            _assistTarget = null;
+            _assistEnabledRuntime = false;
+            _assistTargetLocked = false;
+            _assistStrengthRuntime = 0f;
+            _assistMaxTurnRateDegRuntime = 0f;
+            _assistAcquireConeDegRuntime = 0f;
+            _assistMaxRangeRuntime = 0f;
+            _assistMinDistanceRuntime = 0f;
+            _assistDropoffStartRatioRuntime = 0f;
+            _assistCurrentAngleDeg = 0f;
+            _assistAppliedStrength = 0f;
+
+            if (hitCollider != null)
+            {
+                hitCollider.enabled = false;
+            }
+        }
+
         // ── State transitions ─────────────────────────────────────────────────────
         public void Stick(bool collectable)
         {
@@ -415,8 +529,14 @@ namespace ProjectPVP.Gameplay
                 return;
             }
 
+            if (collectable)
+            {
+                _sourceObject = null;
+            }
+
             _isStuck = true;
             _isCollectible = collectable;
+            _isParried = false;
             _velocity = Vector2.zero;
 
             if (body != null)
@@ -435,7 +555,9 @@ namespace ProjectPVP.Gameplay
             }
 
             _isDisarmed = true;
-            _isCollectible = false;
+            _isCollectible = true;
+            _sourceObject = null;
+            _isParried = false;
 
             _velocity = _velocity.sqrMagnitude > 0.01f
                 ? new Vector2(_velocity.x * 0.2f, Mathf.Min(_velocity.y, -120f))
@@ -447,6 +569,40 @@ namespace ProjectPVP.Gameplay
             }
 
             ApplyCollectibleHitbox();
+        }
+
+        internal bool TryConsumeCollectible()
+        {
+            if (!IsCollectible)
+            {
+                return false;
+            }
+
+            _sourceObject = null;
+            _velocity = Vector2.zero;
+            _launched = false;
+            _isStuck = false;
+            _isCollectible = false;
+            _isDisarmed = false;
+            _isParried = false;
+            _assistTarget = null;
+            _assistEnabledRuntime = false;
+            _assistTargetLocked = false;
+            _assistCurrentAngleDeg = 0f;
+            _assistAppliedStrength = 0f;
+
+            if (body != null)
+            {
+                body.linearVelocity = Vector2.zero;
+            }
+
+            if (hitCollider != null)
+            {
+                hitCollider.enabled = false;
+            }
+
+            UnregisterActiveProjectile(this);
+            return true;
         }
 
         // ── Collision helpers ─────────────────────────────────────────────────────
@@ -494,18 +650,74 @@ namespace ProjectPVP.Gameplay
             other.DisarmIntoDrop();
         }
 
-        private bool IsOpposingProjectile(ProjectileController other)
+        public void ReflectFromParry(GameObject newSourceObject)
         {
-            float myH = ResolveTravelHorizontal();
-            float theirH = other.ResolveTravelHorizontal();
-            return Mathf.Abs(myH) > 0.1f
-                && Mathf.Abs(theirH) > 0.1f
-                && Mathf.Sign(myH) != Mathf.Sign(theirH);
+            if (!_launched || _isStuck || _isDisarmed)
+            {
+                return;
+            }
+
+            _sourceObject = newSourceObject;
+
+            Vector2 reflectedDirection = _velocity.sqrMagnitude > 0.01f
+                ? -_velocity.normalized
+                : -_launchDirection;
+            if (reflectedDirection.sqrMagnitude <= 0.01f)
+            {
+                reflectedDirection = Vector2.left;
+            }
+
+            float reflectedSpeed = Mathf.Max(baseSpeed * 0.95f, _velocity.magnitude);
+            _launchDirection = reflectedDirection.normalized;
+            _velocity = _launchDirection * reflectedSpeed;
+            _lifetimeLeft = maxLifetime;
+            _distanceTravelled = 0f;
+            _assistTarget = null;
+            _assistEnabledRuntime = false;
+            _assistTargetLocked = false;
+            _assistCurrentAngleDeg = 0f;
+            _assistAppliedStrength = 0f;
+            _isParried = true;
+
+            if (hitCollider != null)
+            {
+                ApplyFlightHitbox();
+                hitCollider.enabled = true;
+            }
         }
 
-        private float ResolveTravelHorizontal()
+        internal bool ConsumeParryEvent()
         {
-            return Mathf.Abs(_velocity.x) > 0.1f ? _velocity.x : _launchDirection.x;
+            if (!_isParried)
+            {
+                return false;
+            }
+
+            _isParried = false;
+            return true;
+        }
+
+        private bool IsOpposingProjectile(ProjectileController other)
+        {
+            Vector2 myDirection = ResolveTravelDirection();
+            Vector2 theirDirection = other.ResolveTravelDirection();
+            if (myDirection.sqrMagnitude <= 0.01f || theirDirection.sqrMagnitude <= 0.01f)
+            {
+                return false;
+            }
+
+            float directionalDot = Vector2.Dot(myDirection.normalized, theirDirection.normalized);
+            return directionalDot <= -0.1f;
+        }
+
+        private Vector2 ResolveTravelDirection()
+        {
+            if (_velocity.sqrMagnitude > 0.01f)
+            {
+                return _velocity.normalized;
+            }
+
+            return _launchDirection.sqrMagnitude > 0.01f ? _launchDirection.normalized : Vector2.right;
         }
 
         private float ResolveGravityScale()
@@ -559,6 +771,8 @@ namespace ProjectPVP.Gameplay
         {
             _isDisarmed = true;
             _isCollectible = true;
+            _isParried = false;
+            _sourceObject = null;
 
             _velocity = _velocity.sqrMagnitude > 0.01f
                 ? new Vector2(_velocity.x * 0.15f, Mathf.Min(_velocity.y, -40f))

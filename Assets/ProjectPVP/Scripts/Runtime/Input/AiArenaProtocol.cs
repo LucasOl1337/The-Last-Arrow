@@ -7,7 +7,7 @@ namespace ProjectPVP.Input
     [Serializable]
     public sealed class AiArenaSnapshotEnvelope
     {
-        public const int CurrentSchemaVersion = 1;
+        public const int CurrentSchemaVersion = 2;
 
         public int schemaVersion = CurrentSchemaVersion;
         public string transport = "local_json";
@@ -59,6 +59,7 @@ namespace ProjectPVP.Input
         public bool canBlockProjectiles;
         public int facing = 1;
         public int arrows;
+        public float projectileInheritVelocityFactor = 1f;
         public float shootCooldownLeft;
         public float meleeCooldownLeft;
         public float dashCooldownLeft;
@@ -78,6 +79,7 @@ namespace ProjectPVP.Input
         public int sourceSlotId;
         public bool isStuck;
         public bool isDisarmed;
+        public bool isCollectible;
         public Vector2 position = Vector2.zero;
         public Vector2 velocity = Vector2.zero;
         public Vector2 travelDirection = Vector2.right;
@@ -113,6 +115,10 @@ namespace ProjectPVP.Input
         public bool incomingProjectileThreat;
         public bool shouldJumpEvade;
         public bool shouldDashEvade;
+        public bool hasCollectibleProjectile;
+        public bool shouldCollectProjectile;
+        public float collectibleProjectileDistance = -1f;
+        public Vector2 collectibleProjectileDirection = Vector2.zero;
         public float incomingProjectileTime = -1f;
         public Vector2 incomingProjectileDirection = Vector2.zero;
         public Vector2 predictedTargetDirection = Vector2.right;

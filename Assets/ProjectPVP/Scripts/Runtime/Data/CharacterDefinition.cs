@@ -102,8 +102,8 @@ namespace ProjectPVP.Data
         public float jumpVelocity = 660f;
         public float gravity = 1500f;
         public float maxFallSpeed = 1500f;
-        public float shootCooldown = 0.001f;
-        public int maxArrows = 5;
+        public float shootCooldown = 0.02f;
+        public int maxArrows = 3;
         public float meleeCooldown = 0.45f;
         public float meleeDuration = 0.12f;
         public bool meleeCanSeverProjectiles;
@@ -179,7 +179,7 @@ namespace ProjectPVP.Data
 
         [Header("Projectile Assist")]
         public bool projectileAssistEnabled = false;
-        [Range(0f, 1f)] public float projectileAssistStrength = 0.32f;
+        [Range(0f, 1f)] public float projectileAssistStrength = 0.2f;
         public float projectileAssistMaxTurnRateDeg = 420f;
         public float projectileAssistAcquireConeDeg = 36f;
         public float projectileAssistMaxRange = 1600f;

@@ -81,6 +81,14 @@ namespace ProjectPVP.Input
             _collector.ForceRefresh();
         }
 
+        public void ResetInputState()
+        {
+            _currentFrame = default;
+            _frameIndex = 0;
+            _executionState = default;
+            _debugSummary = "AI";
+        }
+
         private PlayerInputFrame ResolveFrame(AiArenaTransportResult result, AiArenaControllerSnapshot self, AiArenaSnapshotEnvelope snapshot)
         {
             if (!result.IsSuccess)

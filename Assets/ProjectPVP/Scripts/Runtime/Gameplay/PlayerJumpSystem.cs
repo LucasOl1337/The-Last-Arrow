@@ -35,6 +35,11 @@ namespace ProjectPVP.Gameplay
 
         public void HandleJumpAndGravity(PlayerInputFrame frame, float deltaTime, ref Vector2 velocity)
         {
+            if (_context.isDead)
+            {
+                return;
+            }
+
             if (TryConsumeJump(ref velocity))
             {
                 return;
@@ -69,7 +74,6 @@ namespace ProjectPVP.Gameplay
                 velocity.y = Mathf.Min(velocity.y, -WallImpactFallSpeed);
                 _context.wallDetachIgnoreTimer = 0.14f;
                 _context.isTouchingWall = false;
-                _context.wallNormal = Vector2.zero;
             }
 
             float gravityMultiplier = ResolveAirGravityMultiplier(frame, velocity.y);
@@ -99,7 +103,7 @@ namespace ProjectPVP.Gameplay
 
         public bool TryConsumeJump(ref Vector2 velocity)
         {
-            if (!HasBufferedJump())
+            if (_context.isDead || !HasBufferedJump())
             {
                 return false;
             }
@@ -138,6 +142,11 @@ namespace ProjectPVP.Gameplay
 
         public void TriggerJumpStartAnimation()
         {
+            if (_context.isDead)
+            {
+                return;
+            }
+
             float duration = _statResolver.ResolveActionDuration("jump_start", JumpStartAnimationDuration);
             _context.jumpStartTimeLeft = duration;
         }
@@ -205,7 +214,7 @@ namespace ProjectPVP.Gameplay
 
         private bool TryApplyHeadStompReaction(PlayerController target, Rect selfFeetRect)
         {
-            if (target == null || target == _context.Controller || target.IsDead || target.bodyCollider == null)
+            if (target == null || target == _context.Controller || target.IsDead || target.bodyCollider == null || target.IsDodgeInvulnerable)
             {
                 return false;
             }
@@ -227,22 +236,7 @@ namespace ProjectPVP.Gameplay
 
         private void ApplyHeadStompReaction(PlayerController target)
         {
-            CharacterDefinition sourceDefinition = _context.characterDefinition;
-            Vector2 hitDirection = target.RootPosition - _context.Controller.RootPosition;
-            if (hitDirection.sqrMagnitude <= 0.01f)
-            {
-                hitDirection = Vector2.down;
-            }
-
-            float hitstunDuration = sourceDefinition != null
-                ? sourceDefinition.meleeHitstunDuration
-                : 0.1f;
-            float knockbackForce = sourceDefinition != null
-                ? sourceDefinition.meleeKnockbackForce
-                : 400f;
-
-            target.ApplyHitstun(hitstunDuration);
-            target.ApplyKnockback(hitDirection, knockbackForce, 0.2f);
+            target.Kill(_context.Controller, "Head Stomp");
         }
     }
 }

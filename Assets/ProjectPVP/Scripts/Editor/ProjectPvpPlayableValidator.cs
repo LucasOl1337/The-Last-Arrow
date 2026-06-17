@@ -123,7 +123,7 @@ namespace ProjectPVP.Editor
                 }
 
                 ValidatePlayer(matchController, slot, issues);
-                if (slot.controller != null || slot.characterProfile != null)
+                if (slot.controller != null || slot.characterProfile != null || slot.selectedCharacter != null)
                 {
                     configuredPlayers += 1;
                 }
@@ -140,7 +140,13 @@ namespace ProjectPVP.Editor
             string label = slot.ResolveDisplayName();
             PlayerController player = slot.controller;
             CharacterBootstrapProfile characterProfile = slot.ResolveCharacterProfile();
-            if (player == null && characterProfile == null)
+            CharacterDefinition assignedCharacter = slot.ResolveCharacterDefinition();
+            if (characterProfile == null && assignedCharacter != null && matchController.characterCatalog != null)
+            {
+                characterProfile = matchController.characterCatalog.FindByDefinition(assignedCharacter);
+            }
+
+            if (player == null && characterProfile == null && assignedCharacter == null)
             {
                 issues.Add(label + " sem PlayerController nem CharacterBootstrapProfile.");
                 return;
@@ -158,23 +164,22 @@ namespace ProjectPVP.Editor
                 issues.Add(label + " referencia um CharacterBootstrapProfile fora do CharacterCatalog.");
             }
 
-            CharacterDefinition assignedCharacter = slot.ResolveCharacterDefinition();
             if (assignedCharacter == null)
             {
                 issues.Add(label + " sem CharacterDefinition selecionado.");
             }
 
-            if (slot.playerProfile == null)
+            if (player != null)
             {
-                issues.Add(label + " sem CombatantSlotProfile explicito; usando fallback legado.");
-            }
-
-            ProjectileController projectilePrefab = player != null
-                ? player.projectilePrefab
-                : characterProfile != null ? characterProfile.projectilePrefab : null;
-            if (projectilePrefab == null)
-            {
-                issues.Add(label + " sem prefab de projectile no personagem.");
+                ProjectileController projectilePrefab = player.projectilePrefab
+                    ?? characterProfile?.projectilePrefab
+                    ?? (matchController.characterCatalog != null
+                        ? matchController.characterCatalog.FindByDefinition(assignedCharacter)?.projectilePrefab
+                        : null);
+                if (projectilePrefab == null)
+                {
+                    issues.Add(label + " sem prefab de projectile no personagem.");
+                }
             }
 
             if (player != null && player.InputSource == null)

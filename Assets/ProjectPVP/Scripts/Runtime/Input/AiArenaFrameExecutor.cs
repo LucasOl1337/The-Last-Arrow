@@ -5,6 +5,7 @@ namespace ProjectPVP.Input
     internal struct AiArenaExecutionState
     {
         public float shootCooldownLeft;
+        public float shootHoldLeft;
         public float meleeCooldownLeft;
         public float jumpCooldownLeft;
         public float dashCooldownLeft;
@@ -14,6 +15,9 @@ namespace ProjectPVP.Input
 
     internal static class AiArenaFrameExecutor
     {
+        // Keep the hold just under the 50 Hz fixed step so the shot resolves on the next physics tick.
+        private const float ShootHoldDuration = 0.018f;
+
         public static void Tick(ref AiArenaExecutionState state, float deltaTime)
         {
             if (deltaTime <= 0f)
@@ -22,6 +26,7 @@ namespace ProjectPVP.Input
             }
 
             state.shootCooldownLeft = Mathf.Max(0f, state.shootCooldownLeft - deltaTime);
+            state.shootHoldLeft = Mathf.Max(0f, state.shootHoldLeft - deltaTime);
             state.meleeCooldownLeft = Mathf.Max(0f, state.meleeCooldownLeft - deltaTime);
             state.jumpCooldownLeft = Mathf.Max(0f, state.jumpCooldownLeft - deltaTime);
             state.dashCooldownLeft = Mathf.Max(0f, state.dashCooldownLeft - deltaTime);
@@ -52,7 +57,8 @@ namespace ProjectPVP.Input
             }
 
             bool canShoot = self.arrows > 0;
-            bool shootPressed = canShoot && self.shootCooldownLeft <= 0.01f && state.shootCooldownLeft <= 0f && decision.shootPressed;
+            bool wantsShootCycle = decision.shootPressed || decision.shootHeld;
+            bool shootPressed = canShoot && self.shootCooldownLeft <= 0.01f && state.shootCooldownLeft <= 0f && wantsShootCycle;
             bool meleePressed = self.meleeCooldownLeft <= 0.01f && !self.isMeleeActive && state.meleeCooldownLeft <= 0f && decision.meleePressed;
             bool ultimatePressed = self.ultimateCooldownLeft <= 0.01f && !self.isUltimateActive && state.ultimateCooldownLeft <= 0f && decision.ultimatePressed;
             bool jumpPressed = self.isGrounded && state.jumpCooldownLeft <= 0f && decision.jumpPressed;
@@ -61,6 +67,7 @@ namespace ProjectPVP.Input
             if (shootPressed)
             {
                 state.shootCooldownLeft = shootInterval;
+                state.shootHoldLeft = ShootHoldDuration;
             }
 
             if (meleePressed)
@@ -113,7 +120,7 @@ namespace ProjectPVP.Input
                 jumpPressed = jumpPressed,
                 jumpHeld = jumpPressed || decision.jumpHeld,
                 shootPressed = shootPressed,
-                shootHeld = canShoot && decision.shootHeld,
+                shootHeld = canShoot && state.shootHoldLeft > 0f,
                 meleePressed = meleePressed,
                 ultimatePressed = ultimatePressed,
                 dashPrimaryPressed = dashPressed,

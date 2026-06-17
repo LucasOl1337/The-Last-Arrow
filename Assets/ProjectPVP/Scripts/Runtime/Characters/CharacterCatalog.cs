@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ProjectPVP.Data;
 using UnityEngine;
 
 namespace ProjectPVP.Characters
@@ -31,6 +32,30 @@ namespace ProjectPVP.Characters
                 {
                     return candidate;
                 }
+            }
+
+            return null;
+        }
+
+        public CharacterBootstrapProfile FindByDefinition(CharacterDefinition definition)
+        {
+            if (characters == null || definition == null)
+            {
+                return null;
+            }
+
+            for (int index = 0; index < characters.Count; index += 1)
+            {
+                CharacterBootstrapProfile candidate = characters[index];
+                if (candidate != null && candidate.ResolveCharacterDefinition() == definition)
+                {
+                    return candidate;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(definition.id))
+            {
+                return FindById(definition.id);
             }
 
             return null;

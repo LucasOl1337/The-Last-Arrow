@@ -1,4 +1,5 @@
 using UnityEngine;
+using ProjectPVP.Presentation;
 
 namespace ProjectPVP.Core
 {
@@ -8,6 +9,7 @@ namespace ProjectPVP.Core
         {
             Application.runInBackground = true;
             EnsureAudioListener();
+            EnsureCameraShake();
         }
 
         private static void EnsureAudioListener()
@@ -29,6 +31,22 @@ namespace ProjectPVP.Core
             }
 
             targetCamera.gameObject.AddComponent<AudioListener>();
+        }
+
+        private static void EnsureCameraShake()
+        {
+            Camera targetCamera = Camera.main;
+            if (targetCamera == null)
+            {
+                targetCamera = Object.FindFirstObjectByType<Camera>();
+            }
+
+            if (targetCamera == null || targetCamera.GetComponent<ProjectPvpCameraShake>() != null)
+            {
+                return;
+            }
+
+            targetCamera.gameObject.AddComponent<ProjectPvpCameraShake>();
         }
     }
 }

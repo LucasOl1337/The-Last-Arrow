@@ -3026,7 +3026,7 @@ MonoBehaviour:
     deadzone: 0.18
     aimDeadzone: 0.22
     triggerPressThreshold: 0.45
-    useMoveStickAsAimFallback: 1
+    useMoveStickAsAimFallback: 0
   buttonBufferSeconds: 0.1
   enableMouseAim: 0
   mouseAimOrigin: {fileID: 0}
@@ -3923,7 +3923,7 @@ MonoBehaviour:
     deadzone: 0.18
     aimDeadzone: 0.22
     triggerPressThreshold: 0.45
-    useMoveStickAsAimFallback: 1
+    useMoveStickAsAimFallback: 0
   buttonBufferSeconds: 0.1
   enableMouseAim: 0
   mouseAimOrigin: {fileID: 0}

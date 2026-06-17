@@ -19,13 +19,33 @@ namespace ProjectPVP.Input
             bool canMelee = self.meleeCooldownLeft <= 0.01f && !self.isMeleeActive;
             bool canUltimate = self.ultimateCooldownLeft <= 0.01f && !self.isUltimateActive;
             bool canDash = self.dashCooldownLeft <= 0.01f && !self.isDashing;
+            int targetArrows = snapshot.opponents != null && snapshot.opponents.Count > 0 && snapshot.opponents[0] != null
+                ? Mathf.Max(0, snapshot.opponents[0].arrows)
+                : 0;
+            int arrowLead = self.arrows - targetArrows;
+            bool prioritizeCollection = semantics.shouldCollectProjectile
+                && (self.arrows <= 1 || targetArrows > self.arrows);
 
             float towardTarget = semantics.targetDirection.x >= 0f ? 1f : -1f;
             float awayFromTarget = -towardTarget;
             float preferredRange = Mathf.Max(80f, intent.preferredRange);
             float distanceError = semantics.horizontalDistance - preferredRange;
 
-            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate)
+            if (prioritizeCollection && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate)
+            {
+                decision.shootPressed = false;
+                decision.shootHeld = false;
+                decision.meleePressed = false;
+                decision.ultimatePressed = false;
+                decision.dashPrimaryPressed = false;
+                decision.dashSecondaryPressed = false;
+                decision.jumpPressed = AiArenaHeuristicPolicy.ShouldJumpForCollectible(semantics.collectibleProjectileDirection, self);
+                decision.jumpHeld = decision.jumpPressed;
+                decision.moveAxis = AiArenaHeuristicPolicy.ResolveCollectionMoveAxis(semantics.collectibleProjectileDirection);
+                decision.debugSummary = "AI COLLECT ARROW";
+            }
+
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection)
             {
                 switch (NormalizeMode(intent.mode))
                 {
@@ -59,7 +79,7 @@ namespace ProjectPVP.Input
                     case "zone":
                         decision.moveAxis = semantics.horizontalDistance < preferredRange * 0.8f
                             ? awayFromTarget * Mathf.Lerp(0.45f, 0.95f, Mathf.Clamp01(intent.cornerEscapeBias))
-                            : Mathf.Abs(distanceError) > 42f ? Mathf.Sign(distanceError) * -towardTarget * 0.3f : 0f;
+                            : Mathf.Abs(distanceError) > 42f ? Mathf.Sign(distanceError) * towardTarget * 0.3f : towardTarget * 0.12f;
                         decision.shootPressed = canShoot && semantics.targetInShootRange && (intent.shootBias >= 0.22f || semantics.targetCornered || semantics.targetAbove);
                         decision.shootHeld = decision.shootPressed;
                         decision.meleePressed = false;
@@ -115,13 +135,60 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (intent.antiAir && semantics.targetAbove && semantics.targetInShootRange && self.arrows > 0)
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection)
+            {
+                if (targetArrows <= 0 && self.arrows > 0)
+                {
+                    decision.moveAxis = towardTarget * Mathf.Max(0.35f, Mathf.Abs(decision.moveAxis));
+                    if (!decision.meleePressed && canMelee && semantics.targetInMeleeRange)
+                    {
+                        decision.meleePressed = true;
+                    }
+                    else if (!decision.shootPressed && canShoot && semantics.targetInShootRange)
+                    {
+                        decision.shootPressed = true;
+                        decision.shootHeld = true;
+                    }
+                    else if (!decision.dashPrimaryPressed && canDash && semantics.horizontalDistance > 180f)
+                    {
+                        decision.dashPrimaryPressed = true;
+                    }
+
+                    decision.debugSummary = "AI LAST ARROW PRESSURE";
+                }
+                else if (self.arrows <= 0 && targetArrows > 0)
+                {
+                    decision.moveAxis = awayFromTarget * Mathf.Max(0.25f, Mathf.Abs(decision.moveAxis));
+                    decision.debugSummary = "AI ARROW DISADVANTAGE";
+                }
+                else if (arrowLead > 0 && semantics.targetInShootRange && canShoot)
+                {
+                    decision.moveAxis = towardTarget * Mathf.Max(0.2f, Mathf.Abs(decision.moveAxis));
+                    if (!decision.meleePressed && canMelee && semantics.targetInMeleeRange && (semantics.targetCornered || semantics.targetVulnerable))
+                    {
+                        decision.meleePressed = true;
+                    }
+                    else if (!decision.shootPressed && canShoot && semantics.targetInShootRange && (semantics.targetCornered || semantics.targetVulnerable || semantics.shouldPunish || semantics.horizontalDistance <= preferredRange * 1.1f))
+                    {
+                        decision.shootPressed = true;
+                        decision.shootHeld = true;
+                    }
+                    else if (!decision.dashPrimaryPressed && canDash && semantics.horizontalDistance > preferredRange * 0.85f)
+                    {
+                        decision.dashPrimaryPressed = true;
+                    }
+
+                    decision.debugSummary = "AI ARROW LEAD PRESSURE";
+                }
+            }
+
+            if (intent.antiAir && semantics.targetAbove && semantics.targetInShootRange && self.arrows > 0 && !prioritizeCollection)
             {
                 decision.shootPressed = true;
                 decision.shootHeld = true;
             }
 
-            if (!decision.shootPressed && !decision.meleePressed && !decision.ultimatePressed && !decision.dashPrimaryPressed)
+            if (!prioritizeCollection && !decision.shootPressed && !decision.meleePressed && !decision.ultimatePressed && !decision.dashPrimaryPressed)
             {
                 if (baseline.ultimatePressed && canUltimate && semantics.targetInUltimateRange)
                 {
@@ -171,7 +238,10 @@ namespace ProjectPVP.Input
                 : semantics.targetDirection.normalized;
             decision.aimX = aim.x;
             decision.aimY = aim.y;
-            decision.debugSummary = "AI | Codex:" + NormalizeMode(intent.mode) + " | " + intent.reason;
+            if (string.IsNullOrWhiteSpace(decision.debugSummary))
+            {
+                decision.debugSummary = "AI | Codex:" + NormalizeMode(intent.mode) + " | " + intent.reason;
+            }
             return decision;
         }
 

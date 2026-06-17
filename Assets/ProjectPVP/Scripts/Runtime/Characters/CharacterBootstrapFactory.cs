@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using ProjectPVP.Data;
 using ProjectPVP.Gameplay;
 using ProjectPVP.Input;
@@ -9,6 +10,8 @@ namespace ProjectPVP.Characters
 {
     public static class CharacterBootstrapFactory
     {
+        private static readonly ConditionalWeakTable<CharacterDefinition, ProjectileController> s_runtimeProjectilePrefabs = new ConditionalWeakTable<CharacterDefinition, ProjectileController>();
+
         public static PlayerController CreateCombatant(
             CharacterBootstrapProfile bootstrapProfile,
             CombatantSlotId slotId,
@@ -58,7 +61,9 @@ namespace ProjectPVP.Characters
             controller.projectileOrigin = projectileOrigin;
             controller.meleeHitboxAnchor = meleeHitbox;
             controller.ultimateHitboxAnchor = ultimateHitbox;
-            controller.projectilePrefab = bootstrapProfile.projectilePrefab;
+            controller.projectilePrefab = bootstrapProfile.projectilePrefab != null
+                ? bootstrapProfile.projectilePrefab
+                : ResolveRuntimeProjectilePrefab(definition);
             controller.anchorRig = new CombatantAnchorRig
             {
                 spawnAnchor = spawnAnchor,
@@ -129,6 +134,41 @@ namespace ProjectPVP.Characters
                 : Vector2.zero;
             projectileOrigin.transform.localPosition = new Vector3(configuredOffset.x, configuredOffset.y, 0f);
             return projectileOrigin.transform;
+        }
+
+        private static ProjectileController ResolveRuntimeProjectilePrefab(CharacterDefinition definition)
+        {
+            if (definition == null)
+            {
+                return null;
+            }
+
+            return s_runtimeProjectilePrefabs.GetValue(definition, CreateRuntimeProjectilePrefab);
+        }
+
+        private static ProjectileController CreateRuntimeProjectilePrefab(CharacterDefinition definition)
+        {
+            GameObject runtimeProjectileRoot = new GameObject("RuntimeProjectilePrefab");
+            runtimeProjectileRoot.hideFlags = HideFlags.HideAndDontSave;
+            runtimeProjectileRoot.SetActive(false);
+
+            Rigidbody2D body = runtimeProjectileRoot.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Kinematic;
+            body.gravityScale = 0f;
+            body.freezeRotation = true;
+            body.interpolation = RigidbodyInterpolation2D.None;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+            BoxCollider2D collider = runtimeProjectileRoot.AddComponent<BoxCollider2D>();
+            collider.isTrigger = true;
+
+            SpriteRenderer spriteRenderer = runtimeProjectileRoot.AddComponent<SpriteRenderer>();
+            ProjectileController projectile = runtimeProjectileRoot.AddComponent<ProjectileController>();
+            projectile.body = body;
+            projectile.hitCollider = collider;
+            projectile.spriteRenderer = spriteRenderer;
+            projectile.ApplyDefinition(definition);
+            return projectile;
         }
 
         private static PlayerCombatAnchor CreateAnchor(Transform parent, CharacterBootstrapAnchorConfig config)

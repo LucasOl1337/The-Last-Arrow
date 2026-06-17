@@ -59,7 +59,7 @@ MonoBehaviour:
     deadzone: 0.18
     aimDeadzone: 0.22
     triggerPressThreshold: 0.45
-    useMoveStickAsAimFallback: 1
+    useMoveStickAsAimFallback: 0
   gamepadProfile: {fileID: 11400000, guid: 5c4d26df0da44cb795f99d3456b76ae7, type: 2}
   useDefaultDebugTint: 1
   debugTint: {r: 1, g: 1, b: 1, a: 1}

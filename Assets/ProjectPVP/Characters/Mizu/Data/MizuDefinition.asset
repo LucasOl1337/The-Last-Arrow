@@ -60,10 +60,10 @@ MonoBehaviour:
   jumpVelocity: 660
   gravity: 1500
   maxFallSpeed: 1500
-  shootCooldown: 0.001
-  maxArrows: 50
-  meleeCooldown: 0.45
-  meleeDuration: 0.3
+  shootCooldown: 0.02
+  maxArrows: 3
+  meleeCooldown: 0.3
+  meleeDuration: 0.16
   meleeCanSeverProjectiles: 1
   meleeHitstunDuration: 0.1
   projectileHitstunDuration: 0.08
@@ -81,17 +81,17 @@ MonoBehaviour:
   wallJumpVerticalForce: 720
   wallSlideSpeed: 60
   wallGravityScale: 0.2
-  runtimeMoveScale: 1
-  runtimeJumpScale: 1
-  runtimeGravityScale: 1
-  runtimeDashScale: 1
+  runtimeMoveScale: 1.24
+  runtimeJumpScale: 1.16
+  runtimeGravityScale: 0.9
+  runtimeDashScale: 1.2
   dashMultiplier: 1.8
   dashDuration: 0.12
   dashCooldown: 0.45
-  dashDistance: 100
+  dashDistance: 118
   dashUpwardMultiplier: 0.5
   ultimateWindupRatio: 0.45
-  ultimateDashDistance: 120
+  ultimateDashDistance: 132
   ultimateDashDuration: 0.12
   ultimateBlocksProjectiles: 1
   ultimateProjectileBlockDuration: 0.12
@@ -128,7 +128,7 @@ MonoBehaviour:
   projectileRotateWithVelocity: 1
   projectileCollectableWhenStuck: 1
   projectileAssistEnabled: 0
-  projectileAssistStrength: 0.32
+  projectileAssistStrength: 0.2
   projectileAssistMaxTurnRateDeg: 420
   projectileAssistAcquireConeDeg: 36
   projectileAssistMaxRange: 1600
@@ -161,7 +161,7 @@ MonoBehaviour:
     skipLeft: 0
     targetVisualHeight: 0
     groundAnchorRatio: 1
-    duration: 0.42
+    duration: 0.24
     cancelable: 1
     speed: 12
     spriteScale: 1
@@ -213,7 +213,7 @@ MonoBehaviour:
     skipLeft: 0
     targetVisualHeight: 0
     groundAnchorRatio: 1
-    duration: 0.18
+    duration: 0.15
     cancelable: 1
     speed: 12
     spriteScale: 1
@@ -265,7 +265,7 @@ MonoBehaviour:
     skipLeft: 0
     targetVisualHeight: 0
     groundAnchorRatio: 1
-    duration: 0.3
+    duration: 0.24
     cancelable: 0
     speed: 12
     spriteScale: 1
