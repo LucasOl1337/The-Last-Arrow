@@ -669,6 +669,64 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_ReportsShotAttemptWithoutArrows()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 0,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    shouldCollectProjectile = true,
+                    collectibleProjectileDistance = 72f,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI SHOOT",
+                shootPressed = true,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("shot attempted without arrows"));
+            Assert.That(feedback, Does.Contain("recover arrow before shooting"));
+            Assert.That(feedback, Does.Not.Contain("recover arrow at"));
+        }
+
+        [Test]
+        public void BotFeedbackBuilder_ReportsShotAttemptOutsideShootRange()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    horizontalDistance = 1180f,
+                    targetInShootRange = false,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI ZONE SHOT",
+                shootPressed = true,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("shot attempted out of range at 1180u"));
+            Assert.That(feedback, Does.Contain("close distance, aim a valid line, or hold fire"));
+            Assert.That(feedback, Does.Not.Contain("spacing stable"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_ReportsMissedPunishWhenDecisionDoesNotAttack()
         {
             var snapshot = new AiArenaSnapshotEnvelope

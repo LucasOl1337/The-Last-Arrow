@@ -160,6 +160,7 @@ namespace ProjectPVP.Input
             AiArenaCombatantObservation self = snapshot.self ?? new AiArenaCombatantObservation();
             bool isOutOfArrows = snapshot.self != null && self.arrows <= 0;
             string action = ResolveAction(decision);
+            bool shotDecision = IsShotDecision(decision);
 
             if (!semantics.hasTarget)
             {
@@ -220,6 +221,17 @@ namespace ProjectPVP.Input
                 }
 
                 return "corner pressure detected; action " + action + "; improve: escape corner before committing.";
+            }
+
+            if (shotDecision && isOutOfArrows)
+            {
+                return "shot attempted without arrows; action " + action + "; improve: recover arrow before shooting.";
+            }
+
+            if (shotDecision && !semantics.targetInShootRange)
+            {
+                return "shot attempted out of range at " + semantics.horizontalDistance.ToString("0") + "u; action " + action
+                    + "; improve: close distance, aim a valid line, or hold fire.";
             }
 
             if (semantics.shouldCollectProjectile || isOutOfArrows)
@@ -290,6 +302,16 @@ namespace ProjectPVP.Input
                 || decision.debugSummary.IndexOf("melee", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("ultimate", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("attack", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool IsShotDecision(AiArenaDecisionEnvelope decision)
+        {
+            if (decision == null)
+            {
+                return false;
+            }
+
+            return decision.shootPressed || decision.shootHeld;
         }
 
         private static bool IsProjectileDefenseDecision(AiArenaDecisionEnvelope decision)
