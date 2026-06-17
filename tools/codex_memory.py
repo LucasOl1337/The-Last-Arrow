@@ -98,6 +98,7 @@ class MemoryTracker:
         self.latest_round_review = self._load_last_jsonl(self.round_reviews_log)
         self.latest_series_review = self._load_last_jsonl(self.series_reviews_log)
         self.latest_series_plan = self._build_latest_series_plan_payload(self.latest_series_review)
+        self.latest_bot_feedback = self._load_latest_event(self.events_log, "bot_feedback")
         self.current_match: dict[str, Any] | None = None
         self.current_round: dict[str, Any] | None = None
         self._last_round_signature: tuple[Any, ...] | None = None
@@ -146,6 +147,23 @@ class MemoryTracker:
         except json.JSONDecodeError:
             return None
         return payload if isinstance(payload, dict) else None
+
+    @staticmethod
+    def _load_latest_event(path: Path, event_type: str) -> dict[str, Any] | None:
+        if not path.exists():
+            return None
+        try:
+            lines = [line for line in path.read_text(encoding="utf-8", errors="replace").splitlines() if line.strip()]
+        except OSError:
+            return None
+        for line in reversed(lines):
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(payload, dict) and payload.get("type") == event_type:
+                return payload
+        return None
 
     @staticmethod
     def _copy_counter(counter: dict[str, Any]) -> dict[str, int]:
@@ -318,6 +336,8 @@ class MemoryTracker:
                 },
             )
 
+        self._observe_bot_feedback(current, previous)
+
         if not bool(target.get("isGrounded", True)) and bool(previous_target.get("isGrounded", True)) and target_velocity_y > 0.1:
             patterns["jumpEscapes"] = safe_int(patterns.get("jumpEscapes"), 0) + 1
         if bool(target.get("isDashing")) and not bool(previous_target.get("isDashing")):
@@ -330,6 +350,32 @@ class MemoryTracker:
             patterns["vulnerabilityWindows"] = safe_int(patterns.get("vulnerabilityWindows"), 0) + 1
 
         self._save_private_profile(self.profile)
+
+    def _observe_bot_feedback(self, current: dict[str, Any], previous: dict[str, Any] | None) -> None:
+        feedback = current.get("executorFeedback") or {}
+        current_text = compact_line(str(feedback.get("botFeedback", "") or ""))[:320]
+        if not current_text:
+            return
+
+        previous_feedback = ((previous or {}).get("executorFeedback") or {})
+        previous_text = compact_line(str(previous_feedback.get("botFeedback", "") or ""))[:320]
+        current_session = str(current.get("sessionId", "") or "")
+        previous_session = str((previous or {}).get("sessionId", "") or "")
+        if current_text == previous_text and current_session == previous_session:
+            return
+
+        payload = {
+            "timestamp": now_iso(),
+            "type": "bot_feedback",
+            "frame": safe_int(current.get("frame"), -1),
+            "sessionId": current_session,
+            "botId": self.bot_id,
+            "feedback": current_text,
+            "source": compact_line(str(feedback.get("source", "") or "unknown")),
+            "intentMode": compact_line(str(feedback.get("intentMode", "") or ((current.get("lastIntent") or {}).get("mode", "")) or "unknown")),
+        }
+        self.latest_bot_feedback = payload
+        self._append_jsonl(self.events_log, payload)
 
     def _observe_match(self, current: dict[str, Any]) -> None:
         if self.current_match is None or self.current_round is None:
@@ -990,6 +1036,11 @@ class MemoryTracker:
         if safe_int(findings.get("projectileDeaths"), 0) >= 2:
             hints.append("As mortes recentes mostram problema com projetil. Vale subir o peso de defesa a distancia e leitura de ETA.")
 
+        latest_feedback = getattr(self, "latest_bot_feedback", None) or {}
+        latest_feedback_text = compact_line(str(latest_feedback.get("feedback", "") or ""))
+        if latest_feedback_text:
+            hints.append(f"Feedback recente do bot: {latest_feedback_text}")
+
         round_review = self.latest_round_review or {}
         for item in round_review.get("betterNextRound", [])[:2]:
             hints.append(compact_line(str(item)))
@@ -1066,6 +1117,15 @@ class MemoryTracker:
             "planPath": str(series_plan.get("planPath", self.latest_series_plan_path)),
         } if series_plan else {}
 
+        latest_bot_feedback: dict[str, Any] = {}
+        feedback = getattr(self, "latest_bot_feedback", None) or {}
+        feedback_text = compact_line(str(feedback.get("feedback", "") or ""))
+        if feedback_text:
+            latest_bot_feedback = dict(feedback)
+            latest_bot_feedback["feedback"] = feedback_text
+            latest_bot_feedback["frame"] = safe_int(feedback.get("frame"), -1)
+            focus_points.append(f"Latest executor bot feedback: {feedback_text}")
+
         global_summary = self.global_knowledge.summary_points(limit=5)
 
         return {
@@ -1107,6 +1167,7 @@ class MemoryTracker:
             "latestRoundReview": latest_round_review,
             "latestSeriesReview": latest_series_review,
             "latestSeriesPlan": latest_series_plan,
+            "latestBotFeedback": latest_bot_feedback,
             "globalKnowledgeSummary": global_summary,
             "latestMatchReview": latest_series_review,
             "nextMatchPlan": list(series_plan.get("steps", []))[:5],
