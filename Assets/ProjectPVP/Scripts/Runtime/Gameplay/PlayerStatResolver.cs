@@ -280,6 +280,7 @@ namespace ProjectPVP.Gameplay
         public float ResolveProjectileVerticalOffset() => _context.characterDefinition != null ? _context.characterDefinition.projectileVerticalOffset : 0f;
         public float ResolveProjectileInheritVelocityFactor() => _context.characterDefinition != null ? _context.characterDefinition.projectileInheritVelocityFactor : 1f;
         public float ResolveProjectileBaseSpeed() => _context.characterDefinition != null ? Mathf.Max(1f, _context.characterDefinition.projectileBaseSpeed) : 1600f;
+        public float ResolveProjectileGravity() => _context.characterDefinition != null ? Mathf.Max(0f, _context.characterDefinition.projectileGravity) : 1500f;
         public float ResolveProjectileScale() => _context.characterDefinition != null ? _context.characterDefinition.projectileScale : 1f;
         public Vector2 ResolveProjectileOriginOffset() => _context.characterDefinition != null ? _context.characterDefinition.projectileOriginOffset : Vector2.zero;
         public ProjectileOriginMode ResolveProjectileOriginMode() => _context.characterDefinition != null ? _context.characterDefinition.projectileOriginMode : ProjectileOriginMode.BowNode;

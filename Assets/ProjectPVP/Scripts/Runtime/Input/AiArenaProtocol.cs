@@ -61,6 +61,7 @@ namespace ProjectPVP.Input
         public int arrows;
         public float projectileInheritVelocityFactor = 1f;
         public float projectileBaseSpeed = 1600f;
+        public float projectileGravity = 1500f;
         public float shootCooldownLeft;
         public float meleeCooldownLeft;
         public float dashCooldownLeft;

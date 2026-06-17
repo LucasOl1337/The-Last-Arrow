@@ -31,6 +31,7 @@ namespace ProjectPVP.Tests.Editor
             AssertPublicField<AiArenaControllerSnapshot, int>("facing");
             AssertPublicField<AiArenaControllerSnapshot, float>("projectileInheritVelocityFactor");
             AssertPublicField<AiArenaControllerSnapshot, float>("projectileBaseSpeed");
+            AssertPublicField<AiArenaControllerSnapshot, float>("projectileGravity");
             AssertPublicField<AiArenaControllerSnapshot, float>("shootCooldownLeft");
             AssertPublicField<AiArenaControllerSnapshot, float>("meleeCooldownLeft");
             AssertPublicField<AiArenaControllerSnapshot, float>("dashCooldownLeft");

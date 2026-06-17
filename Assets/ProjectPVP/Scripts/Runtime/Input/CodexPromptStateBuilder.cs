@@ -171,6 +171,7 @@ namespace ProjectPVP.Input
                 facing = source.facing,
                 projectileInheritVelocityFactor = source.projectileInheritVelocityFactor,
                 projectileBaseSpeed = source.projectileBaseSpeed > 0f ? source.projectileBaseSpeed : 1600f,
+                projectileGravity = source.projectileGravity > 0f ? source.projectileGravity : 1500f,
                 shootCooldownLeft = source.shootCooldownLeft,
                 meleeCooldownLeft = source.meleeCooldownLeft,
                 dashCooldownLeft = source.dashCooldownLeft,

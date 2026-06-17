@@ -2343,6 +2343,8 @@ namespace ProjectPVP.Tests.Editor
                 ProjectileController projectilePrefab = projectilePrefabRoot.AddComponent<ProjectileController>();
                 definition.ultimateDashDistance = 120f;
                 definition.ultimateDashDuration = 0.1f;
+                definition.projectileBaseSpeed = 1234f;
+                definition.projectileGravity = 987f;
 
                 PlayerController player = CreatePlayer(root, 1, definition);
                 player.projectilePrefab = projectilePrefab;
@@ -2381,6 +2383,8 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(snapshot.canBlockProjectiles, Is.False);
                 Assert.That(snapshot.isHitStunned, Is.False);
                 Assert.That(snapshot.hitStunTimeLeft, Is.Zero);
+                Assert.That(snapshot.projectileBaseSpeed, Is.EqualTo(1234f).Within(0.001f));
+                Assert.That(snapshot.projectileGravity, Is.EqualTo(987f).Within(0.001f));
                 Assert.That(context.shootCooldownLeft, Is.EqualTo(0f).Within(0.0001f));
                 Assert.That(context.meleeCooldownLeft, Is.EqualTo(0f).Within(0.0001f));
                 Assert.That(context.meleeTimeLeft, Is.EqualTo(0f).Within(0.0001f));

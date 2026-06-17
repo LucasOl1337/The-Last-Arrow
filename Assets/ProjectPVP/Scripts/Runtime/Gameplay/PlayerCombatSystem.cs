@@ -343,9 +343,7 @@ namespace ProjectPVP.Gameplay
             }
 
             float arrowSpeed = _statResolver.ResolveProjectileBaseSpeed();
-            float arrowGrav = _context.characterDefinition != null
-                ? _context.characterDefinition.projectileGravity
-                : 1500f;
+            float arrowGrav = _statResolver.ResolveProjectileGravity();
 
             Vector2 inheritedVelocity = GetProjectileInheritedVelocity()
                 * _statResolver.ResolveProjectileInheritVelocityFactor();

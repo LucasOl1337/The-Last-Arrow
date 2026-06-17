@@ -200,6 +200,50 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void Build_CompensatesPredictedTargetDirectionForProjectileGravity()
+        {
+            AiArenaControllerSnapshot flatShot = BuildSelf(Vector2.zero);
+            flatShot.arrows = 3;
+            flatShot.projectileBaseSpeed = 1600f;
+            flatShot.projectileGravity = 1f;
+
+            AiArenaControllerSnapshot arcingShot = BuildSelf(Vector2.zero);
+            arcingShot.arrows = 3;
+            arcingShot.projectileBaseSpeed = 1600f;
+            arcingShot.projectileGravity = 1500f;
+
+            AiArenaControllerSnapshot target = BuildTarget(new Vector2(420f, 0f));
+
+            AiArenaSemanticObservation flatSemantics = AiArenaSemanticObservationBuilder.Build(
+                flatShot,
+                target,
+                null,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            AiArenaSemanticObservation arcSemantics = AiArenaSemanticObservationBuilder.Build(
+                arcingShot,
+                target,
+                null,
+                BuildArena(),
+                desiredCombatDistance: 360f,
+                closeRetreatDistance: 80f,
+                meleeRange: 120f,
+                ultimateRange: 180f,
+                shootRange: 960f,
+                verticalTolerance: 240f);
+
+            Assert.That(flatSemantics.predictedTargetDirection.y, Is.EqualTo(0f).Within(0.01f));
+            Assert.That(arcSemantics.predictedTargetDirection.y, Is.GreaterThan(flatSemantics.predictedTargetDirection.y + 0.04f));
+            Assert.That(arcSemantics.predictedTargetDirection.x, Is.GreaterThan(0f));
+        }
+
+        [Test]
         public void Build_MarksVisibleMidRangeTargetsAsPressureInsteadOfParkingInZone()
         {
             AiArenaControllerSnapshot self = BuildSelf(Vector2.zero);
@@ -439,6 +483,7 @@ namespace ProjectPVP.Tests.Editor
                 isGrounded = true,
                 projectileInheritVelocityFactor = 1f,
                 projectileBaseSpeed = 1600f,
+                projectileGravity = 1500f,
                 position = position,
             };
         }

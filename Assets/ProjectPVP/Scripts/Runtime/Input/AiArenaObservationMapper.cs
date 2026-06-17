@@ -46,6 +46,7 @@ namespace ProjectPVP.Input
                 arrows = snapshot.arrows,
                 projectileInheritVelocityFactor = snapshot.projectileInheritVelocityFactor,
                 projectileBaseSpeed = snapshot.projectileBaseSpeed > 0f ? snapshot.projectileBaseSpeed : 1600f,
+                projectileGravity = snapshot.projectileGravity > 0f ? snapshot.projectileGravity : 1500f,
                 position = snapshot.position,
                 velocity = snapshot.velocity,
                 shootCooldownLeft = snapshot.shootCooldownLeft,

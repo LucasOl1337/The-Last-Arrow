@@ -146,6 +146,11 @@ namespace ProjectPVP.Gameplay
             : characterDefinition != null
                 ? Mathf.Max(1f, characterDefinition.projectileBaseSpeed)
                 : 1600f;
+        public float ProjectileGravity => _statResolver != null
+            ? _statResolver.ResolveProjectileGravity()
+            : characterDefinition != null
+                ? Mathf.Max(0f, characterDefinition.projectileGravity)
+                : 1500f;
         public CombatantRuntimeContext RuntimeContext => new CombatantRuntimeContext(SlotId, this, characterDefinition, anchorRig, _context != null ? _context.RuntimeInputSource : null);
 
         public static void CopyActivePlayers(List<PlayerController> results)
@@ -237,6 +242,7 @@ namespace ProjectPVP.Gameplay
                 facing = resolvedFacing,
                 projectileInheritVelocityFactor = ProjectileInheritVelocityFactor,
                 projectileBaseSpeed = ProjectileBaseSpeed,
+                projectileGravity = ProjectileGravity,
                 shootCooldownLeft = _context != null ? _context.shootCooldownLeft : 0f,
                 meleeCooldownLeft = _context != null ? _context.meleeCooldownLeft : 0f,
                 dashCooldownLeft = _context != null ? Mathf.Min(_context.dashPrimaryCooldownLeft, _context.dashSecondaryCooldownLeft) : 0f,

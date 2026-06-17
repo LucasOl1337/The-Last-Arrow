@@ -25,6 +25,7 @@ namespace ProjectPVP.Input
         public int facing;
         public float projectileInheritVelocityFactor;
         public float projectileBaseSpeed;
+        public float projectileGravity;
         public float shootCooldownLeft;
         public float meleeCooldownLeft;
         public float dashCooldownLeft;
