@@ -188,6 +188,11 @@ namespace ProjectPVP.Input
                 string distance = semantics.collectibleProjectileDistance >= 0f
                     ? semantics.collectibleProjectileDistance.ToString("0") + "u"
                     : "unknown distance";
+                if (semantics.shouldCollectProjectile && IsKnownProjectileRecoveryDirection(semantics) && !IsProjectileRecoveryDecision(semantics, decision))
+                {
+                    return "missed arrow recovery at " + distance + "; action " + action + "; improve: move toward pickup before forcing trades.";
+                }
+
                 return "recover arrow at " + distance + "; action " + action + "; improve: recover ammo before forcing trades.";
             }
 
@@ -256,6 +261,38 @@ namespace ProjectPVP.Input
                 || decision.debugSummary.IndexOf("dodge", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("dash", StringComparison.OrdinalIgnoreCase) >= 0
                 || decision.debugSummary.IndexOf("jump", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool IsKnownProjectileRecoveryDirection(AiArenaSemanticObservation semantics)
+        {
+            return semantics != null && semantics.collectibleProjectileDirection.sqrMagnitude > 0.01f;
+        }
+
+        private static bool IsProjectileRecoveryDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
+        {
+            if (semantics == null || decision == null)
+            {
+                return false;
+            }
+
+            Vector2 direction = semantics.collectibleProjectileDirection;
+            if (Mathf.Abs(direction.x) > 0.1f)
+            {
+                return Mathf.Sign(decision.moveAxis) == Mathf.Sign(direction.x)
+                    && Mathf.Abs(decision.moveAxis) > 0.1f;
+            }
+
+            if (direction.y > 0.1f)
+            {
+                return decision.jumpPressed || decision.jumpHeld;
+            }
+
+            if (direction.y < -0.1f)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private static string ResolveAction(AiArenaDecisionEnvelope decision)

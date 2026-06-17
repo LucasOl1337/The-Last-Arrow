@@ -303,6 +303,35 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_ReportsMissedArrowRecoveryWhenDecisionMovesAwayFromCollectible()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 0,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    shouldCollectProjectile = true,
+                    collectibleProjectileDistance = 72f,
+                    collectibleProjectileDirection = Vector2.right,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI DRIFT",
+                moveAxis = -0.65f,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("missed arrow recovery"));
+            Assert.That(feedback, Does.Contain("move toward pickup"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_ReportsMissedPunishWhenDecisionDoesNotAttack()
         {
             var snapshot = new AiArenaSnapshotEnvelope
