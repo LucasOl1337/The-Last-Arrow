@@ -149,5 +149,124 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(frame.jumpPressed, Is.False);
             Assert.That(frame.jumpHeld, Is.False);
         }
+
+        [Test]
+        public void BuildFrame_GatesSecondaryDashWithExecutorCooldown()
+        {
+            var self = new AiArenaControllerSnapshot
+            {
+                isValid = true,
+                slotId = 1,
+                facing = 1,
+                isGrounded = true,
+                dashCooldownLeft = 0f,
+                position = Vector2.zero,
+            };
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = self.slotId,
+                    facing = self.facing,
+                    isGrounded = self.isGrounded,
+                    dashCooldownLeft = self.dashCooldownLeft,
+                    position = self.position,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                dashSecondaryPressed = true,
+                aimX = 1f,
+                aimY = 0f,
+            };
+
+            AiArenaExecutionState state = new AiArenaExecutionState
+            {
+                dashCooldownLeft = 0.35f,
+            };
+            string debugSummary = string.Empty;
+
+            PlayerInputFrame frame = AiArenaFrameExecutor.BuildFrame(
+                ref state,
+                self,
+                snapshot,
+                decision,
+                frameIndex: 24,
+                shootInterval: 0.25f,
+                meleeInterval: 0.45f,
+                jumpInterval: 0.6f,
+                dashInterval: 0.85f,
+                ultimateInterval: 1.5f,
+                ref debugSummary);
+
+            Assert.That(frame.dashPrimaryPressed, Is.False);
+            Assert.That(frame.dashSecondaryPressed, Is.False);
+            Assert.That(state.dashCooldownLeft, Is.EqualTo(0.35f).Within(0.0001f));
+        }
+
+        [Test]
+        public void BuildFrame_StartsExecutorCooldownWhenSecondaryDashIsAccepted()
+        {
+            var self = new AiArenaControllerSnapshot
+            {
+                isValid = true,
+                slotId = 1,
+                facing = 1,
+                isGrounded = true,
+                dashCooldownLeft = 0f,
+                position = Vector2.zero,
+            };
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = self.slotId,
+                    facing = self.facing,
+                    isGrounded = self.isGrounded,
+                    dashCooldownLeft = self.dashCooldownLeft,
+                    position = self.position,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                dashSecondaryPressed = true,
+                aimX = 1f,
+                aimY = 0f,
+            };
+
+            AiArenaExecutionState state = default;
+            string debugSummary = string.Empty;
+
+            PlayerInputFrame frame = AiArenaFrameExecutor.BuildFrame(
+                ref state,
+                self,
+                snapshot,
+                decision,
+                frameIndex: 25,
+                shootInterval: 0.25f,
+                meleeInterval: 0.45f,
+                jumpInterval: 0.6f,
+                dashInterval: 0.85f,
+                ultimateInterval: 1.5f,
+                ref debugSummary);
+
+            Assert.That(frame.dashPrimaryPressed, Is.False);
+            Assert.That(frame.dashSecondaryPressed, Is.True);
+            Assert.That(state.dashCooldownLeft, Is.EqualTo(0.85f).Within(0.0001f));
+        }
     }
 }

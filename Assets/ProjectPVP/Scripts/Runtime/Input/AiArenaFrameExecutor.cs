@@ -62,12 +62,14 @@ namespace ProjectPVP.Input
             bool meleePressed = self.meleeCooldownLeft <= 0.01f && !self.isMeleeActive && state.meleeCooldownLeft <= 0f && decision.meleePressed;
             bool ultimatePressed = self.ultimateCooldownLeft <= 0.01f && !self.isUltimateActive && state.ultimateCooldownLeft <= 0f && decision.ultimatePressed;
             bool jumpPressed = self.isGrounded && state.jumpCooldownLeft <= 0f && decision.jumpPressed;
-            bool dashPressed = self.dashCooldownLeft <= 0.01f && !self.isDashing && state.dashCooldownLeft <= 0f && decision.dashPrimaryPressed;
+            bool wantsDash = decision.dashPrimaryPressed || decision.dashSecondaryPressed;
+            bool dashPressed = self.dashCooldownLeft <= 0.01f && !self.isDashing && state.dashCooldownLeft <= 0f && wantsDash;
+            bool dashPrimaryPressed = dashPressed && decision.dashPrimaryPressed;
+            bool dashSecondaryPressed = dashPressed && decision.dashSecondaryPressed;
             bool holdJump = jumpPressed || decision.jumpHeld;
             bool suppressSemanticVerticalInput = snapshot.semantics.incomingProjectileThreat
                 && !holdJump
-                && !dashPressed
-                && !decision.dashSecondaryPressed;
+                && !dashPressed;
 
             if (shootPressed)
             {
@@ -128,8 +130,8 @@ namespace ProjectPVP.Input
                 shootHeld = canShoot && state.shootHoldLeft > 0f,
                 meleePressed = meleePressed,
                 ultimatePressed = ultimatePressed,
-                dashPrimaryPressed = dashPressed,
-                dashSecondaryPressed = decision.dashSecondaryPressed,
+                dashPrimaryPressed = dashPrimaryPressed,
+                dashSecondaryPressed = dashSecondaryPressed,
             };
         }
 
