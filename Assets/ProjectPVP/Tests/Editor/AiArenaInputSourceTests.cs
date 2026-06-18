@@ -3819,6 +3819,75 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_RecoverArrowFeedbackDoesNotIdleUnderVerticalPickup()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = -1,
+                    arrows = 0,
+                    isGrounded = false,
+                    dashCooldownLeft = 0f,
+                    isDashing = false,
+                    shootCooldownLeft = 0f,
+                    position = new Vector2(-10.69f, -11.64f),
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 1,
+                        position = new Vector2(261.72f, -96.69f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 272f,
+                    verticalDistance = 85f,
+                    targetDirection = new Vector2(0.95f, -0.3f).normalized,
+                    predictedTargetDirection = new Vector2(0.95f, -0.3f).normalized,
+                    targetInShootRange = true,
+                    selfHasArrows = false,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 299f,
+                    collectibleProjectileDirection = new Vector2(-0.048f, 0.999f).normalized,
+                    shouldCollectProjectile = true,
+                    targetUsingRanged = false,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "retreat",
+                preferredRange = 300,
+                shootBias = 0.14f,
+                advanceBias = 0.16f,
+                meleeBias = 0.28f,
+                dashBias = 0.84f,
+                jumpBias = 0.16f,
+                antiProjectile = "hold",
+                antiAir = false,
+                punishRecovery = true,
+                cornerEscapeBias = 0.86f,
+                focusTargetSlot = 2,
+                expiresInMs = 360,
+                reason = "recover_arrow_feedback",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI COLLECT ARROW"));
+            Assert.That(decision.moveAxis, Is.LessThan(-0.5f));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+        }
+
+        [Test]
         public void HeuristicPolicy_DodgesUltimateBeforeCollectingArrow()
         {
             var snapshot = new AiArenaSnapshotEnvelope

@@ -1492,6 +1492,37 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_TreatsAirDashTowardVerticalPickupAsRecovery()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 0,
+                    isGrounded = false,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    shouldCollectProjectile = true,
+                    collectibleProjectileDistance = 299f,
+                    collectibleProjectileDirection = new Vector2(-0.05f, 1f).normalized,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI COLLECT ARROW",
+                moveAxis = -0.65f,
+                dashPrimaryPressed = true,
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("recover arrow at 299u"));
+            Assert.That(feedback, Does.Not.Contain("missed arrow recovery"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_ReportsSearchWhenOutOfArrowsWithoutVisibleRecovery()
         {
             var snapshot = new AiArenaSnapshotEnvelope

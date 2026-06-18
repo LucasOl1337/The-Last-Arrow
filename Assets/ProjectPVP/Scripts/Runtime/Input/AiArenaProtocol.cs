@@ -255,7 +255,7 @@ namespace ProjectPVP.Input
                 string distance = semantics.collectibleProjectileDistance >= 0f
                     ? semantics.collectibleProjectileDistance.ToString("0", CultureInfo.InvariantCulture) + "u"
                     : "unknown distance";
-                if (semantics.shouldCollectProjectile && IsKnownProjectileRecoveryDirection(semantics) && !IsProjectileRecoveryDecision(semantics, decision))
+                if (semantics.shouldCollectProjectile && IsKnownProjectileRecoveryDirection(semantics) && !IsProjectileRecoveryDecision(snapshot, semantics, decision))
                 {
                     return "missed arrow recovery at " + distance + "; action " + action + "; improve: move toward pickup before forcing trades.";
                 }
@@ -573,7 +573,10 @@ namespace ProjectPVP.Input
             return semantics != null && semantics.collectibleProjectileDirection.sqrMagnitude > 0.01f;
         }
 
-        private static bool IsProjectileRecoveryDecision(AiArenaSemanticObservation semantics, AiArenaDecisionEnvelope decision)
+        private static bool IsProjectileRecoveryDecision(
+            AiArenaSnapshotEnvelope snapshot,
+            AiArenaSemanticObservation semantics,
+            AiArenaDecisionEnvelope decision)
         {
             if (semantics == null || decision == null)
             {
@@ -589,7 +592,16 @@ namespace ProjectPVP.Input
 
             if (direction.y > 0.1f)
             {
-                return decision.jumpPressed || decision.jumpHeld;
+                if (decision.jumpPressed || decision.jumpHeld)
+                {
+                    return true;
+                }
+
+                bool selfAirborne = snapshot != null && snapshot.self != null && !snapshot.self.isGrounded;
+                return selfAirborne
+                    && (decision.dashPrimaryPressed
+                        || decision.dashSecondaryPressed
+                        || Mathf.Abs(decision.moveAxis) > 0.1f);
             }
 
             if (direction.y < -0.1f)
