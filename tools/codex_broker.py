@@ -389,7 +389,11 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
     if is_current_resolved_corner_pressure(executor_feedback):
         return "corner pressure resolved; action pending; improve: retake center control before committing."
     if is_current_anti_air_shot(executor_feedback) and "anti-air shot active now" not in bot_feedback:
-        return "anti-air shot active now; action pending; improve: take the vertical shot before repositioning."
+        return (
+            "anti-air shot active now; action "
+            + resolve_reported_action(executor_feedback)
+            + "; improve: take the vertical shot before repositioning."
+        )
     if is_current_anti_air_chase(executor_feedback, intent) and is_stalled_anti_air_chase_input(executor_feedback):
         return "anti-air chase stalled; action grounded advance; improve: hold jump or aim upward while closing vertical distance."
     if (
@@ -405,6 +409,26 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
     if is_current_resolved_threat_pressure(executor_feedback, intent) and "resolved threat pressure active now" not in bot_feedback:
         return "resolved threat pressure active now; action pending; improve: stop retreating and retake the shot window."
     return bot_feedback
+
+
+def resolve_reported_action(executor_feedback: dict[str, Any]) -> str:
+    reported_input = executor_feedback.get("reportedInput")
+    if not isinstance(reported_input, dict):
+        return "pending"
+
+    if bool(reported_input.get("ultimatePressed", False)):
+        return "AI ULTIMATE"
+    if bool(reported_input.get("meleePressed", False)):
+        return "AI MELEE"
+    if bool(reported_input.get("shootPressed", False)) or bool(reported_input.get("shootHeld", False)):
+        return "AI SHOOT"
+    if bool(reported_input.get("dashPrimaryPressed", False)) or bool(reported_input.get("dashSecondaryPressed", False)):
+        return "AI DASH"
+    if bool(reported_input.get("jumpPressed", False)) or bool(reported_input.get("jumpHeld", False)):
+        return "AI JUMP"
+    if abs(safe_float(reported_input.get("axis", 0), 0)) > 0.1:
+        return "AI MOVE"
+    return "pending"
 
 
 def is_waiting_for_visible_target(executor_feedback: dict[str, Any]) -> bool:

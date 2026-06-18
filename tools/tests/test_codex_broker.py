@@ -1132,6 +1132,12 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "targetUltimateThreatActive": False,
                     "selfArrows": 2,
                     "roundResetPending": False,
+                    "reportedInput": {
+                        "frame": 42,
+                        "axis": 0.0,
+                        "aim": {"x": 0.0, "y": 1.0},
+                        "shootPressed": True,
+                    },
                 },
             }
         )
@@ -1140,7 +1146,7 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
 
         self.assertEqual("AI ANTI AIR", report["summary"])
         self.assertEqual(
-            "anti-air shot active now; action pending; improve: take the vertical shot before repositioning.",
+            "anti-air shot active now; action AI SHOOT; improve: take the vertical shot before repositioning.",
             report["botFeedback"],
         )
 
