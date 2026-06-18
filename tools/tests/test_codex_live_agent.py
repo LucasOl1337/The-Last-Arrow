@@ -317,9 +317,13 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         intent = codex_live_agent.build_heuristic_intent(state)
 
         self.assertEqual("retreat", intent["mode"])
-        self.assertEqual("heuristic_recover_arrow_feedback", intent["reason"])
-        self.assertGreaterEqual(intent["dashBias"], 0.82)
-        self.assertGreaterEqual(intent["cornerEscapeBias"], 0.84)
+        self.assertEqual("heuristic_recover_arrow_feedback_stalled_commit", intent["reason"])
+        self.assertGreaterEqual(intent["advanceBias"], 0.46)
+        self.assertLessEqual(intent["shootBias"], 0.1)
+        self.assertLessEqual(intent["meleeBias"], 0.22)
+        self.assertGreaterEqual(intent["dashBias"], 0.94)
+        self.assertGreaterEqual(intent["jumpBias"], 0.72)
+        self.assertGreaterEqual(intent["cornerEscapeBias"], 0.9)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
     def test_build_heuristic_intent_ignores_unknown_recover_arrow_feedback(self) -> None:
@@ -1416,9 +1420,13 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         tuned = codex_live_agent.apply_aggression_bias(intent, state)
 
         self.assertEqual("retreat", tuned["mode"])
-        self.assertEqual("recover_arrow_feedback", tuned["reason"])
-        self.assertGreaterEqual(tuned["dashBias"], 0.82)
-        self.assertGreaterEqual(tuned["cornerEscapeBias"], 0.84)
+        self.assertEqual("recover_arrow_feedback_stalled_commit", tuned["reason"])
+        self.assertGreaterEqual(tuned["advanceBias"], 0.46)
+        self.assertLessEqual(tuned["shootBias"], 0.1)
+        self.assertLessEqual(tuned["meleeBias"], 0.22)
+        self.assertGreaterEqual(tuned["dashBias"], 0.94)
+        self.assertGreaterEqual(tuned["jumpBias"], 0.78)
+        self.assertGreaterEqual(tuned["cornerEscapeBias"], 0.92)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
     def test_build_heuristic_intent_pressures_last_arrow_target(self) -> None:
