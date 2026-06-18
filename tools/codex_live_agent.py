@@ -16,6 +16,7 @@ SLOT_ID = int(os.environ.get("CODEX_AGENT_SLOT_ID", "2"))
 BOT_ID = os.environ.get("CODEX_BOT_ID", "").strip()
 POLL_INTERVAL_SECONDS = float(os.environ.get("CODEX_AGENT_POLL_INTERVAL_SEC", "0.18"))
 IDLE_INTERVAL_SECONDS = float(os.environ.get("CODEX_AGENT_IDLE_INTERVAL_SEC", "0.75"))
+HEARTBEAT_INTERVAL_SECONDS = float(os.environ.get("CODEX_AGENT_HEARTBEAT_INTERVAL_SEC", "4.0"))
 TURN_TIMEOUT_SECONDS = float(os.environ.get("CODEX_AGENT_TURN_TIMEOUT_SEC", "25"))
 CODEX_MODEL = os.environ.get("CODEX_MODEL", "")
 CODEX_REASONING_EFFORT = os.environ.get("CODEX_REASONING_EFFORT", "").strip()
@@ -1573,6 +1574,21 @@ def should_request_turn(state: dict[str, Any], last_frame: int, last_turn_at: fl
     return time.time() - last_turn_at >= 0.28
 
 
+def should_send_idle_heartbeat(
+    session_id: str,
+    last_heartbeat_session_id: str,
+    *,
+    last_heartbeat_at: float,
+    now: float,
+    interval_seconds: float,
+) -> bool:
+    if not session_id:
+        return False
+    if session_id != last_heartbeat_session_id:
+        return True
+    return now - last_heartbeat_at >= max(0.25, interval_seconds)
+
+
 def post_intent(session_id: str, intent: dict[str, Any]) -> bool:
     status, payload = http_post(
         "/agent/action",
@@ -1652,6 +1668,8 @@ def main() -> int:
     broker_session_id = ""
     last_frame = -1
     last_turn_at = 0.0
+    last_idle_heartbeat_at = 0.0
+    last_idle_heartbeat_session_id = ""
     warmup_posted_session_id = ""
     memory = MemoryTracker(bot_id=BOT_ID, slot_id=SLOT_ID)
 
@@ -1750,6 +1768,27 @@ def main() -> int:
                     log("failed to post warmup action to broker")
 
         if not should_request_turn(state, last_frame, last_turn_at):
+            idle_now = time.time()
+            if should_send_idle_heartbeat(
+                broker_session_id,
+                last_idle_heartbeat_session_id,
+                last_heartbeat_at=last_idle_heartbeat_at,
+                now=idle_now,
+                interval_seconds=HEARTBEAT_INTERVAL_SECONDS,
+            ):
+                last_intent = as_dict(state.get("lastIntent"))
+                last_mode = str(last_intent.get("mode", "") or "-")
+                last_reason = str(last_intent.get("reason", "") or "no-reason")
+                send_heartbeat(
+                    broker_session_id,
+                    codex_session_id,
+                    "idle",
+                    thinking=False,
+                    note=f"Idle heartbeat frame {state.get('frame', '-')}; last {last_mode} ({last_reason})",
+                    model=agent_model,
+                )
+                last_idle_heartbeat_at = idle_now
+                last_idle_heartbeat_session_id = broker_session_id
             time.sleep(POLL_INTERVAL_SECONDS)
             continue
 

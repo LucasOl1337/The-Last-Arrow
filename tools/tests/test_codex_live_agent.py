@@ -79,6 +79,46 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertIn("executorFeedback.botFeedback", prompt)
         self.assertIn("projectile threat 0.12s", prompt)
 
+    def test_should_send_idle_heartbeat_only_after_interval_for_same_session(self) -> None:
+        self.assertFalse(
+            codex_live_agent.should_send_idle_heartbeat(
+                "",
+                "agent-session",
+                last_heartbeat_at=10.0,
+                now=20.0,
+                interval_seconds=5.0,
+            )
+        )
+        self.assertFalse(
+            codex_live_agent.should_send_idle_heartbeat(
+                "agent-session",
+                "agent-session",
+                last_heartbeat_at=10.0,
+                now=14.9,
+                interval_seconds=5.0,
+            )
+        )
+        self.assertTrue(
+            codex_live_agent.should_send_idle_heartbeat(
+                "agent-session",
+                "agent-session",
+                last_heartbeat_at=10.0,
+                now=15.0,
+                interval_seconds=5.0,
+            )
+        )
+
+    def test_should_send_idle_heartbeat_immediately_for_new_session(self) -> None:
+        self.assertTrue(
+            codex_live_agent.should_send_idle_heartbeat(
+                "agent-session-2",
+                "agent-session-1",
+                last_heartbeat_at=20.0,
+                now=20.1,
+                interval_seconds=5.0,
+            )
+        )
+
     def test_build_heuristic_intent_punishes_vulnerable_target(self) -> None:
         state = _build_base_state()
         state["promptState"]["target"] = {
