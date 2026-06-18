@@ -302,6 +302,35 @@ namespace ProjectPVP.Input
                                 decision.debugSummary = "AI PROJECTILE JUMP";
                             }
                             break;
+                        case "hold":
+                            if (self.canParryProjectile && semantics.incomingProjectileTime <= 0.18f)
+                            {
+                                decision.moveAxis = 0f;
+                                ClearCombatActions(decision);
+                                decision.debugSummary = "AI PARRY HOLD";
+                            }
+                            else if (canDash && (semantics.shouldDashEvade || intent.dashBias >= 0.5f))
+                            {
+                                ClearCombatActions(decision);
+                                decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDashAxis(semantics, awayFromTarget);
+                                decision.dashPrimaryPressed = true;
+                                decision.debugSummary = "AI PROJECTILE DASH";
+                            }
+                            else if (self.isGrounded)
+                            {
+                                ClearCombatActions(decision);
+                                decision.moveAxis = awayFromTarget * 0.35f;
+                                decision.jumpPressed = true;
+                                decision.jumpHeld = true;
+                                decision.debugSummary = "AI PROJECTILE JUMP";
+                            }
+                            else
+                            {
+                                ClearCombatActions(decision);
+                                decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDriftAxis(semantics, awayFromTarget) * 0.35f;
+                                decision.debugSummary = "AI PROJECTILE DRIFT";
+                            }
+                            break;
                         case "parry_prefer":
                             if (self.canParryProjectile)
                             {
