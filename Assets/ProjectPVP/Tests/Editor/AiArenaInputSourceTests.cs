@@ -3881,6 +3881,75 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_DashAntiProjectileFallsBackToJumpWhenDashUnavailable()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                    isGrounded = true,
+                    dashCooldownLeft = 0.4f,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                    canParryProjectile = false,
+                    canBlockProjectiles = false,
+                },
+                opponents = new List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 1,
+                        position = new Vector2(240f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 240f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = true,
+                    targetVulnerable = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.23f,
+                    incomingProjectileDirection = Vector2.left,
+                    shouldDashEvade = false,
+                    shouldJumpEvade = false,
+                    selfHasArrows = true,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "retreat",
+                preferredRange = 300,
+                shootBias = 0.28f,
+                meleeBias = 0.22f,
+                dashBias = 0.94f,
+                jumpBias = 0.56f,
+                antiProjectile = "dash",
+                cornerEscapeBias = 0.82f,
+                expiresInMs = 400,
+                reason = "missed_projectile_defense",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI PROJECTILE JUMP"));
+            Assert.That(decision.jumpPressed, Is.True);
+            Assert.That(decision.jumpHeld, Is.True);
+            Assert.That(decision.dashPrimaryPressed, Is.False);
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+        }
+
+        [Test]
         public void StrategicPolicy_HoldsActiveUltimateProjectileBlockDuringProjectileThreat()
         {
             var snapshot = new AiArenaSnapshotEnvelope

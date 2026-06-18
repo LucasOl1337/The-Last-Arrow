@@ -285,73 +285,16 @@ namespace ProjectPVP.Input
                     switch (NormalizeAntiProjectile(intent.antiProjectile))
                     {
                         case "dash":
-                            if (self.dashCooldownLeft <= 0.01f && !self.isDashing)
-                            {
-                                ClearCombatActions(decision);
-                                decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDashAxis(semantics, awayFromTarget);
-                                decision.dashPrimaryPressed = true;
-                                decision.debugSummary = "AI PROJECTILE DASH";
-                            }
+                            ApplyProjectileDashPreferredFallback(decision, semantics, self, canDash, awayFromTarget);
                             break;
                         case "jump":
-                            if (self.isGrounded)
-                            {
-                                ClearCombatActions(decision);
-                                decision.jumpPressed = true;
-                                decision.jumpHeld = true;
-                                decision.debugSummary = "AI PROJECTILE JUMP";
-                            }
+                            ApplyProjectileJumpPreferredFallback(decision, semantics, self, canDash, awayFromTarget, intent.dashBias);
                             break;
                         case "hold":
-                            if (self.canParryProjectile && semantics.incomingProjectileTime <= 0.18f)
-                            {
-                                decision.moveAxis = 0f;
-                                ClearCombatActions(decision);
-                                decision.debugSummary = "AI PARRY HOLD";
-                            }
-                            else if (canDash && (semantics.shouldDashEvade || intent.dashBias >= 0.5f))
-                            {
-                                ClearCombatActions(decision);
-                                decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDashAxis(semantics, awayFromTarget);
-                                decision.dashPrimaryPressed = true;
-                                decision.debugSummary = "AI PROJECTILE DASH";
-                            }
-                            else if (self.isGrounded)
-                            {
-                                ClearCombatActions(decision);
-                                decision.moveAxis = awayFromTarget * 0.35f;
-                                decision.jumpPressed = true;
-                                decision.jumpHeld = true;
-                                decision.debugSummary = "AI PROJECTILE JUMP";
-                            }
-                            else
-                            {
-                                ClearCombatActions(decision);
-                                decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDriftAxis(semantics, awayFromTarget) * 0.35f;
-                                decision.debugSummary = "AI PROJECTILE DRIFT";
-                            }
+                            ApplyProjectileHoldPreferredFallback(decision, semantics, self, canDash, awayFromTarget, intent.dashBias);
                             break;
                         case "parry_prefer":
-                            if (self.canParryProjectile)
-                            {
-                                decision.moveAxis = 0f;
-                                ClearCombatActions(decision);
-                                decision.debugSummary = "AI PARRY HOLD";
-                            }
-                            else if (canDash)
-                            {
-                                ClearCombatActions(decision);
-                                decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDashAxis(semantics, awayFromTarget);
-                                decision.dashPrimaryPressed = true;
-                                decision.debugSummary = "AI PROJECTILE DASH";
-                            }
-                            else if (self.isGrounded)
-                            {
-                                ClearCombatActions(decision);
-                                decision.jumpPressed = true;
-                                decision.jumpHeld = true;
-                                decision.debugSummary = "AI PROJECTILE JUMP";
-                            }
+                            ApplyProjectileParryPreferredFallback(decision, semantics, self, canDash, awayFromTarget);
                             break;
                     }
                 }
@@ -420,6 +363,176 @@ namespace ProjectPVP.Input
                 || normalized.Contains("target_ranged_threat")
                 || normalized.Contains("missed_projectile_defense")
                 || normalized.Contains("projectile_threat_feedback");
+        }
+
+        private static void ApplyProjectileDashPreferredFallback(
+            AiArenaDecisionEnvelope decision,
+            AiArenaSemanticObservation semantics,
+            AiArenaCombatantObservation self,
+            bool canDash,
+            float awayFromTarget)
+        {
+            if (TryApplyProjectileDash(decision, semantics, canDash, awayFromTarget))
+            {
+                return;
+            }
+
+            if (TryApplyProjectileJump(decision, self, awayFromTarget))
+            {
+                return;
+            }
+
+            if (TryApplyProjectileParryHold(decision, self, semantics, requireTightTiming: true))
+            {
+                return;
+            }
+
+            ApplyProjectileDrift(decision, semantics, awayFromTarget);
+        }
+
+        private static void ApplyProjectileJumpPreferredFallback(
+            AiArenaDecisionEnvelope decision,
+            AiArenaSemanticObservation semantics,
+            AiArenaCombatantObservation self,
+            bool canDash,
+            float awayFromTarget,
+            float dashBias)
+        {
+            if (TryApplyProjectileJump(decision, self, awayFromTarget))
+            {
+                return;
+            }
+
+            if (TryApplyProjectileDash(decision, semantics, canDash && (semantics.shouldDashEvade || dashBias >= 0.5f), awayFromTarget))
+            {
+                return;
+            }
+
+            if (TryApplyProjectileParryHold(decision, self, semantics, requireTightTiming: true))
+            {
+                return;
+            }
+
+            ApplyProjectileDrift(decision, semantics, awayFromTarget);
+        }
+
+        private static void ApplyProjectileHoldPreferredFallback(
+            AiArenaDecisionEnvelope decision,
+            AiArenaSemanticObservation semantics,
+            AiArenaCombatantObservation self,
+            bool canDash,
+            float awayFromTarget,
+            float dashBias)
+        {
+            if (TryApplyProjectileParryHold(decision, self, semantics, requireTightTiming: true))
+            {
+                return;
+            }
+
+            if (TryApplyProjectileDash(decision, semantics, canDash && (semantics.shouldDashEvade || dashBias >= 0.5f), awayFromTarget))
+            {
+                return;
+            }
+
+            if (TryApplyProjectileJump(decision, self, awayFromTarget))
+            {
+                return;
+            }
+
+            ApplyProjectileDrift(decision, semantics, awayFromTarget);
+        }
+
+        private static void ApplyProjectileParryPreferredFallback(
+            AiArenaDecisionEnvelope decision,
+            AiArenaSemanticObservation semantics,
+            AiArenaCombatantObservation self,
+            bool canDash,
+            float awayFromTarget)
+        {
+            if (TryApplyProjectileParryHold(decision, self, semantics, requireTightTiming: false))
+            {
+                return;
+            }
+
+            if (TryApplyProjectileDash(decision, semantics, canDash, awayFromTarget))
+            {
+                return;
+            }
+
+            if (TryApplyProjectileJump(decision, self, awayFromTarget))
+            {
+                return;
+            }
+
+            ApplyProjectileDrift(decision, semantics, awayFromTarget);
+        }
+
+        private static bool TryApplyProjectileDash(
+            AiArenaDecisionEnvelope decision,
+            AiArenaSemanticObservation semantics,
+            bool canDash,
+            float awayFromTarget)
+        {
+            if (!canDash)
+            {
+                return false;
+            }
+
+            ClearCombatActions(decision);
+            decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDashAxis(semantics, awayFromTarget);
+            decision.dashPrimaryPressed = true;
+            decision.debugSummary = "AI PROJECTILE DASH";
+            return true;
+        }
+
+        private static bool TryApplyProjectileJump(
+            AiArenaDecisionEnvelope decision,
+            AiArenaCombatantObservation self,
+            float awayFromTarget)
+        {
+            if (self == null || !self.isGrounded)
+            {
+                return false;
+            }
+
+            ClearCombatActions(decision);
+            decision.moveAxis = awayFromTarget * 0.35f;
+            decision.jumpPressed = true;
+            decision.jumpHeld = true;
+            decision.debugSummary = "AI PROJECTILE JUMP";
+            return true;
+        }
+
+        private static bool TryApplyProjectileParryHold(
+            AiArenaDecisionEnvelope decision,
+            AiArenaCombatantObservation self,
+            AiArenaSemanticObservation semantics,
+            bool requireTightTiming)
+        {
+            if (self == null || !self.canParryProjectile)
+            {
+                return false;
+            }
+
+            if (requireTightTiming && semantics.incomingProjectileTime > 0.18f)
+            {
+                return false;
+            }
+
+            decision.moveAxis = 0f;
+            ClearCombatActions(decision);
+            decision.debugSummary = "AI PARRY HOLD";
+            return true;
+        }
+
+        private static void ApplyProjectileDrift(
+            AiArenaDecisionEnvelope decision,
+            AiArenaSemanticObservation semantics,
+            float awayFromTarget)
+        {
+            ClearCombatActions(decision);
+            decision.moveAxis = AiArenaHeuristicPolicy.ResolveIncomingProjectileDriftAxis(semantics, awayFromTarget) * 0.35f;
+            decision.debugSummary = "AI PROJECTILE DRIFT";
         }
 
         private static void ClearCombatActions(AiArenaDecisionEnvelope decision)
