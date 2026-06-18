@@ -494,12 +494,12 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         report = session.report_payload()
 
         self.assertEqual("AI LONG RANGE STALLED", payload["executorFeedback"]["summary"])
-        self.assertIn("movement stalled", payload["executorFeedback"]["botFeedback"])
-        self.assertEqual("retreat", payload["executorFeedback"]["intentMode"])
-        self.assertEqual("heuristic_movement_stall_escape", payload["executorFeedback"]["intentReason"])
+        self.assertIn("far target chase stalled", payload["executorFeedback"]["botFeedback"])
+        self.assertEqual("pressure", payload["executorFeedback"]["intentMode"])
+        self.assertEqual("heuristic_far_target_chase", payload["executorFeedback"]["intentReason"])
         self.assertEqual("AI LONG RANGE STALLED", report["summary"])
-        self.assertEqual("retreat", report["intentMode"])
-        self.assertEqual("heuristic_movement_stall_escape", report["intentReason"])
+        self.assertEqual("pressure", report["intentMode"])
+        self.assertEqual("heuristic_far_target_chase", report["intentReason"])
 
     def test_state_payload_marks_arrow_recovery_stalled_when_pickup_input_is_idle(self) -> None:
         session = codex_broker.AgentDrivenSession(

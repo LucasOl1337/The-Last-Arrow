@@ -268,6 +268,8 @@ def is_stalled_long_range_pressure_input(executor_feedback: dict[str, Any], inte
     pressure_intent = intent_mode == "pressure" or intent_reason in {
         "heuristic_close_distance",
         "heuristic_default_pressure",
+        "heuristic_far_target_chase",
+        "far_target_chase",
         "heuristic_zone_spacing",
     }
     return (
@@ -519,11 +521,11 @@ def normalize_long_range_pressure_stall_feedback(
     normalized = deepcopy(executor_feedback)
     normalized["summary"] = "AI LONG RANGE STALLED"
     normalized["botFeedback"] = (
-        "long-range movement stalled; action weak advance; improve: commit to closing distance "
-        "with strong movement, jump, or dash."
+        "far target chase stalled; action weak advance; improve: commit to closing distance "
+        "with strong movement or dash before zoning again."
     )
-    normalized["intentMode"] = "retreat"
-    normalized["intentReason"] = "heuristic_movement_stall_escape"
+    normalized["intentMode"] = "pressure"
+    normalized["intentReason"] = "heuristic_far_target_chase"
     return normalized
 
 
