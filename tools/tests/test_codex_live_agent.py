@@ -365,6 +365,41 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(tuned["dashBias"], 0.9)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
+    def test_apply_aggression_bias_escapes_after_missed_ultimate_text_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["target"]["isUltimateActive"] = False
+        state["executorFeedback"]["targetUltimateThreatActive"] = False
+        state["executorFeedback"]["botFeedback"] = (
+            "missed ultimate escape; action AI PRESSURE; improve: dash or move away before pickups or trades."
+        )
+        intent = {
+            "mode": "pressure",
+            "preferredRange": 180,
+            "advanceBias": 0.88,
+            "shootBias": 0.72,
+            "meleeBias": 0.82,
+            "dashBias": 0.2,
+            "jumpBias": 0.1,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.2,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "overaggressive_pressure",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("retreat", tuned["mode"])
+        self.assertEqual("missed_ultimate_escape", tuned["reason"])
+        self.assertGreaterEqual(tuned["preferredRange"], 360)
+        self.assertLessEqual(tuned["advanceBias"], 0.12)
+        self.assertLessEqual(tuned["meleeBias"], 0.22)
+        self.assertGreaterEqual(tuned["dashBias"], 0.9)
+        self.assertGreaterEqual(tuned["cornerEscapeBias"], 0.78)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
     def test_apply_aggression_bias_defends_after_missed_projectile_feedback(self) -> None:
         state = _build_base_state()
         state["promptState"]["dangerousProjectiles"] = [{"etaSeconds": 0.16}]

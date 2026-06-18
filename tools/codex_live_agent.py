@@ -233,6 +233,16 @@ def has_missed_corner_escape_feedback(state: dict[str, Any]) -> bool:
     return "missed corner escape" in combined
 
 
+def has_missed_ultimate_escape_feedback(state: dict[str, Any]) -> bool:
+    feedback_raw = state.get("executorFeedback")
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    combined = " ".join([
+        str(feedback.get("botFeedback", "")),
+        str(feedback.get("summary", "")),
+    ]).lower()
+    return "missed ultimate escape" in combined
+
+
 def resolve_runtime_provider(selected_provider: str, codex_available: bool) -> str:
     normalized = str(selected_provider or "openai_codex").strip().lower()
     if normalized == HEURISTIC_PROVIDER:
@@ -319,6 +329,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     missed_projectile_defense = has_missed_projectile_defense_feedback(state)
     missed_punish_window = has_missed_punish_window_feedback(state)
     missed_corner_escape = has_missed_corner_escape_feedback(state)
+    missed_ultimate_escape = has_missed_ultimate_escape_feedback(state)
     try:
         dash_cooldown_left = float(self_state.get("dashCooldownLeft", 0.0) or 0.0)
     except (TypeError, ValueError):
@@ -380,7 +391,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     if not target_visible or projectile_risk:
         return tuned
 
-    if target_ultimate_threat:
+    if target_ultimate_threat or missed_ultimate_escape:
         tuned["mode"] = "retreat"
         tuned["preferredRange"] = max(tuned["preferredRange"], 360)
         tuned["advanceBias"] = min(tuned["advanceBias"], 0.12)
@@ -390,7 +401,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["jumpBias"] = max(tuned["jumpBias"], 0.42 if self_grounded else 0.24)
         tuned["antiProjectile"] = "hold"
         tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.78)
-        tuned["reason"] = "target_ultimate_threat"
+        tuned["reason"] = "missed_ultimate_escape" if missed_ultimate_escape else "target_ultimate_threat"
         return tuned
 
     if target_melee_threat:
