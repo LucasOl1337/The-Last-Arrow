@@ -225,6 +225,31 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertLess(intent["shootBias"], 0.5)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_commits_to_far_visible_target_chase(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["target"]["arrows"] = 2
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 1180.0,
+            "verticalDistance": 18.0,
+            "targetInMeleeRange": False,
+            "targetInUltimateRange": False,
+            "targetInShootRange": False,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": False,
+        }
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("pressure", intent["mode"])
+        self.assertEqual("heuristic_far_target_chase", intent["reason"])
+        self.assertLessEqual(intent["preferredRange"], 260)
+        self.assertGreaterEqual(intent["advanceBias"], 0.96)
+        self.assertGreaterEqual(intent["dashBias"], 0.9)
+        self.assertLessEqual(intent["shootBias"], 0.5)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_build_heuristic_intent_recovers_after_empty_shot_feedback(self) -> None:
         state = _build_base_state()
         state["promptState"]["self"]["arrows"] = 0
@@ -1548,6 +1573,47 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertEqual("pressure", tuned["mode"])
         self.assertGreaterEqual(tuned["advanceBias"], 0.84)
         self.assertGreaterEqual(tuned["dashBias"], 0.72)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
+    def test_apply_aggression_bias_commits_to_far_visible_target_chase(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["target"]["arrows"] = 2
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 1180.0,
+            "verticalDistance": 18.0,
+            "targetInMeleeRange": False,
+            "targetInUltimateRange": False,
+            "targetInShootRange": False,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": False,
+        }
+        intent = {
+            "mode": "zone",
+            "preferredRange": 520,
+            "advanceBias": 0.28,
+            "shootBias": 0.84,
+            "meleeBias": 0.24,
+            "dashBias": 0.32,
+            "jumpBias": 0.18,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.3,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "passive_far_zone",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("pressure", tuned["mode"])
+        self.assertEqual("far_target_chase", tuned["reason"])
+        self.assertLessEqual(tuned["preferredRange"], 260)
+        self.assertGreaterEqual(tuned["advanceBias"], 0.96)
+        self.assertGreaterEqual(tuned["dashBias"], 0.9)
+        self.assertLessEqual(tuned["shootBias"], 0.5)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
     def test_apply_aggression_bias_promotes_last_arrow_pressure(self) -> None:

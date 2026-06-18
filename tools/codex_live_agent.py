@@ -651,6 +651,19 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["reason"] = "shot_out_of_range"
         return tuned
 
+    if strong_target_visible and not target_vulnerable and horizontal_distance_value > 900:
+        tuned["mode"] = "pressure"
+        tuned["preferredRange"] = min(tuned["preferredRange"], 260)
+        tuned["advanceBias"] = max(tuned["advanceBias"], 0.96)
+        tuned["shootBias"] = min(max(tuned["shootBias"], 0.36 if self_arrows > 0 else 0.18), 0.5)
+        tuned["meleeBias"] = max(tuned["meleeBias"], 0.62)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.92 if can_dash else 0.58)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.24)
+        tuned["antiProjectile"] = "hold"
+        tuned["cornerEscapeBias"] = min(tuned["cornerEscapeBias"], 0.24)
+        tuned["reason"] = "far_target_chase"
+        return tuned
+
     if empty_shot:
         tuned["mode"] = "retreat"
         tuned["preferredRange"] = max(tuned["preferredRange"], 320)
@@ -1395,6 +1408,21 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
             "antiProjectile": "hold",
             "cornerEscapeBias": 0.24,
             "reason": "heuristic_anti_air",
+        })
+        return intent
+
+    if horizontal_distance > 900 and can_dash:
+        intent.update({
+            "mode": "pressure",
+            "preferredRange": 260,
+            "advanceBias": 0.96,
+            "shootBias": 0.42 if can_shoot else 0.24,
+            "meleeBias": 0.64,
+            "dashBias": 0.92,
+            "jumpBias": 0.24,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.22,
+            "reason": "heuristic_far_target_chase",
         })
         return intent
 
