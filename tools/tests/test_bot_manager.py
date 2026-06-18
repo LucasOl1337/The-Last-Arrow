@@ -53,6 +53,27 @@ class BotManagerAtomicWriteTestCase(unittest.TestCase):
             self.assertEqual(3, attempts["count"])
             self.assertEqual([], list(path.parent.glob("roster.json.*.tmp")))
 
+    def test_write_text_atomic_recreates_temp_after_transient_replace_file_not_found(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = Path(temp_dir) / "roster.json"
+            path.write_text("old", encoding="utf-8")
+            original_replace = Path.replace
+            attempts = {"count": 0}
+
+            def flaky_replace(source: Path, target: Path) -> Path:
+                attempts["count"] += 1
+                if attempts["count"] == 1:
+                    source.unlink()
+                    raise FileNotFoundError("transient missing temp")
+                return original_replace(source, target)
+
+            with mock.patch.object(bot_manager.time, "sleep"), mock.patch.object(Path, "replace", flaky_replace):
+                bot_manager._write_text_atomic(path, "new")
+
+            self.assertEqual("new", path.read_text(encoding="utf-8"))
+            self.assertEqual(2, attempts["count"])
+            self.assertEqual([], list(path.parent.glob("roster.json.*.tmp")))
+
 
 if __name__ == "__main__":
     unittest.main()

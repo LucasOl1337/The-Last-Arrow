@@ -60,6 +60,11 @@ def _write_text_atomic(path: Path, text: str) -> None:
                 if attempt >= ATOMIC_REPLACE_RETRY_COUNT - 1:
                     raise
                 time.sleep(ATOMIC_REPLACE_RETRY_DELAY_SECONDS * (attempt + 1))
+            except FileNotFoundError:
+                if attempt >= ATOMIC_REPLACE_RETRY_COUNT - 1:
+                    raise
+                temporary_path.write_text(text, encoding="utf-8")
+                time.sleep(ATOMIC_REPLACE_RETRY_DELAY_SECONDS * (attempt + 1))
     finally:
         if temporary_path.exists():
             temporary_path.unlink()

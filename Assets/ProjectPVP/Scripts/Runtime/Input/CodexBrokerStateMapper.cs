@@ -65,6 +65,11 @@ namespace ProjectPVP.Input
                 return "projectile threat active now; action pending; improve: defend before attacking.";
             }
 
+            if (IsCurrentProjectileThreat(snapshot))
+            {
+                return "projectile threat active now; action pending; improve: defend before attacking.";
+            }
+
             if (IsNewCurrentRangedThreat(snapshot, reportedInputSnapshot))
             {
                 return "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.";
@@ -83,6 +88,11 @@ namespace ProjectPVP.Input
 
             if (IsNewCurrentCornerThreat(snapshot, reportedInputSnapshot))
             {
+                if (IsStalledCornerEscapeInput(snapshot, reportedInput))
+                {
+                    return "corner escape stalled; action weak or wrong-way movement; improve: move decisively toward arena center before attacking.";
+                }
+
                 return "corner pressure active now; action pending; improve: escape toward arena center before attacking.";
             }
 
@@ -136,14 +146,14 @@ namespace ProjectPVP.Input
                 return "AI | Fallback:round_reset";
             }
 
+            if (IsNewCurrentProjectileThreat(snapshot, reportedInputSnapshot) || IsCurrentProjectileThreat(snapshot))
+            {
+                return "AI PROJECTILE THREAT";
+            }
+
             if (snapshot != null && snapshot.semantics != null && !snapshot.semantics.hasTarget)
             {
                 return "AI | Fallback:no_target";
-            }
-
-            if (IsNewCurrentProjectileThreat(snapshot, reportedInputSnapshot))
-            {
-                return "AI PROJECTILE THREAT";
             }
 
             if (IsNewCurrentRangedThreat(snapshot, reportedInputSnapshot))
@@ -153,6 +163,11 @@ namespace ProjectPVP.Input
 
             if (IsNewCurrentCornerThreat(snapshot, reportedInputSnapshot))
             {
+                if (IsStalledCornerEscapeInput(snapshot, reportedInput))
+                {
+                    return "AI CORNER STALLED";
+                }
+
                 return "AI CORNER THREAT";
             }
 
@@ -201,6 +216,11 @@ namespace ProjectPVP.Input
 
         private static string ResolveCurrentAwareIntentMode(CodexStrategyIntent currentIntent, AiArenaSnapshotEnvelope snapshot)
         {
+            if (IsCurrentProjectileThreat(snapshot))
+            {
+                return "retreat";
+            }
+
             if (IsRoundResetOrNoTarget(snapshot))
             {
                 return "stabilize";
@@ -216,6 +236,11 @@ namespace ProjectPVP.Input
 
         private static string ResolveCurrentAwareIntentReason(CodexStrategyIntent currentIntent, AiArenaSnapshotEnvelope snapshot)
         {
+            if (IsCurrentProjectileThreat(snapshot))
+            {
+                return "projectile_threat_feedback";
+            }
+
             if (IsRoundResetOrNoTarget(snapshot))
             {
                 return "heuristic_waiting_for_target";
@@ -244,6 +269,13 @@ namespace ProjectPVP.Input
                 && (reportedInputSnapshot == null
                     || reportedInputSnapshot.semantics == null
                     || !reportedInputSnapshot.semantics.incomingProjectileThreat);
+        }
+
+        private static bool IsCurrentProjectileThreat(AiArenaSnapshotEnvelope snapshot)
+        {
+            return snapshot != null
+                && snapshot.semantics != null
+                && snapshot.semantics.incomingProjectileThreat;
         }
 
         private static bool IsNewCurrentRangedThreat(AiArenaSnapshotEnvelope snapshot, AiArenaSnapshotEnvelope reportedInputSnapshot)
@@ -379,6 +411,27 @@ namespace ProjectPVP.Input
                 || (!reportedInput.jumpPressed
                     && !reportedInput.jumpHeld
                     && reportedInput.aim.y < 0.55f);
+        }
+
+        private static bool IsStalledCornerEscapeInput(AiArenaSnapshotEnvelope snapshot, CodexReportedInputFrame reportedInput)
+        {
+            if (snapshot == null || snapshot.semantics == null || reportedInput == null)
+            {
+                return true;
+            }
+
+            float escapeAxis = Mathf.Abs(snapshot.semantics.targetDirection.x) > 0.1f
+                ? Mathf.Sign(snapshot.semantics.targetDirection.x)
+                : 0f;
+            if (escapeAxis == 0f)
+            {
+                return Mathf.Abs(reportedInput.axis) < 0.35f
+                    && !reportedInput.dashPrimaryPressed
+                    && !reportedInput.dashSecondaryPressed;
+            }
+
+            return Mathf.Abs(reportedInput.axis) < 0.35f
+                || Mathf.Sign(reportedInput.axis) != escapeAxis;
         }
 
         private static bool IsCurrentResolvedThreatPressure(AiArenaSnapshotEnvelope snapshot, CodexStrategyIntent currentIntent, string lastExecutorSummary)

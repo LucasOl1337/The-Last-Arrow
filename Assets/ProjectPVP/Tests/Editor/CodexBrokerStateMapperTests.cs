@@ -416,6 +416,40 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_PrioritizesProjectileThreatWhenTargetIsMissing()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                arena = new AiArenaArenaObservation
+                {
+                    roundResetPending = false,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = false,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.12f,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI MOVE",
+                new CodexStrategyIntent { mode = "pressure", reason = "heuristic_waiting_for_target" },
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 211, axis = -1f, aim = Vector2.left });
+
+            Assert.That(feedback.targetVisible, Is.False);
+            Assert.That(feedback.projectileThreatActive, Is.True);
+            Assert.That(feedback.summary, Is.EqualTo("AI PROJECTILE THREAT"));
+            Assert.That(feedback.intentMode, Is.EqualTo("retreat"));
+            Assert.That(feedback.intentReason, Is.EqualTo("projectile_threat_feedback"));
+            Assert.That(feedback.botFeedback, Does.Contain("projectile threat active now"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("no target visible"));
+        }
+
+        [Test]
         public void BuildExecutorFeedback_ReportsCurrentProjectileThreatSummaryWhenInputSnapshotIsOlder()
         {
             var currentSnapshot = new AiArenaSnapshotEnvelope
@@ -479,13 +513,50 @@ namespace ProjectPVP.Tests.Editor
                 currentIntent: null,
                 currentSnapshot,
                 80f,
-                new CodexReportedInputFrame { frame = 42, axis = -0.75f, aim = Vector2.right },
+                new CodexReportedInputFrame { frame = 42, axis = 0.75f, aim = Vector2.right },
                 reportedInputSnapshot);
 
             Assert.That(feedback.selfCornered, Is.True);
             Assert.That(feedback.summary, Is.EqualTo("AI CORNER THREAT"));
             Assert.That(feedback.botFeedback, Does.Contain("corner pressure active now"));
             Assert.That(feedback.botFeedback, Does.Not.Contain("missed corner escape"));
+        }
+
+        [Test]
+        public void BuildExecutorFeedback_ReportsStalledCornerThreatWhenInputDoesNotEscape()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfCornered = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var reportedInputSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfCornered = false,
+                    targetDirection = Vector2.right,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI MOVE",
+                currentIntent: null,
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 42, axis = -0.21f, aim = Vector2.right },
+                reportedInputSnapshot);
+
+            Assert.That(feedback.selfCornered, Is.True);
+            Assert.That(feedback.summary, Is.EqualTo("AI CORNER STALLED"));
+            Assert.That(feedback.botFeedback, Does.Contain("corner escape stalled"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("corner pressure active now"));
         }
 
         [Test]

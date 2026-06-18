@@ -121,6 +121,13 @@ def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, An
     normalized.setdefault("targetArrows", -1)
     summary = str(normalized.get("summary", "") or "")
     bot_feedback = str(normalized.get("botFeedback", "") or "")
+    if bool(normalized.get("projectileThreatActive", False)):
+        normalized["intentMode"] = "retreat"
+        normalized["intentReason"] = "projectile_threat_feedback"
+        if "projectile threat" not in bot_feedback.lower():
+            normalized["botFeedback"] = "projectile threat active now; action pending; improve: defend before attacking."
+        return normalized
+
     if bool(normalized.get("roundResetPending", False)) or not bool(normalized.get("targetVisible", False)):
         normalized["intentMode"] = "stabilize"
         normalized["intentReason"] = "heuristic_waiting_for_target"
@@ -277,10 +284,10 @@ def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, 
     summary = str(executor_feedback.get("summary", "") or "")
     if bool(executor_feedback.get("roundResetPending", False)):
         return "AI | Fallback:round_reset"
-    if not bool(executor_feedback.get("targetVisible", False)):
-        return "AI | Fallback:no_target"
     if bool(executor_feedback.get("projectileThreatActive", False)):
         return summary if "PROJECTILE" in summary.upper() else "AI PROJECTILE THREAT"
+    if not bool(executor_feedback.get("targetVisible", False)):
+        return "AI | Fallback:no_target"
     if bool(executor_feedback.get("targetRangedThreatActive", False)) and "RANGED" not in summary.upper():
         return "AI RANGED THREAT"
     if is_current_resolved_corner_pressure(executor_feedback):

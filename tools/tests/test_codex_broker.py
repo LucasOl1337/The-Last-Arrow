@@ -352,6 +352,48 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertEqual("stabilize", report["feedbackIntentMode"])
         self.assertEqual("heuristic_waiting_for_target", report["feedbackIntentReason"])
 
+    def test_report_payload_prioritizes_projectile_threat_when_target_is_missing(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "arena": {"horizontalDistance": 320.0},
+            },
+        )
+
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI | Fallback:no_target",
+                    "intentMode": "stabilize",
+                    "intentReason": "heuristic_waiting_for_target",
+                    "botFeedback": "no target visible; improve: verify spawn, camera, or opponent tracking.",
+                    "targetVisible": False,
+                    "projectileThreatActive": True,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+        payload = session.state_payload()
+
+        self.assertEqual("AI PROJECTILE THREAT", report["summary"])
+        self.assertFalse(report["targetVisible"])
+        self.assertTrue(report["projectileThreatActive"])
+        self.assertEqual("retreat", payload["executorFeedback"]["intentMode"])
+        self.assertEqual("projectile_threat_feedback", payload["executorFeedback"]["intentReason"])
+        self.assertEqual("retreat", report["feedbackIntentMode"])
+        self.assertEqual("projectile_threat_feedback", report["feedbackIntentReason"])
+        self.assertEqual(
+            "projectile threat active now; action pending; improve: defend before attacking.",
+            report["botFeedback"],
+        )
+
     def test_report_payload_uses_move_summary_when_executor_summary_is_empty(self) -> None:
         session = codex_broker.AgentDrivenSession(
             1,
