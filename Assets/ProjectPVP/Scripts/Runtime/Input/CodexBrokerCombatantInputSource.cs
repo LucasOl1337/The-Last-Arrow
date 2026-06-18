@@ -860,15 +860,13 @@ namespace ProjectPVP.Input
                 return frame;
             }
 
-            bool alreadyActing = Mathf.Abs(frame.axis) > 0.1f
-                || frame.shootPressed
+            bool alreadyCommitted = frame.shootPressed
                 || frame.shootHeld
                 || frame.meleePressed
                 || frame.ultimatePressed
-                || frame.jumpPressed
                 || frame.dashPrimaryPressed
                 || frame.dashSecondaryPressed;
-            if (alreadyActing)
+            if (alreadyCommitted)
             {
                 return frame;
             }
