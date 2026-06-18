@@ -60,6 +60,7 @@ namespace ProjectPVP.Input
                 && semantics.targetInShootRange
                 && canShoot;
             bool pressureAfterResolvedThreat = defensiveRetreatIntent
+                && IsRangedOrProjectileThreatFeedbackIntent(intent)
                 && !semantics.incomingProjectileThreat
                 && !semantics.targetUsingRanged
                 && !semantics.targetUsingMelee
@@ -122,6 +123,11 @@ namespace ProjectPVP.Input
                             towardTarget * Mathf.Lerp(0.55f, 1f, Mathf.Clamp01(intent.advanceBias)) - distanceError / preferredRange * 0.3f,
                             -1f,
                             1f);
+                        if (semantics.horizontalDistance > preferredRange * 1.15f && Mathf.Sign(decision.moveAxis) != Mathf.Sign(towardTarget))
+                        {
+                            decision.moveAxis = towardTarget * Mathf.Lerp(0.45f, 1f, Mathf.Clamp01(intent.advanceBias));
+                        }
+
                         if (canMelee && semantics.targetInMeleeRange && (intent.meleeBias >= 0.3f || semantics.targetVulnerable || semantics.shouldPunish))
                         {
                             decision.meleePressed = true;
@@ -278,10 +284,11 @@ namespace ProjectPVP.Input
 
             if (!lastArrowCommitIntent && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !escapingCorner && !effectiveDefensiveRetreatIntent)
             {
-                if (targetArrows <= 0 && self.arrows > 0)
+                bool hasHardCommit = decision.meleePressed || decision.ultimatePressed || decision.dashPrimaryPressed || decision.dashSecondaryPressed;
+                if (targetArrows <= 0 && self.arrows > 0 && !hasHardCommit)
                 {
                     decision.moveAxis = towardTarget * Mathf.Max(0.35f, Mathf.Abs(decision.moveAxis));
-                    if (!decision.meleePressed && canMelee && semantics.targetInMeleeRange)
+                    if (!decision.shootPressed && canMelee && semantics.targetInMeleeRange)
                     {
                         decision.meleePressed = true;
                     }
@@ -289,6 +296,8 @@ namespace ProjectPVP.Input
                     {
                         decision.shootPressed = true;
                         decision.shootHeld = true;
+                        decision.dashPrimaryPressed = false;
+                        decision.dashSecondaryPressed = false;
                     }
                     else if (!decision.dashPrimaryPressed && canDash && semantics.horizontalDistance > 180f)
                     {
@@ -302,10 +311,10 @@ namespace ProjectPVP.Input
                     decision.moveAxis = awayFromTarget * Mathf.Max(0.25f, Mathf.Abs(decision.moveAxis));
                     decision.debugSummary = "AI ARROW DISADVANTAGE";
                 }
-                else if (arrowLead > 0 && semantics.targetInShootRange && canShoot)
+                else if (arrowLead > 0 && semantics.targetInShootRange && canShoot && !hasHardCommit)
                 {
                     decision.moveAxis = towardTarget * Mathf.Max(0.2f, Mathf.Abs(decision.moveAxis));
-                    if (!decision.meleePressed && canMelee && semantics.targetInMeleeRange && (semantics.targetCornered || semantics.targetVulnerable))
+                    if (!decision.shootPressed && canMelee && semantics.targetInMeleeRange && (semantics.targetCornered || semantics.targetVulnerable))
                     {
                         decision.meleePressed = true;
                     }
@@ -313,6 +322,8 @@ namespace ProjectPVP.Input
                     {
                         decision.shootPressed = true;
                         decision.shootHeld = true;
+                        decision.dashPrimaryPressed = false;
+                        decision.dashSecondaryPressed = false;
                     }
                     else if (!decision.dashPrimaryPressed && canDash && semantics.horizontalDistance > preferredRange * 0.85f)
                     {
@@ -324,17 +335,18 @@ namespace ProjectPVP.Input
             }
 
             if (pressureAfterResolvedRangedOrProjectileThreat
+                && !antiAirOpportunity
                 && !prioritizeCollection
                 && !escapingCorner
                 && !effectiveDefensiveRetreatIntent
                 && !decision.meleePressed
-                && !decision.ultimatePressed
-                && !decision.dashPrimaryPressed
-                && !decision.dashSecondaryPressed)
+                && !decision.ultimatePressed)
             {
                 decision.shootPressed = true;
                 decision.shootHeld = true;
-                decision.debugSummary = "AI RESOLVED THREAT PRESSURE";
+                decision.dashPrimaryPressed = false;
+                decision.dashSecondaryPressed = false;
+                decision.debugSummary = targetArrows <= 0 ? "AI LAST ARROW PRESSURE" : "AI RESOLVED THREAT PRESSURE";
             }
 
             if (antiAirOpportunity
@@ -383,7 +395,7 @@ namespace ProjectPVP.Input
                 decision.debugSummary = "AI EVADE MELEE";
             }
 
-            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !effectiveDefensiveRetreatIntent && semantics.targetUsingRanged && !semantics.targetVulnerable)
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !effectiveDefensiveRetreatIntent && semantics.targetUsingRanged && !semantics.targetVulnerable)
             {
                 ClearCombatActions(decision);
                 if (canShoot && semantics.targetInShootRange)
@@ -425,6 +437,11 @@ namespace ProjectPVP.Input
                         case "parry_prefer":
                             ApplyProjectileParryPreferredFallback(decision, semantics, self, canDash, awayFromTarget);
                             break;
+                    }
+
+                    if (antiAirOpportunity && decision.debugSummary == "AI PROJECTILE DASH")
+                    {
+                        decision.debugSummary = "AI PARRY DASH";
                     }
                 }
             }
