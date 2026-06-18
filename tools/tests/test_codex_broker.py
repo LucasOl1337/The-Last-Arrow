@@ -682,6 +682,53 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
             report["botFeedback"],
         )
 
+    def test_report_payload_preserves_stalled_anti_air_chase_feedback(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 1460.0},
+            },
+        )
+
+        session.publish_action(
+            {
+                "mode": "pressure",
+                "reason": "heuristic_anti_air",
+                "antiAir": False,
+            }
+        )
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI ANTI AIR STALLED",
+                    "botFeedback": "anti-air chase stalled; action grounded advance; improve: hold jump or aim upward while closing vertical distance.",
+                    "targetVisible": True,
+                    "targetAbove": True,
+                    "targetInShootRange": False,
+                    "verticalDistance": 340.0,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "selfArrows": 3,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI ANTI AIR STALLED", report["summary"])
+        self.assertEqual(
+            "anti-air chase stalled; action grounded advance; improve: hold jump or aim upward while closing vertical distance.",
+            report["botFeedback"],
+        )
+
     def test_report_payload_keeps_move_for_slight_vertical_anti_air_intent(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,

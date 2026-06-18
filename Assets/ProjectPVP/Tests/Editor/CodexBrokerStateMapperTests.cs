@@ -707,12 +707,52 @@ namespace ProjectPVP.Tests.Editor
                 currentIntent,
                 currentSnapshot,
                 80f,
-                new CodexReportedInputFrame { frame = 42, axis = -1f, aim = Vector2.left },
+                new CodexReportedInputFrame { frame = 42, axis = -1f, aim = Vector2.left, jumpHeld = true },
                 reportedInputSnapshot);
 
             Assert.That(feedback.summary, Is.EqualTo("AI ANTI AIR CHASE"));
             Assert.That(feedback.botFeedback, Does.Contain("anti-air chase active now"));
             Assert.That(feedback.botFeedback, Does.Not.Contain("spacing stable"));
+        }
+
+        [Test]
+        public void BuildExecutorFeedback_ReportsStalledAntiAirChaseWhenInputDoesNotClimb()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 3,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetAbove = true,
+                    targetInShootRange = false,
+                    shouldAntiAir = false,
+                    horizontalDistance = 1460f,
+                    verticalDistance = 340f,
+                    targetDirection = Vector2.left,
+                },
+            };
+            var currentIntent = new CodexStrategyIntent
+            {
+                mode = "pressure",
+                reason = "heuristic_anti_air",
+                antiAir = false,
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI MOVE",
+                currentIntent,
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 42, axis = -1f, aim = Vector2.left });
+
+            Assert.That(feedback.summary, Is.EqualTo("AI ANTI AIR STALLED"));
+            Assert.That(feedback.botFeedback, Does.Contain("anti-air chase stalled"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("anti-air chase active now"));
         }
 
         [Test]

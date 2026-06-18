@@ -98,6 +98,11 @@ namespace ProjectPVP.Input
 
             if (IsCurrentAntiAirChase(snapshot, currentIntent, lastExecutorSummary))
             {
+                if (IsStalledAntiAirChaseInput(reportedInput))
+                {
+                    return "anti-air chase stalled; action grounded advance; improve: hold jump or aim upward while closing vertical distance.";
+                }
+
                 return "anti-air chase active now; action pending; improve: climb into range before spending arrows.";
             }
 
@@ -163,6 +168,11 @@ namespace ProjectPVP.Input
 
             if (IsCurrentAntiAirChase(snapshot, currentIntent, lastExecutorSummary))
             {
+                if (IsStalledAntiAirChaseInput(reportedInput))
+                {
+                    return "AI ANTI AIR STALLED";
+                }
+
                 return "AI ANTI AIR CHASE";
             }
 
@@ -361,6 +371,14 @@ namespace ProjectPVP.Input
                 && !reportedInput.ultimatePressed
                 && !reportedInput.dashPrimaryPressed
                 && !reportedInput.dashSecondaryPressed;
+        }
+
+        private static bool IsStalledAntiAirChaseInput(CodexReportedInputFrame reportedInput)
+        {
+            return reportedInput == null
+                || (!reportedInput.jumpPressed
+                    && !reportedInput.jumpHeld
+                    && reportedInput.aim.y < 0.55f);
         }
 
         private static bool IsCurrentResolvedThreatPressure(AiArenaSnapshotEnvelope snapshot, CodexStrategyIntent currentIntent, string lastExecutorSummary)
