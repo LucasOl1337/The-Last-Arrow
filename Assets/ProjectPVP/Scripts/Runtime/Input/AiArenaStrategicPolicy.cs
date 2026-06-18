@@ -35,6 +35,7 @@ namespace ProjectPVP.Input
             float preferredRange = Mathf.Max(80f, intent.preferredRange);
             float distanceError = semantics.horizontalDistance - preferredRange;
             bool defensiveRetreatIntent = IsDefensiveRetreatIntent(intent);
+            bool cornerEscapeIntent = IsCornerEscapeIntent(intent);
             bool escapingCorner = false;
 
             if (prioritizeCollection && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !semantics.targetUsingRanged)
@@ -152,11 +153,11 @@ namespace ProjectPVP.Input
                 && !prioritizeCollection
                 && !defensiveRetreatIntent
                 && semantics.selfCornered
-                && semantics.horizontalDistance < preferredRange * 0.75f)
+                && (cornerEscapeIntent || semantics.horizontalDistance < preferredRange * 0.75f))
             {
                 ClearCombatActions(decision);
                 decision.moveAxis = towardTarget * Mathf.Lerp(0.55f, 1f, Mathf.Clamp01(intent.cornerEscapeBias));
-                decision.dashPrimaryPressed = canDash && semantics.horizontalDistance < preferredRange * 0.65f;
+                decision.dashPrimaryPressed = canDash && (cornerEscapeIntent || semantics.horizontalDistance < preferredRange * 0.65f);
                 decision.debugSummary = "AI CORNER ESCAPE";
                 escapingCorner = true;
             }
@@ -363,6 +364,19 @@ namespace ProjectPVP.Input
                 || normalized.Contains("target_ranged_threat")
                 || normalized.Contains("missed_projectile_defense")
                 || normalized.Contains("projectile_threat_feedback");
+        }
+
+        private static bool IsCornerEscapeIntent(CodexStrategyIntent intent)
+        {
+            if (intent == null || string.IsNullOrWhiteSpace(intent.reason))
+            {
+                return false;
+            }
+
+            string normalized = intent.reason.Trim().ToLowerInvariant();
+            return normalized.Contains("missed_corner_escape")
+                || normalized.Contains("corner_escape")
+                || normalized.Contains("self_cornered");
         }
 
         private static void ApplyProjectileDashPreferredFallback(
