@@ -410,7 +410,11 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
         and "anti-air chase active now" not in bot_feedback
         and "anti-air chase stalled" not in bot_feedback
     ):
-        return "anti-air chase active now; action pending; improve: climb into range before spending arrows."
+        return (
+            "anti-air chase active now; action "
+            + resolve_reported_action(executor_feedback)
+            + "; improve: climb into range before spending arrows."
+        )
     if is_current_last_arrow_pressure(executor_feedback) and is_stalled_last_arrow_pressure_input(executor_feedback):
         return "last-arrow pressure stalled; action none; improve: shoot, dash in, or move into a clean shot before the target recovers arrows."
     if is_current_last_arrow_pressure(executor_feedback) and "last-arrow pressure active now" not in bot_feedback:

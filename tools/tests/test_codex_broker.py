@@ -959,6 +959,12 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "targetUltimateThreatActive": False,
                     "selfArrows": 3,
                     "roundResetPending": False,
+                    "reportedInput": {
+                        "frame": 42,
+                        "axis": -1.0,
+                        "aim": {"x": -1.0, "y": 0.0},
+                        "jumpHeld": True,
+                    },
                 },
             }
         )
@@ -967,7 +973,7 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
 
         self.assertEqual("AI ANTI AIR CHASE", report["summary"])
         self.assertEqual(
-            "anti-air chase active now; action pending; improve: climb into range before spending arrows.",
+            "anti-air chase active now; action AI JUMP; improve: climb into range before spending arrows.",
             report["botFeedback"],
         )
 

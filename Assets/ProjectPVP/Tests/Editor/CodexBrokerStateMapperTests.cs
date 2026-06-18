@@ -787,6 +787,8 @@ namespace ProjectPVP.Tests.Editor
 
             Assert.That(feedback.summary, Is.EqualTo("AI ANTI AIR CHASE"));
             Assert.That(feedback.botFeedback, Does.Contain("anti-air chase active now"));
+            Assert.That(feedback.botFeedback, Does.Contain("action AI JUMP"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("action pending"));
             Assert.That(feedback.botFeedback, Does.Not.Contain("spacing stable"));
         }
 

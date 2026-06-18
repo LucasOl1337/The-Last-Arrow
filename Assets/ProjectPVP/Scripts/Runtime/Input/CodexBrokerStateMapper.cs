@@ -119,7 +119,8 @@ namespace ProjectPVP.Input
                     return "anti-air chase stalled; action grounded advance; improve: hold jump or aim upward while closing vertical distance.";
                 }
 
-                return "anti-air chase active now; action pending; improve: climb into range before spending arrows.";
+                return "anti-air chase active now; action " + ResolveReportedAction(reportedInput, null)
+                    + "; improve: climb into range before spending arrows.";
             }
 
             if (IsCurrentLastArrowPressure(snapshot, lastExecutorSummary))
