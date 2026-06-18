@@ -545,7 +545,7 @@ def normalize_arrow_recovery_stall_feedback(executor_feedback: dict[str, Any]) -
         "move, jump, or dash toward the pickup before re-engaging."
     )
     normalized["intentMode"] = "retreat"
-    normalized["intentReason"] = "heuristic_movement_stall_escape"
+    normalized["intentReason"] = "heuristic_recover_arrow_feedback_stalled_commit"
     return normalized
 
 

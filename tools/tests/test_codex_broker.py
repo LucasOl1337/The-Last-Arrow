@@ -557,9 +557,9 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertEqual("AI ARROW RECOVERY STALLED", payload["executorFeedback"]["summary"])
         self.assertIn("arrow recovery movement stalled at 298u", payload["executorFeedback"]["botFeedback"])
         self.assertEqual("retreat", payload["executorFeedback"]["intentMode"])
-        self.assertEqual("heuristic_movement_stall_escape", payload["executorFeedback"]["intentReason"])
+        self.assertEqual("heuristic_recover_arrow_feedback_stalled_commit", payload["executorFeedback"]["intentReason"])
         self.assertEqual("AI ARROW RECOVERY STALLED", report["summary"])
-        self.assertEqual("heuristic_movement_stall_escape", report["intentReason"])
+        self.assertEqual("heuristic_recover_arrow_feedback_stalled_commit", report["intentReason"])
 
     def test_report_payload_normalizes_summary_for_current_corner_threat(self) -> None:
         session = codex_broker.AgentDrivenSession(
