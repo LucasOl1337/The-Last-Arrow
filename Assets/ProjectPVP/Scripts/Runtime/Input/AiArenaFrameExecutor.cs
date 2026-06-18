@@ -56,18 +56,24 @@ namespace ProjectPVP.Input
                 return BuildFallbackFrame(ref state, self, frameIndex, "AI | Fallback:no_target", ref debugSummary);
             }
 
-            bool canShoot = self.arrows > 0;
-            bool wantsShootCycle = decision.shootPressed || decision.shootHeld;
+            bool incomingProjectileThreat = snapshot.semantics.incomingProjectileThreat;
+            if (incomingProjectileThreat)
+            {
+                state.shootHoldLeft = 0f;
+            }
+
+            bool canShoot = self.arrows > 0 && !incomingProjectileThreat;
+            bool wantsShootCycle = !incomingProjectileThreat && (decision.shootPressed || decision.shootHeld);
             bool shootPressed = canShoot && self.shootCooldownLeft <= 0.01f && state.shootCooldownLeft <= 0f && wantsShootCycle;
-            bool meleePressed = self.meleeCooldownLeft <= 0.01f && !self.isMeleeActive && state.meleeCooldownLeft <= 0f && decision.meleePressed;
-            bool ultimatePressed = self.ultimateCooldownLeft <= 0.01f && !self.isUltimateActive && state.ultimateCooldownLeft <= 0f && decision.ultimatePressed;
+            bool meleePressed = !incomingProjectileThreat && self.meleeCooldownLeft <= 0.01f && !self.isMeleeActive && state.meleeCooldownLeft <= 0f && decision.meleePressed;
+            bool ultimatePressed = !incomingProjectileThreat && self.ultimateCooldownLeft <= 0.01f && !self.isUltimateActive && state.ultimateCooldownLeft <= 0f && decision.ultimatePressed;
             bool jumpPressed = self.isGrounded && state.jumpCooldownLeft <= 0f && decision.jumpPressed;
             bool wantsDash = decision.dashPrimaryPressed || decision.dashSecondaryPressed;
             bool dashPressed = self.dashCooldownLeft <= 0.01f && !self.isDashing && state.dashCooldownLeft <= 0f && wantsDash;
             bool dashPrimaryPressed = dashPressed && decision.dashPrimaryPressed;
             bool dashSecondaryPressed = dashPressed && decision.dashSecondaryPressed;
             bool holdJump = jumpPressed || decision.jumpHeld;
-            bool suppressSemanticVerticalInput = snapshot.semantics.incomingProjectileThreat
+            bool suppressSemanticVerticalInput = incomingProjectileThreat
                 && !holdJump
                 && !dashPressed;
 
