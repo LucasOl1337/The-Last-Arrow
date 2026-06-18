@@ -253,6 +253,16 @@ def has_missed_melee_escape_feedback(state: dict[str, Any]) -> bool:
     return "missed melee escape" in combined
 
 
+def has_missed_ranged_response_feedback(state: dict[str, Any]) -> bool:
+    feedback_raw = state.get("executorFeedback")
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    combined = " ".join([
+        str(feedback.get("botFeedback", "")),
+        str(feedback.get("summary", "")),
+    ]).lower()
+    return "missed ranged response" in combined
+
+
 def resolve_runtime_provider(selected_provider: str, codex_available: bool) -> str:
     normalized = str(selected_provider or "openai_codex").strip().lower()
     if normalized == HEURISTIC_PROVIDER:
@@ -341,6 +351,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     missed_corner_escape = has_missed_corner_escape_feedback(state)
     missed_ultimate_escape = has_missed_ultimate_escape_feedback(state)
     missed_melee_escape = has_missed_melee_escape_feedback(state)
+    missed_ranged_response = has_missed_ranged_response_feedback(state)
     try:
         dash_cooldown_left = float(self_state.get("dashCooldownLeft", 0.0) or 0.0)
     except (TypeError, ValueError):
@@ -428,7 +439,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["reason"] = "missed_melee_escape" if missed_melee_escape else "target_melee_threat"
         return tuned
 
-    if target_ranged_threat:
+    if target_ranged_threat or missed_ranged_response:
         tuned["mode"] = "retreat" if self_arrows <= 0 else "pressure"
         tuned["preferredRange"] = max(tuned["preferredRange"], 300)
         tuned["advanceBias"] = min(tuned["advanceBias"], 0.24) if self_arrows <= 0 else max(tuned["advanceBias"], 0.62)
@@ -438,7 +449,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["jumpBias"] = max(tuned["jumpBias"], 0.42 if self_grounded else 0.18)
         tuned["antiProjectile"] = "dash" if can_dash else "hold"
         tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.72 if self_cornered else 0.38)
-        tuned["reason"] = "target_ranged_threat"
+        tuned["reason"] = "missed_ranged_response" if missed_ranged_response else "target_ranged_threat"
         return tuned
 
     if missed_anti_air and target_above:

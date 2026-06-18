@@ -469,6 +469,42 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(tuned["cornerEscapeBias"], 0.7)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
+    def test_apply_aggression_bias_responds_after_missed_ranged_text_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 0
+        state["promptState"]["target"]["arrows"] = 2
+        state["executorFeedback"]["targetRangedThreatActive"] = False
+        state["executorFeedback"]["botFeedback"] = (
+            "missed ranged response; action AI COLLECT; improve: dodge, break line, or interrupt before chasing pickups."
+        )
+        intent = {
+            "mode": "pressure",
+            "preferredRange": 180,
+            "advanceBias": 0.88,
+            "shootBias": 0.6,
+            "meleeBias": 0.72,
+            "dashBias": 0.2,
+            "jumpBias": 0.1,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.2,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "pickup_chase",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("retreat", tuned["mode"])
+        self.assertEqual("missed_ranged_response", tuned["reason"])
+        self.assertGreaterEqual(tuned["preferredRange"], 300)
+        self.assertLessEqual(tuned["advanceBias"], 0.24)
+        self.assertLessEqual(tuned["shootBias"], 0.28)
+        self.assertGreaterEqual(tuned["dashBias"], 0.82)
+        self.assertEqual("dash", tuned["antiProjectile"])
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
     def test_apply_aggression_bias_closes_on_vulnerable_out_of_range_feedback(self) -> None:
         state = _build_base_state()
         state["promptState"]["arena"] = {
