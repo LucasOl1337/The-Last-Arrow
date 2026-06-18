@@ -70,6 +70,17 @@ namespace ProjectPVP.Input
                 return "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.";
             }
 
+            if (IsCurrentRangedThreat(snapshot))
+            {
+                string builtFeedback = AiArenaBotFeedbackBuilder.Build(feedbackSnapshot, lastExecutorSummary, reportedInput);
+                if (builtFeedback.IndexOf("ranged threat active now", System.StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    return "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.";
+                }
+
+                return builtFeedback;
+            }
+
             if (IsNewCurrentCornerThreat(snapshot, reportedInputSnapshot))
             {
                 return "corner pressure active now; action pending; improve: escape toward arena center before attacking.";
@@ -177,6 +188,15 @@ namespace ProjectPVP.Input
                 && (reportedInputSnapshot == null
                     || reportedInputSnapshot.semantics == null
                     || !reportedInputSnapshot.semantics.targetUsingRanged);
+        }
+
+        private static bool IsCurrentRangedThreat(AiArenaSnapshotEnvelope snapshot)
+        {
+            return snapshot != null
+                && snapshot.semantics != null
+                && snapshot.semantics.hasTarget
+                && snapshot.semantics.targetUsingRanged
+                && !snapshot.semantics.incomingProjectileThreat;
         }
 
         private static bool IsNewCurrentCornerThreat(AiArenaSnapshotEnvelope snapshot, AiArenaSnapshotEnvelope reportedInputSnapshot)

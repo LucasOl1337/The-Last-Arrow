@@ -530,6 +530,48 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
             report["botFeedback"],
         )
 
+    def test_report_payload_replaces_stale_projectile_feedback_for_current_ranged_threat(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 626.0},
+            },
+        )
+
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI RANGED THREAT",
+                    "botFeedback": "projectile threat 0.27s; action AI PROJECTILE DRIFT; improve: defend before attacking.",
+                    "targetVisible": True,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": True,
+                    "targetUltimateThreatActive": False,
+                    "selfArrows": 2,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        payload = session.state_payload()
+        report = session.report_payload()
+
+        self.assertEqual("AI RANGED THREAT", report["summary"])
+        self.assertEqual(
+            "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.",
+            payload["executorFeedback"]["botFeedback"],
+        )
+        self.assertEqual(
+            "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.",
+            report["botFeedback"],
+        )
+
     def test_report_payload_normalizes_current_anti_air_chase_from_cached_intent(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,

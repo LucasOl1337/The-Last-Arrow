@@ -497,6 +497,54 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_ReplacesStaleProjectileFeedbackDuringCurrentRangedThreat()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingRanged = true,
+                    incomingProjectileThreat = false,
+                    targetInShootRange = true,
+                    targetVulnerable = true,
+                    horizontalDistance = 626f,
+                    verticalDistance = 112f,
+                    targetAbove = true,
+                    targetDirection = Vector2.left,
+                },
+            };
+            var reportedInputSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingRanged = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.27f,
+                    targetDirection = Vector2.left,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI RANGED THREAT",
+                new CodexStrategyIntent { mode = "retreat", reason = "projectile_threat_feedback" },
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 63, axis = -1f, aim = Vector2.left },
+                reportedInputSnapshot);
+
+            Assert.That(feedback.summary, Is.EqualTo("AI RANGED THREAT"));
+            Assert.That(feedback.botFeedback, Does.Contain("ranged threat active now"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("projectile threat"));
+        }
+
+        [Test]
         public void BuildExecutorFeedback_ClearsResolvedRangedThreatRetreat()
         {
             var currentSnapshot = new AiArenaSnapshotEnvelope

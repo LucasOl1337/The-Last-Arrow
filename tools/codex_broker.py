@@ -123,9 +123,14 @@ def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, An
     bot_feedback = str(normalized.get("botFeedback", "") or "")
     if (
         bool(normalized.get("targetRangedThreatActive", False))
-        and not bool(normalized.get("projectileThreatActive", False))
-        and "RANGED" not in summary.upper()
-        and bot_feedback.startswith("missed ranged response")
+        and (
+            bot_feedback.startswith("missed ranged response")
+            or (
+                "projectileThreatActive" in normalized
+                and not bool(normalized.get("projectileThreatActive", False))
+                and ("RANGED" not in summary.upper() or bot_feedback.startswith("projectile threat"))
+            )
+        )
     ):
         normalized["botFeedback"] = (
             "ranged threat active now; action pending; improve: dodge, break line, "
@@ -211,6 +216,21 @@ def is_current_resolved_threat_pressure(executor_feedback: dict[str, Any], inten
     )
 
 
+def is_current_ranged_threat(executor_feedback: dict[str, Any]) -> bool:
+    bot_feedback = str(executor_feedback.get("botFeedback", "") or "")
+    return (
+        bool(executor_feedback.get("targetVisible", False))
+        and bool(executor_feedback.get("targetRangedThreatActive", False))
+        and (
+            bot_feedback.startswith("missed ranged response")
+            or (
+                "projectileThreatActive" in executor_feedback
+                and not bool(executor_feedback.get("projectileThreatActive", False))
+            )
+        )
+    )
+
+
 def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, Any] | None = None) -> str:
     summary = str(executor_feedback.get("summary", "") or "")
     if bool(executor_feedback.get("roundResetPending", False)):
@@ -238,6 +258,8 @@ def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, 
 
 def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> str:
     bot_feedback = str(executor_feedback.get("botFeedback", "")).strip()
+    if is_current_ranged_threat(executor_feedback) and "ranged threat active now" not in bot_feedback:
+        return "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups."
     if is_current_anti_air_shot(executor_feedback) and "anti-air shot active now" not in bot_feedback:
         return "anti-air shot active now; action pending; improve: take the vertical shot before repositioning."
     if is_current_anti_air_chase(executor_feedback, intent) and "anti-air chase active now" not in bot_feedback:
