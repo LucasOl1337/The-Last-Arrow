@@ -158,7 +158,9 @@ def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, An
             )
     if is_current_resolved_corner_pressure(normalized):
         normalized["botFeedback"] = (
-            "corner pressure resolved; action pending; improve: retake center control before committing."
+            "corner pressure resolved; action "
+            + resolve_reported_action(normalized)
+            + "; improve: retake center control before committing."
         )
     return normalized
 
@@ -396,7 +398,11 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
             + "; improve: dodge, break line, or interrupt before chasing pickups."
         )
     if is_current_resolved_corner_pressure(executor_feedback):
-        return "corner pressure resolved; action pending; improve: retake center control before committing."
+        return (
+            "corner pressure resolved; action "
+            + resolve_reported_action(executor_feedback)
+            + "; improve: retake center control before committing."
+        )
     if is_current_anti_air_shot(executor_feedback) and "anti-air shot active now" not in bot_feedback:
         return (
             "anti-air shot active now; action "

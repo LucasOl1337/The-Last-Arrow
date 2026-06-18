@@ -619,6 +619,11 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "targetMeleeThreatActive": False,
                     "targetUltimateThreatActive": False,
                     "roundResetPending": False,
+                    "reportedInput": {
+                        "frame": 72,
+                        "axis": 0.65,
+                        "aim": {"x": 1.0, "y": 0.0},
+                    },
                 },
             }
         )
@@ -628,11 +633,11 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
 
         self.assertEqual("AI RESOLVED CORNER PRESSURE", report["summary"])
         self.assertEqual(
-            "corner pressure resolved; action pending; improve: retake center control before committing.",
+            "corner pressure resolved; action AI MOVE; improve: retake center control before committing.",
             payload["executorFeedback"]["botFeedback"],
         )
         self.assertEqual(
-            "corner pressure resolved; action pending; improve: retake center control before committing.",
+            "corner pressure resolved; action AI MOVE; improve: retake center control before committing.",
             report["botFeedback"],
         )
 

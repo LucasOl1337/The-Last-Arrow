@@ -521,6 +521,8 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(feedback.selfCornered, Is.True);
             Assert.That(feedback.summary, Is.EqualTo("AI CORNER THREAT"));
             Assert.That(feedback.botFeedback, Does.Contain("corner pressure active now"));
+            Assert.That(feedback.botFeedback, Does.Contain("action AI MOVE"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("action pending"));
             Assert.That(feedback.botFeedback, Does.Not.Contain("missed corner escape"));
         }
 
@@ -605,6 +607,8 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(feedback.selfCornered, Is.False);
             Assert.That(feedback.summary, Is.EqualTo("AI RESOLVED CORNER PRESSURE"));
             Assert.That(feedback.botFeedback, Does.Contain("corner pressure resolved"));
+            Assert.That(feedback.botFeedback, Does.Contain("action AI MOVE"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("action pending"));
             Assert.That(feedback.botFeedback, Does.Not.Contain("corner pressure detected"));
         }
 

@@ -97,12 +97,14 @@ namespace ProjectPVP.Input
                     return "corner escape stalled; action weak or wrong-way movement; improve: move decisively toward arena center before attacking.";
                 }
 
-                return "corner pressure active now; action pending; improve: escape toward arena center before attacking.";
+                return "corner pressure active now; action " + ResolveReportedAction(reportedInput, null)
+                    + "; improve: escape toward arena center before attacking.";
             }
 
             if (IsCurrentResolvedCornerPressure(snapshot, lastExecutorSummary))
             {
-                return "corner pressure resolved; action pending; improve: retake center control before committing.";
+                return "corner pressure resolved; action " + ResolveReportedAction(reportedInput, null)
+                    + "; improve: retake center control before committing.";
             }
 
             if (IsCurrentAntiAirShot(snapshot, lastExecutorSummary))
