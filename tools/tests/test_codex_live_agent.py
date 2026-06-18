@@ -675,6 +675,42 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertEqual("dash", tuned["antiProjectile"])
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
+    def test_apply_aggression_bias_prefers_current_ranged_threat_over_stale_projectile_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["dangerousProjectiles"] = []
+        state["promptState"]["self"]["arrows"] = 2
+        state["promptState"]["arena"]["targetInShootRange"] = True
+        state["executorFeedback"]["projectileThreatActive"] = False
+        state["executorFeedback"]["targetRangedThreatActive"] = True
+        state["executorFeedback"]["botFeedback"] = (
+            "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups."
+        )
+        state["executorFeedback"]["intentReason"] = "projectile_threat_feedback"
+        intent = {
+            "mode": "retreat",
+            "preferredRange": 300,
+            "advanceBias": 0.16,
+            "shootBias": 0.28,
+            "meleeBias": 0.22,
+            "dashBias": 0.52,
+            "jumpBias": 0.22,
+            "antiProjectile": "dash",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.82,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "projectile_threat_feedback",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("pressure", tuned["mode"])
+        self.assertEqual("target_ranged_threat", tuned["reason"])
+        self.assertGreaterEqual(tuned["advanceBias"], 0.62)
+        self.assertGreaterEqual(tuned["shootBias"], 0.58)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
     def test_apply_aggression_bias_escapes_after_missed_melee_text_feedback(self) -> None:
         state = _build_base_state()
         state["promptState"]["target"]["isMeleeActive"] = False

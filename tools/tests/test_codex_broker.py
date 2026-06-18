@@ -413,6 +413,50 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertEqual("AI CORNER THREAT", report["summary"])
         self.assertTrue(report["selfCornered"])
 
+    def test_report_payload_clears_resolved_corner_escape(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            1,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-1"},
+                "target": {"slotId": 2},
+                "arena": {"horizontalDistance": 940.0},
+            },
+        )
+
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI CORNER ESCAPE",
+                    "botFeedback": "corner pressure detected; action AI CORNER ESCAPE; improve: escape corner before committing.",
+                    "targetVisible": True,
+                    "selfCornered": False,
+                    "targetCornered": False,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetMeleeThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        payload = session.state_payload()
+        report = session.report_payload()
+
+        self.assertEqual("AI RESOLVED CORNER PRESSURE", report["summary"])
+        self.assertEqual(
+            "corner pressure resolved; action pending; improve: retake center control before committing.",
+            payload["executorFeedback"]["botFeedback"],
+        )
+        self.assertEqual(
+            "corner pressure resolved; action pending; improve: retake center control before committing.",
+            report["botFeedback"],
+        )
+
     def test_report_payload_normalizes_summary_for_current_ranged_threat(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,
@@ -434,6 +478,7 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "botFeedback": "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.",
                     "targetVisible": True,
                     "targetRangedThreatActive": True,
+                    "selfArrows": 2,
                     "roundResetPending": False,
                 },
             }
@@ -509,9 +554,12 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                 "executorFeedback": {
                     "source": "codex",
                     "summary": "AI MOVE",
+                    "intentMode": "retreat",
+                    "intentReason": "projectile_threat_feedback",
                     "botFeedback": "missed ranged response; action AI MOVE; improve: dodge, break line, or interrupt before chasing pickups.",
                     "targetVisible": True,
                     "targetRangedThreatActive": True,
+                    "selfArrows": 2,
                     "roundResetPending": False,
                 },
             }
@@ -529,6 +577,10 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
             "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.",
             report["botFeedback"],
         )
+        self.assertEqual("pressure", payload["executorFeedback"]["intentMode"])
+        self.assertEqual("target_ranged_threat", payload["executorFeedback"]["intentReason"])
+        self.assertEqual("pressure", report["feedbackIntentMode"])
+        self.assertEqual("target_ranged_threat", report["feedbackIntentReason"])
 
     def test_report_payload_replaces_stale_projectile_feedback_for_current_ranged_threat(self) -> None:
         session = codex_broker.AgentDrivenSession(
@@ -548,6 +600,8 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                 "executorFeedback": {
                     "source": "codex",
                     "summary": "AI RANGED THREAT",
+                    "intentMode": "retreat",
+                    "intentReason": "projectile_threat_feedback",
                     "botFeedback": "projectile threat 0.27s; action AI PROJECTILE DRIFT; improve: defend before attacking.",
                     "targetVisible": True,
                     "projectileThreatActive": False,
@@ -571,6 +625,8 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
             "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.",
             report["botFeedback"],
         )
+        self.assertEqual("pressure", report["feedbackIntentMode"])
+        self.assertEqual("target_ranged_threat", report["feedbackIntentReason"])
 
     def test_report_payload_normalizes_current_anti_air_chase_from_cached_intent(self) -> None:
         session = codex_broker.AgentDrivenSession(

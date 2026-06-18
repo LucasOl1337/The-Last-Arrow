@@ -23,8 +23,8 @@ namespace ProjectPVP.Input
                 source = lastExecutorSource,
                 summary = ResolveCurrentAwareSummary(lastExecutorSummary, currentIntent, snapshot, reportedInputSnapshot, resolvedReportedInput),
                 botFeedback = ResolveCurrentAwareBotFeedback(snapshot, reportedInputSnapshot, feedbackSnapshot, currentIntent, lastExecutorSummary, resolvedReportedInput),
-                intentMode = currentIntent != null ? currentIntent.mode : string.Empty,
-                intentReason = currentIntent != null ? currentIntent.reason : string.Empty,
+                intentMode = ResolveCurrentAwareIntentMode(currentIntent, snapshot),
+                intentReason = ResolveCurrentAwareIntentReason(currentIntent, snapshot),
                 projectileThreatActive = snapshot != null && snapshot.semantics != null && snapshot.semantics.incomingProjectileThreat,
                 targetMeleeThreatActive = snapshot != null && snapshot.semantics != null && snapshot.semantics.targetUsingMelee,
                 targetRangedThreatActive = snapshot != null && snapshot.semantics != null && snapshot.semantics.targetUsingRanged,
@@ -84,6 +84,11 @@ namespace ProjectPVP.Input
             if (IsNewCurrentCornerThreat(snapshot, reportedInputSnapshot))
             {
                 return "corner pressure active now; action pending; improve: escape toward arena center before attacking.";
+            }
+
+            if (IsCurrentResolvedCornerPressure(snapshot, lastExecutorSummary))
+            {
+                return "corner pressure resolved; action pending; improve: retake center control before committing.";
             }
 
             if (IsCurrentAntiAirShot(snapshot, lastExecutorSummary))
@@ -146,6 +151,11 @@ namespace ProjectPVP.Input
                 return "AI CORNER THREAT";
             }
 
+            if (IsCurrentResolvedCornerPressure(snapshot, lastExecutorSummary))
+            {
+                return "AI RESOLVED CORNER PRESSURE";
+            }
+
             if (IsCurrentAntiAirShot(snapshot, lastExecutorSummary))
             {
                 return "AI ANTI AIR";
@@ -177,6 +187,26 @@ namespace ProjectPVP.Input
             }
 
             return lastExecutorSummary;
+        }
+
+        private static string ResolveCurrentAwareIntentMode(CodexStrategyIntent currentIntent, AiArenaSnapshotEnvelope snapshot)
+        {
+            if (IsCurrentRangedThreat(snapshot))
+            {
+                return ResolveSelfArrows(snapshot) > 0 ? "pressure" : "retreat";
+            }
+
+            return currentIntent != null ? currentIntent.mode : string.Empty;
+        }
+
+        private static string ResolveCurrentAwareIntentReason(CodexStrategyIntent currentIntent, AiArenaSnapshotEnvelope snapshot)
+        {
+            if (IsCurrentRangedThreat(snapshot))
+            {
+                return "target_ranged_threat";
+            }
+
+            return currentIntent != null ? currentIntent.reason : string.Empty;
         }
 
         private static bool IsNewCurrentProjectileThreat(AiArenaSnapshotEnvelope snapshot, AiArenaSnapshotEnvelope reportedInputSnapshot)
@@ -219,6 +249,25 @@ namespace ProjectPVP.Input
                 && (reportedInputSnapshot == null
                     || reportedInputSnapshot.semantics == null
                     || !reportedInputSnapshot.semantics.selfCornered);
+        }
+
+        private static bool IsCurrentResolvedCornerPressure(AiArenaSnapshotEnvelope snapshot, string lastExecutorSummary)
+        {
+            if (snapshot == null
+                || snapshot.semantics == null
+                || !snapshot.semantics.hasTarget
+                || snapshot.semantics.incomingProjectileThreat
+                || snapshot.semantics.targetUsingRanged
+                || snapshot.semantics.targetUsingMelee
+                || snapshot.semantics.targetUsingUltimate
+                || snapshot.semantics.selfCornered
+                || snapshot.semantics.targetCornered
+                || string.IsNullOrWhiteSpace(lastExecutorSummary))
+            {
+                return false;
+            }
+
+            return lastExecutorSummary.IndexOf("corner", System.StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static bool IsCurrentAntiAirChase(AiArenaSnapshotEnvelope snapshot, CodexStrategyIntent currentIntent, string lastExecutorSummary)

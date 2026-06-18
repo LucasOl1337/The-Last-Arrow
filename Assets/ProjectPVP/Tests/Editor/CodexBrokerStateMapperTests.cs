@@ -460,6 +460,53 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_ClearsResolvedCornerEscape()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfCornered = false,
+                    targetCornered = false,
+                    targetDirection = Vector2.right,
+                    horizontalDistance = 940f,
+                    incomingProjectileThreat = false,
+                    targetUsingRanged = false,
+                    targetUsingMelee = false,
+                    targetUsingUltimate = false,
+                },
+            };
+            var reportedInputSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfCornered = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI CORNER ESCAPE",
+                new CodexStrategyIntent { mode = "retreat", reason = "missed_corner_escape" },
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 72, axis = 0.65f, aim = Vector2.right },
+                reportedInputSnapshot);
+
+            Assert.That(feedback.selfCornered, Is.False);
+            Assert.That(feedback.summary, Is.EqualTo("AI RESOLVED CORNER PRESSURE"));
+            Assert.That(feedback.botFeedback, Does.Contain("corner pressure resolved"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("corner pressure detected"));
+        }
+
+        [Test]
         public void BuildExecutorFeedback_ReportsCurrentRangedThreatSummaryWhenInputSnapshotIsOlder()
         {
             var currentSnapshot = new AiArenaSnapshotEnvelope
@@ -540,6 +587,8 @@ namespace ProjectPVP.Tests.Editor
                 reportedInputSnapshot);
 
             Assert.That(feedback.summary, Is.EqualTo("AI RANGED THREAT"));
+            Assert.That(feedback.intentMode, Is.EqualTo("pressure"));
+            Assert.That(feedback.intentReason, Is.EqualTo("target_ranged_threat"));
             Assert.That(feedback.botFeedback, Does.Contain("ranged threat active now"));
             Assert.That(feedback.botFeedback, Does.Not.Contain("projectile threat"));
         }

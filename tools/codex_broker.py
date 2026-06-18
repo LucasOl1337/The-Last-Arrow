@@ -121,20 +121,27 @@ def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, An
     normalized.setdefault("targetArrows", -1)
     summary = str(normalized.get("summary", "") or "")
     bot_feedback = str(normalized.get("botFeedback", "") or "")
-    if (
+    current_ranged_threat = (
         bool(normalized.get("targetRangedThreatActive", False))
-        and (
+        and not bool(normalized.get("projectileThreatActive", False))
+    )
+    if current_ranged_threat:
+        normalized["intentMode"] = "pressure" if safe_int(normalized.get("selfArrows", -1), -1) > 0 else "retreat"
+        normalized["intentReason"] = "target_ranged_threat"
+        if (
             bot_feedback.startswith("missed ranged response")
             or (
                 "projectileThreatActive" in normalized
-                and not bool(normalized.get("projectileThreatActive", False))
                 and ("RANGED" not in summary.upper() or bot_feedback.startswith("projectile threat"))
             )
-        )
-    ):
+        ):
+            normalized["botFeedback"] = (
+                "ranged threat active now; action pending; improve: dodge, break line, "
+                "or interrupt before chasing pickups."
+            )
+    if is_current_resolved_corner_pressure(normalized):
         normalized["botFeedback"] = (
-            "ranged threat active now; action pending; improve: dodge, break line, "
-            "or interrupt before chasing pickups."
+            "corner pressure resolved; action pending; improve: retake center control before committing."
         )
     return normalized
 
@@ -217,6 +224,21 @@ def is_stalled_last_arrow_pressure_input(executor_feedback: dict[str, Any]) -> b
     )
 
 
+def is_current_resolved_corner_pressure(executor_feedback: dict[str, Any]) -> bool:
+    summary = str(executor_feedback.get("summary", "") or "").lower()
+    bot_feedback = str(executor_feedback.get("botFeedback", "") or "").lower()
+    return (
+        bool(executor_feedback.get("targetVisible", False))
+        and "corner" in (summary + " " + bot_feedback)
+        and not bool(executor_feedback.get("projectileThreatActive", False))
+        and not bool(executor_feedback.get("targetRangedThreatActive", False))
+        and not bool(executor_feedback.get("targetMeleeThreatActive", False))
+        and not bool(executor_feedback.get("targetUltimateThreatActive", False))
+        and not bool(executor_feedback.get("selfCornered", False))
+        and not bool(executor_feedback.get("targetCornered", False))
+    )
+
+
 def is_current_resolved_threat_pressure(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> bool:
     return (
         is_ranged_or_projectile_threat_intent(intent)
@@ -256,6 +278,8 @@ def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, 
         return summary if "PROJECTILE" in summary.upper() else "AI PROJECTILE THREAT"
     if bool(executor_feedback.get("targetRangedThreatActive", False)) and "RANGED" not in summary.upper():
         return "AI RANGED THREAT"
+    if is_current_resolved_corner_pressure(executor_feedback):
+        return "AI RESOLVED CORNER PRESSURE"
     if bool(executor_feedback.get("selfCornered", False)) and "CORNER" not in summary.upper():
         return "AI CORNER THREAT"
     if is_current_anti_air_shot(executor_feedback) and "ANTI AIR" not in summary.upper():
@@ -277,6 +301,8 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
     bot_feedback = str(executor_feedback.get("botFeedback", "")).strip()
     if is_current_ranged_threat(executor_feedback) and "ranged threat active now" not in bot_feedback:
         return "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups."
+    if is_current_resolved_corner_pressure(executor_feedback):
+        return "corner pressure resolved; action pending; improve: retake center control before committing."
     if is_current_anti_air_shot(executor_feedback) and "anti-air shot active now" not in bot_feedback:
         return "anti-air shot active now; action pending; improve: take the vertical shot before repositioning."
     if is_current_anti_air_chase(executor_feedback, intent) and "anti-air chase active now" not in bot_feedback:
