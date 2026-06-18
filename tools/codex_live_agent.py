@@ -353,6 +353,10 @@ def resolve_target_visible(feedback: dict[str, Any], target: dict[str, Any]) -> 
     return bool(target.get("slotId")) or bool(target.get("botId")) or bool(target.get("displayName"))
 
 
+def has_prompt_target_identity(target: dict[str, Any]) -> bool:
+    return bool(target.get("slotId")) or bool(target.get("botId")) or bool(target.get("displayName"))
+
+
 def resolve_runtime_provider(selected_provider: str, codex_available: bool) -> str:
     normalized = str(selected_provider or "openai_codex").strip().lower()
     if normalized == HEURISTIC_PROVIDER:
@@ -453,6 +457,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     missed_ultimate_escape = has_missed_ultimate_escape_feedback(state)
     missed_melee_escape = has_missed_melee_escape_feedback(state)
     missed_ranged_response = has_missed_ranged_response_feedback(state)
+    strong_target_visible = target_visible or (last_arrow_stalled and has_prompt_target_identity(target))
     try:
         dash_cooldown_left = float(self_state.get("dashCooldownLeft", 0.0) or 0.0)
     except (TypeError, ValueError):
@@ -511,7 +516,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["reason"] = "missed_corner_escape"
         return tuned
 
-    if not target_visible or projectile_risk:
+    if not strong_target_visible or projectile_risk:
         return tuned
 
     if target_ultimate_threat or missed_ultimate_escape:
@@ -586,7 +591,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["reason"] = "missed_punish_window" if missed_punish_window else "punish_window_available"
         return tuned
 
-    if last_arrow_stalled and target_visible and self_arrows > 0 and target_arrows <= 0:
+    if last_arrow_stalled and strong_target_visible and self_arrows > 0 and target_arrows <= 0:
         tuned["mode"] = "pressure"
         tuned["preferredRange"] = min(tuned["preferredRange"], 140)
         tuned["advanceBias"] = max(tuned["advanceBias"], 0.96)
@@ -853,6 +858,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     missed_ultimate_escape = has_missed_ultimate_escape_feedback(state)
     missed_melee_escape = has_missed_melee_escape_feedback(state)
     missed_ranged_response = has_missed_ranged_response_feedback(state)
+    strong_target_visible = target_visible or (last_arrow_stalled and has_prompt_target_identity(target_state))
 
     projectile_eta: float | None = None
     for projectile in dangerous_projectiles:
@@ -881,7 +887,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
         "reason": "heuristic_neutral_pressure",
     }
 
-    if not target_visible or self_dead:
+    if not strong_target_visible or self_dead:
         intent.update({
             "mode": "stabilize",
             "preferredRange": 280,
@@ -1090,7 +1096,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
         })
         return intent
 
-    if last_arrow_stalled and target_visible and self_arrows > 0 and target_arrows <= 0:
+    if last_arrow_stalled and strong_target_visible and self_arrows > 0 and target_arrows <= 0:
         intent.update({
             "mode": "pressure",
             "preferredRange": 140,

@@ -1402,6 +1402,35 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["dashBias"], 0.88)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_commits_after_stalled_last_arrow_even_when_feedback_visibility_is_stale(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 1
+        state["promptState"]["target"]["arrows"] = 0
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 272.0,
+            "verticalDistance": 58.0,
+            "targetInMeleeRange": False,
+            "targetInUltimateRange": False,
+            "targetInShootRange": True,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": False,
+        }
+        state["executorFeedback"]["targetVisible"] = False
+        state["executorFeedback"]["summary"] = "AI LAST ARROW STALLED"
+        state["executorFeedback"]["botFeedback"] = (
+            "last-arrow pressure stalled; action none; improve: shoot, dash in, or move into a clean shot before the target recovers arrows."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("pressure", intent["mode"])
+        self.assertEqual("heuristic_last_arrow_stalled_commit", intent["reason"])
+        self.assertGreaterEqual(intent["shootBias"], 0.95)
+        self.assertGreaterEqual(intent["dashBias"], 0.88)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_build_heuristic_intent_waits_when_executor_reports_no_visible_target(self) -> None:
         state = _build_base_state()
         state["executorFeedback"]["targetVisible"] = False
@@ -1526,6 +1555,51 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(tuned["shootBias"], 0.95)
         self.assertGreaterEqual(tuned["dashBias"], 0.88)
         self.assertLessEqual(tuned["jumpBias"], 0.28)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
+    def test_apply_aggression_bias_commits_after_stalled_last_arrow_even_when_feedback_visibility_is_stale(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 1
+        state["promptState"]["target"]["arrows"] = 0
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 272.0,
+            "verticalDistance": 58.0,
+            "targetInMeleeRange": False,
+            "targetInUltimateRange": False,
+            "targetInShootRange": True,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": False,
+        }
+        state["executorFeedback"]["targetVisible"] = False
+        state["executorFeedback"]["summary"] = "AI LAST ARROW STALLED"
+        state["executorFeedback"]["botFeedback"] = (
+            "last-arrow pressure stalled; action none; improve: shoot, dash in, or move into a clean shot before the target recovers arrows."
+        )
+        intent = {
+            "mode": "stabilize",
+            "preferredRange": 280,
+            "advanceBias": 0.2,
+            "shootBias": 0.2,
+            "meleeBias": 0.2,
+            "dashBias": 0.15,
+            "jumpBias": 0.15,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.4,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "heuristic_waiting_for_target",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("pressure", tuned["mode"])
+        self.assertEqual("last_arrow_stalled_commit", tuned["reason"])
+        self.assertGreaterEqual(tuned["shootBias"], 0.95)
+        self.assertGreaterEqual(tuned["dashBias"], 0.88)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
     def test_apply_aggression_bias_does_not_promote_last_arrow_without_visible_target_feedback(self) -> None:
