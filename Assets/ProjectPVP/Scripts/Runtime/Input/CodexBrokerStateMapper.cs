@@ -53,6 +53,11 @@ namespace ProjectPVP.Input
                 return "projectile threat active now; action pending; improve: defend before attacking.";
             }
 
+            if (IsNewCurrentRangedThreat(snapshot, reportedInputSnapshot))
+            {
+                return "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.";
+            }
+
             if (IsNewCurrentCornerThreat(snapshot, reportedInputSnapshot))
             {
                 return "corner pressure active now; action pending; improve: escape toward arena center before attacking.";
@@ -81,6 +86,11 @@ namespace ProjectPVP.Input
                 return "AI PROJECTILE THREAT";
             }
 
+            if (IsNewCurrentRangedThreat(snapshot, reportedInputSnapshot))
+            {
+                return "AI RANGED THREAT";
+            }
+
             if (IsNewCurrentCornerThreat(snapshot, reportedInputSnapshot))
             {
                 return "AI CORNER THREAT";
@@ -97,6 +107,18 @@ namespace ProjectPVP.Input
                 && (reportedInputSnapshot == null
                     || reportedInputSnapshot.semantics == null
                     || !reportedInputSnapshot.semantics.incomingProjectileThreat);
+        }
+
+        private static bool IsNewCurrentRangedThreat(AiArenaSnapshotEnvelope snapshot, AiArenaSnapshotEnvelope reportedInputSnapshot)
+        {
+            return snapshot != null
+                && snapshot.semantics != null
+                && snapshot.semantics.hasTarget
+                && snapshot.semantics.targetUsingRanged
+                && !snapshot.semantics.incomingProjectileThreat
+                && (reportedInputSnapshot == null
+                    || reportedInputSnapshot.semantics == null
+                    || !reportedInputSnapshot.semantics.targetUsingRanged);
         }
 
         private static bool IsNewCurrentCornerThreat(AiArenaSnapshotEnvelope snapshot, AiArenaSnapshotEnvelope reportedInputSnapshot)

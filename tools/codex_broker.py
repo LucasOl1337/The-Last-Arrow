@@ -97,6 +97,21 @@ def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, An
     return normalized
 
 
+def resolve_report_summary(executor_feedback: dict[str, Any]) -> str:
+    summary = str(executor_feedback.get("summary", "") or "")
+    if bool(executor_feedback.get("roundResetPending", False)):
+        return "AI | Fallback:round_reset"
+    if not bool(executor_feedback.get("targetVisible", False)):
+        return "AI | Fallback:no_target"
+    if bool(executor_feedback.get("projectileThreatActive", False)):
+        return summary if "PROJECTILE" in summary.upper() else "AI PROJECTILE THREAT"
+    if bool(executor_feedback.get("targetRangedThreatActive", False)) and "RANGED" not in summary.upper():
+        return "AI RANGED THREAT"
+    if bool(executor_feedback.get("selfCornered", False)) and "CORNER" not in summary.upper():
+        return "AI CORNER THREAT"
+    return summary
+
+
 def compact_input(input_payload: dict[str, Any] | None) -> str:
     if not isinstance(input_payload, dict):
         return "-"
@@ -474,7 +489,7 @@ class AgentDrivenSession:
                 "stopped": self.stopped,
                 "controllerSource": source,
                 "controllerOwner": controller_owner,
-                "summary": str(executor_feedback.get("summary", "")),
+                "summary": resolve_report_summary(executor_feedback),
                 "botFeedback": bot_feedback,
                 "intentMode": str((self.cached_intent or {}).get("mode", "")),
                 "intentReason": str((self.cached_intent or {}).get("reason", "")),

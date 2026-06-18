@@ -290,6 +290,130 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertTrue(report["targetUltimateThreatActive"])
         self.assertTrue(report["selfCornered"])
 
+    def test_report_payload_normalizes_summary_for_current_no_target(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "arena": {"horizontalDistance": 320.0},
+            },
+        )
+
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI DEFENSIVE RETREAT",
+                    "botFeedback": "no target visible; improve: verify spawn, camera, or opponent tracking.",
+                    "targetVisible": False,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI | Fallback:no_target", report["summary"])
+        self.assertFalse(report["targetVisible"])
+
+    def test_report_payload_normalizes_summary_for_current_corner_threat(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            },
+        )
+
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI DEFENSIVE RETREAT",
+                    "botFeedback": "missed corner escape; action AI DEFENSIVE RETREAT; improve: move toward center before committing.",
+                    "targetVisible": True,
+                    "selfCornered": True,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI CORNER THREAT", report["summary"])
+        self.assertTrue(report["selfCornered"])
+
+    def test_report_payload_normalizes_summary_for_current_ranged_threat(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            },
+        )
+
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI COLLECT ARROW",
+                    "botFeedback": "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.",
+                    "targetVisible": True,
+                    "targetRangedThreatActive": True,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI RANGED THREAT", report["summary"])
+        self.assertTrue(report["targetRangedThreatActive"])
+
+    def test_report_payload_keeps_projectile_summary_ahead_of_ranged_threat(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            },
+        )
+
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI PROJECTILE DRIFT",
+                    "botFeedback": "projectile threat 0.10s; action AI PROJECTILE DRIFT; improve: defend before attacking.",
+                    "targetVisible": True,
+                    "projectileThreatActive": True,
+                    "targetRangedThreatActive": True,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI PROJECTILE DRIFT", report["summary"])
+        self.assertTrue(report["projectileThreatActive"])
+        self.assertTrue(report["targetRangedThreatActive"])
+
     def test_agent_session_start_feedback_is_available_to_agent_payload(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,

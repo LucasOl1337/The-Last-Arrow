@@ -36,12 +36,20 @@ namespace ProjectPVP.Input
             float preferredRange = Mathf.Max(80f, intent.preferredRange);
             float distanceError = semantics.horizontalDistance - preferredRange;
             bool defensiveRetreatIntent = IsDefensiveRetreatIntent(intent);
+            bool recoverAfterResolvedProjectileThreat = defensiveRetreatIntent
+                && IsProjectileThreatFeedbackIntent(intent)
+                && !semantics.incomingProjectileThreat
+                && !semantics.targetUsingRanged
+                && !semantics.targetUsingMelee
+                && !semantics.targetUsingUltimate
+                && semantics.shouldCollectProjectile;
+            bool effectiveDefensiveRetreatIntent = defensiveRetreatIntent && !recoverAfterResolvedProjectileThreat;
             float cornerEscapeAxis = ResolveCornerEscapeAxis(snapshot, semantics, self, towardTarget);
             bool escapingCorner = false;
 
             if (!semantics.incomingProjectileThreat
                 && !semantics.targetUsingUltimate
-                && defensiveRetreatIntent
+                && effectiveDefensiveRetreatIntent
                 && !cornerEscapeIntent)
             {
                 ClearCombatActions(decision);
@@ -50,7 +58,7 @@ namespace ProjectPVP.Input
                 decision.debugSummary = "AI DEFENSIVE RETREAT";
             }
 
-            if (prioritizeCollection && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !semantics.targetUsingRanged && !defensiveRetreatIntent)
+            if (prioritizeCollection && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !semantics.targetUsingRanged && !effectiveDefensiveRetreatIntent)
             {
                 decision.shootPressed = false;
                 decision.shootHeld = false;
@@ -64,7 +72,7 @@ namespace ProjectPVP.Input
                 decision.debugSummary = "AI COLLECT ARROW";
             }
 
-            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !defensiveRetreatIntent)
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !effectiveDefensiveRetreatIntent)
             {
                 switch (NormalizeMode(intent.mode))
                 {
@@ -109,7 +117,7 @@ namespace ProjectPVP.Input
                         break;
                     case "retreat":
                     case "stabilize":
-                        if (defensiveRetreatIntent)
+                        if (effectiveDefensiveRetreatIntent)
                         {
                             ClearCombatActions(decision);
                             decision.moveAxis = awayFromTarget * Mathf.Lerp(0.65f, 1f, Mathf.Clamp01(intent.cornerEscapeBias));
@@ -163,7 +171,7 @@ namespace ProjectPVP.Input
             if (!semantics.incomingProjectileThreat
                 && !semantics.targetUsingUltimate
                 && !prioritizeCollection
-                && (!defensiveRetreatIntent || cornerEscapeIntent)
+                && (!effectiveDefensiveRetreatIntent || cornerEscapeIntent)
                 && semantics.selfCornered
                 && (cornerEscapeIntent || Mathf.Abs(cornerEscapeAxis) > 0.1f))
             {
@@ -174,7 +182,7 @@ namespace ProjectPVP.Input
                 escapingCorner = true;
             }
 
-            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !escapingCorner && !defensiveRetreatIntent)
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !escapingCorner && !effectiveDefensiveRetreatIntent)
             {
                 if (targetArrows <= 0 && self.arrows > 0)
                 {
@@ -227,7 +235,7 @@ namespace ProjectPVP.Input
                 && canShoot
                 && !prioritizeCollection
                 && !escapingCorner
-                && !defensiveRetreatIntent
+                && !effectiveDefensiveRetreatIntent
                 && !semantics.incomingProjectileThreat
                 && !decision.meleePressed
                 && !decision.ultimatePressed
@@ -238,7 +246,7 @@ namespace ProjectPVP.Input
                 decision.shootHeld = true;
             }
 
-            if (!prioritizeCollection && !escapingCorner && !defensiveRetreatIntent && !decision.shootPressed && !decision.meleePressed && !decision.ultimatePressed && !decision.dashPrimaryPressed)
+            if (!prioritizeCollection && !escapingCorner && !effectiveDefensiveRetreatIntent && !decision.shootPressed && !decision.meleePressed && !decision.ultimatePressed && !decision.dashPrimaryPressed)
             {
                 if (baseline.ultimatePressed && canUltimate && semantics.targetInUltimateRange)
                 {
@@ -259,7 +267,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !defensiveRetreatIntent && semantics.targetUsingMelee)
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !effectiveDefensiveRetreatIntent && semantics.targetUsingMelee)
             {
                 ClearCombatActions(decision);
                 decision.moveAxis = awayFromTarget;
@@ -267,7 +275,7 @@ namespace ProjectPVP.Input
                 decision.debugSummary = "AI EVADE MELEE";
             }
 
-            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !defensiveRetreatIntent && semantics.targetUsingRanged && !semantics.targetVulnerable)
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !effectiveDefensiveRetreatIntent && semantics.targetUsingRanged && !semantics.targetVulnerable)
             {
                 ClearCombatActions(decision);
                 if (canShoot && semantics.targetInShootRange)
@@ -389,6 +397,16 @@ namespace ProjectPVP.Input
             return normalized.Contains("missed_corner_escape")
                 || normalized.Contains("corner_escape")
                 || normalized.Contains("self_cornered");
+        }
+
+        private static bool IsProjectileThreatFeedbackIntent(CodexStrategyIntent intent)
+        {
+            if (intent == null || string.IsNullOrWhiteSpace(intent.reason))
+            {
+                return false;
+            }
+
+            return intent.reason.Trim().ToLowerInvariant().Contains("projectile_threat_feedback");
         }
 
         private static float ResolveCornerEscapeAxis(

@@ -389,6 +389,43 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_ReportsCurrentRangedThreatSummaryWhenInputSnapshotIsOlder()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingRanged = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var reportedInputSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetUsingRanged = false,
+                    targetDirection = Vector2.right,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI COLLECT ARROW",
+                currentIntent: null,
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 42, axis = -1f, aim = Vector2.left, jumpPressed = true },
+                reportedInputSnapshot);
+
+            Assert.That(feedback.targetRangedThreatActive, Is.True);
+            Assert.That(feedback.summary, Is.EqualTo("AI RANGED THREAT"));
+            Assert.That(feedback.botFeedback, Does.Contain("ranged threat active now"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("missed ranged response"));
+        }
+
+        [Test]
         public void ResolveControllerOwner_ReturnsEnvelopeOwnerWhenPresent()
         {
             string owner = CodexBrokerStateMapper.ResolveControllerOwner(
