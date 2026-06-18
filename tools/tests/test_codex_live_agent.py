@@ -242,6 +242,35 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["dashBias"], 0.68)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_converts_missed_punish_window_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["target"]["arrows"] = 0
+        state["promptState"]["target"]["isHitStunned"] = False
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 128.0,
+            "verticalDistance": 8.0,
+            "targetInMeleeRange": True,
+            "targetInUltimateRange": True,
+            "targetInShootRange": True,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": False,
+        }
+        state["executorFeedback"]["botFeedback"] = (
+            "missed punish window; action AI PRESSURE; improve: fire, melee, or ultimate before target recovers."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("punish", intent["mode"])
+        self.assertEqual("heuristic_missed_punish_window", intent["reason"])
+        self.assertLessEqual(intent["preferredRange"], 160)
+        self.assertGreaterEqual(intent["meleeBias"], 0.9)
+        self.assertGreaterEqual(intent["shootBias"], 0.66)
+        self.assertGreaterEqual(intent["dashBias"], 0.8)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_build_heuristic_intent_uses_projectile_evade(self) -> None:
         state = _build_base_state()
         state["promptState"]["arena"] = {
@@ -550,6 +579,51 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(tuned["shootBias"], 0.68)
         self.assertGreaterEqual(tuned["jumpBias"], 0.7)
         self.assertGreaterEqual(tuned["dashBias"], 0.68)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
+    def test_apply_aggression_bias_converts_missed_punish_window_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["target"]["arrows"] = 0
+        state["promptState"]["target"]["isHitStunned"] = False
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 128.0,
+            "verticalDistance": 8.0,
+            "targetInMeleeRange": True,
+            "targetInUltimateRange": True,
+            "targetInShootRange": True,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": False,
+        }
+        state["executorFeedback"]["botFeedback"] = (
+            "missed punish window; action AI PRESSURE; improve: fire, melee, or ultimate before target recovers."
+        )
+        intent = {
+            "mode": "zone",
+            "preferredRange": 420,
+            "advanceBias": 0.2,
+            "shootBias": 0.3,
+            "meleeBias": 0.24,
+            "dashBias": 0.2,
+            "jumpBias": 0.1,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.2,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "passive_zone",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("punish", tuned["mode"])
+        self.assertEqual("missed_punish_window", tuned["reason"])
+        self.assertLessEqual(tuned["preferredRange"], 160)
+        self.assertGreaterEqual(tuned["meleeBias"], 0.9)
+        self.assertGreaterEqual(tuned["shootBias"], 0.66)
+        self.assertGreaterEqual(tuned["dashBias"], 0.8)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
     def test_heuristic_intent_preserves_movement_stall_escape_after_aggression_bias(self) -> None:
