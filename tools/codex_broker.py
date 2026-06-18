@@ -249,6 +249,42 @@ def is_stalled_anti_air_chase_input(executor_feedback: dict[str, Any]) -> bool:
     )
 
 
+def is_stalled_long_range_pressure_input(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> bool:
+    reported_input = executor_feedback.get("reportedInput")
+    if not isinstance(reported_input, dict):
+        return False
+
+    intent_mode = str(executor_feedback.get("intentMode", "") or (intent or {}).get("mode", "") or "").strip().lower()
+    intent_reason = str(executor_feedback.get("intentReason", "") or (intent or {}).get("reason", "") or "").strip().lower()
+    pressure_intent = intent_mode == "pressure" or intent_reason in {
+        "heuristic_close_distance",
+        "heuristic_default_pressure",
+        "heuristic_zone_spacing",
+    }
+    return (
+        pressure_intent
+        and bool(executor_feedback.get("targetVisible", False))
+        and not bool(executor_feedback.get("roundResetPending", False))
+        and not bool(executor_feedback.get("projectileThreatActive", False))
+        and not bool(executor_feedback.get("targetRangedThreatActive", False))
+        and not bool(executor_feedback.get("targetMeleeThreatActive", False))
+        and not bool(executor_feedback.get("targetUltimateThreatActive", False))
+        and not bool(executor_feedback.get("selfCornered", False))
+        and not bool(executor_feedback.get("targetAbove", False))
+        and not bool(executor_feedback.get("targetInShootRange", False))
+        and not bool(executor_feedback.get("targetInMeleeRange", False))
+        and safe_float(executor_feedback.get("horizontalDistance", 0), 0) >= 1100.0
+        and abs(safe_float(reported_input.get("axis", 0), 0)) < 0.25
+        and not bool(reported_input.get("jumpPressed", False))
+        and not bool(reported_input.get("jumpHeld", False))
+        and not bool(reported_input.get("dashPrimaryPressed", False))
+        and not bool(reported_input.get("dashSecondaryPressed", False))
+        and not bool(reported_input.get("shootPressed", False))
+        and not bool(reported_input.get("shootHeld", False))
+        and not bool(reported_input.get("meleePressed", False))
+    )
+
+
 def is_current_resolved_corner_pressure(executor_feedback: dict[str, Any]) -> bool:
     summary = str(executor_feedback.get("summary", "") or "").lower()
     bot_feedback = str(executor_feedback.get("botFeedback", "") or "").lower()
@@ -383,6 +419,24 @@ def normalize_visible_target_feedback_intent(
     mode, reason = resolve_visible_target_intent(normalized, intent)
     normalized["intentMode"] = mode
     normalized["intentReason"] = reason
+    return normalized
+
+
+def normalize_long_range_pressure_stall_feedback(
+    executor_feedback: dict[str, Any],
+    intent: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not is_stalled_long_range_pressure_input(executor_feedback, intent):
+        return executor_feedback
+
+    normalized = deepcopy(executor_feedback)
+    normalized["summary"] = "AI LONG RANGE STALLED"
+    normalized["botFeedback"] = (
+        "long-range movement stalled; action weak advance; improve: commit to closing distance "
+        "with strong movement, jump, or dash."
+    )
+    normalized["intentMode"] = "retreat"
+    normalized["intentReason"] = "heuristic_movement_stall_escape"
     return normalized
 
 
@@ -737,6 +791,7 @@ class AgentDrivenSession:
             prompt_state = deepcopy(self.prompt_state)
             executor_feedback = normalize_executor_feedback(self.executor_feedback)
             executor_feedback = normalize_visible_target_feedback_intent(executor_feedback, self.cached_intent)
+            executor_feedback = normalize_long_range_pressure_stall_feedback(executor_feedback, self.cached_intent)
             return {
                 "ok": True,
                 "sessionId": self.session_id,
@@ -759,6 +814,7 @@ class AgentDrivenSession:
         with self.lock:
             executor_feedback = normalize_executor_feedback(self.executor_feedback)
             executor_feedback = normalize_visible_target_feedback_intent(executor_feedback, self.cached_intent)
+            executor_feedback = normalize_long_range_pressure_stall_feedback(executor_feedback, self.cached_intent)
             input_payload = deepcopy(executor_feedback.get("reportedInput") or {})
             source = str(executor_feedback.get("source", "")).strip()
             prompt_state = deepcopy(self.prompt_state)

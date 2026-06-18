@@ -431,6 +431,70 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
             report["botFeedback"],
         )
 
+    def test_state_payload_marks_long_range_pressure_stalled_when_input_is_weak(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            1,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-1"},
+                "target": {"slotId": 2},
+                "arena": {"horizontalDistance": 1551.0},
+            },
+        )
+        session.publish_action(
+            {
+                "mode": "pressure",
+                "reason": "heuristic_close_distance",
+                "antiAir": False,
+            }
+        )
+        session.publish_state(
+            {
+                "frame": 92,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI MOVE",
+                    "intentMode": "pressure",
+                    "intentReason": "heuristic_close_distance",
+                    "botFeedback": "spacing stable at 1551u; action AI MOVE; improve: keep pressure without wasting arrows.",
+                    "targetVisible": True,
+                    "roundResetPending": False,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetMeleeThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "selfCornered": False,
+                    "targetAbove": False,
+                    "targetInShootRange": False,
+                    "targetInMeleeRange": False,
+                    "horizontalDistance": 1551.0,
+                    "reportedInput": {
+                        "axis": -0.11,
+                        "aim": {"x": 0.96, "y": 0.27},
+                        "jumpPressed": False,
+                        "jumpHeld": False,
+                        "dashPrimaryPressed": False,
+                        "dashSecondaryPressed": False,
+                        "shootPressed": False,
+                        "shootHeld": False,
+                        "meleePressed": False,
+                    },
+                },
+            }
+        )
+
+        payload = session.state_payload()
+        report = session.report_payload()
+
+        self.assertEqual("AI LONG RANGE STALLED", payload["executorFeedback"]["summary"])
+        self.assertIn("movement stalled", payload["executorFeedback"]["botFeedback"])
+        self.assertEqual("retreat", payload["executorFeedback"]["intentMode"])
+        self.assertEqual("heuristic_movement_stall_escape", payload["executorFeedback"]["intentReason"])
+        self.assertEqual("AI LONG RANGE STALLED", report["summary"])
+        self.assertEqual("retreat", report["intentMode"])
+        self.assertEqual("heuristic_movement_stall_escape", report["intentReason"])
+
     def test_report_payload_normalizes_summary_for_current_corner_threat(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,
