@@ -1210,6 +1210,58 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CodexBrokerCombatantInputSource_UnknownBrokerSessionInvalidatesImmediately()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "HandleBrokerRequestFailure",
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new[] { typeof(long), typeof(string) },
+                null);
+            FieldInfo sessionIdField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_sessionId",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo currentIntentField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_currentIntent",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo hasAgentActionField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_hasAgentAction",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+            Assert.That(method, Is.Not.Null);
+            Assert.That(sessionIdField, Is.Not.Null);
+            Assert.That(currentIntentField, Is.Not.Null);
+            Assert.That(hasAgentActionField, Is.Not.Null);
+
+            GameObject root = new GameObject("UnknownBrokerSessionInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                sessionIdField.SetValue(input, "dead-session");
+                currentIntentField.SetValue(input, new CodexStrategyIntent
+                {
+                    mode = "pressure",
+                    reason = "stale pressure",
+                    expiresInMs = 400,
+                });
+                hasAgentActionField.SetValue(input, true);
+
+                method.Invoke(input, new object[] { 404L, "{\"ok\":false,\"error\":\"unknown_agent_session\"}" });
+
+                Assert.That(input.SessionId, Is.Empty);
+                Assert.That(input.CurrentIntentMode, Is.Empty);
+                Assert.That(input.HasAgentAction, Is.False);
+                Assert.That(input.LastExecutorSource, Is.EqualTo("unknown_broker_session"));
+                Assert.That(input.BotFeedback, Does.Contain("session expired"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void CodexBrokerCombatantInputSource_FallsBackWhenIntentAgeExceedsExtendedWindow()
         {
             MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(

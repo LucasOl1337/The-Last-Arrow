@@ -387,7 +387,7 @@ namespace ProjectPVP.Input
 
                     ApplyBrokerEnvelope(responseJson);
                 },
-                () =>
+                (responseCode, responseBody) =>
                 {
                     if (!TryCompleteSessionStartRequest(requestVersion))
                     {
@@ -451,14 +451,14 @@ namespace ProjectPVP.Input
 
                     ApplyBrokerEnvelope(responseJson);
                 },
-                () =>
+                (responseCode, responseBody) =>
                 {
                     if (!TryCompleteStrategyRequest(requestVersion))
                     {
                         return;
                     }
 
-                    HandleBrokerRequestFailure();
+                    HandleBrokerRequestFailure(responseCode, responseBody);
                     if (slotId == 2)
                     {
                         Debug.LogWarning($"[CodexBot] Broker strategy request failed for slot {slotId}.");
@@ -531,14 +531,14 @@ namespace ProjectPVP.Input
 
                     ApplyBrokerEnvelope(responseJson);
                 },
-                () =>
+                (responseCode, responseBody) =>
                 {
                     if (!TryCompleteStrategyRequest(requestVersion))
                     {
                         return;
                     }
 
-                    HandleBrokerRequestFailure();
+                    HandleBrokerRequestFailure(responseCode, responseBody);
                 }));
         }
 
@@ -795,7 +795,21 @@ namespace ProjectPVP.Input
 
         private void HandleBrokerRequestFailure()
         {
+            HandleBrokerRequestFailure(0L, string.Empty);
+        }
+
+        private void HandleBrokerRequestFailure(long responseCode, string responseBody)
+        {
             _consecutiveBrokerFailures += 1;
+            if (IsUnknownBrokerSessionFailure(responseCode, responseBody))
+            {
+                InvalidateBrokerSession();
+                _lastExecutorSource = "unknown_broker_session";
+                _lastExecutorSummary = "AI | Broker session expired";
+                _botFeedback = "broker session expired; improve: start a fresh Codex broker session before reusing intent.";
+                return;
+            }
+
             _lastExecutorSource = "broker_retrying";
             _lastExecutorSummary = "AI | Broker retrying";
             _botFeedback = DecorateBotFeedbackForExecutorSource(
@@ -829,6 +843,21 @@ namespace ProjectPVP.Input
             _consecutiveBrokerFailures = 0;
             _lastBrokerSuccessTime = -999f;
             _manualForceRefresh = false;
+        }
+
+        private static bool IsUnknownBrokerSessionFailure(long responseCode, string responseBody)
+        {
+            if (responseCode != 404L)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(responseBody))
+            {
+                return false;
+            }
+
+            return responseBody.Contains("unknown_agent_session") || responseBody.Contains("unknown_session");
         }
 
         private static string NormalizeDebugReason(string reason)
@@ -898,7 +927,7 @@ namespace ProjectPVP.Input
             yield return SendJsonRequest(useAgentDrivenMode ? "/agent/session/reset" : "/session/reset", JsonUtility.ToJson(request), null, null);
         }
 
-        private IEnumerator SendJsonRequest(string path, string payloadJson, System.Action<string> onSuccess, System.Action onFailure)
+        private IEnumerator SendJsonRequest(string path, string payloadJson, System.Action<string> onSuccess, System.Action<long, string> onFailure)
         {
             string url = brokerBaseUrl.TrimEnd('/') + path;
             byte[] body = Encoding.UTF8.GetBytes(payloadJson ?? "{}");
@@ -942,7 +971,7 @@ namespace ProjectPVP.Input
                 {
                     Debug.LogWarning($"[CodexBot] Broker request failed path={path} result={request.result} code={request.responseCode} error={request.error} bytes={(request.downloadHandler.text != null ? request.downloadHandler.text.Length : 0)}");
                 }
-                onFailure?.Invoke();
+                onFailure?.Invoke(request.responseCode, request.downloadHandler.text);
             }
 
             request.Dispose();
