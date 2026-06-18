@@ -1,5 +1,6 @@
 import json
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -25,12 +26,18 @@ def _start_process(command: list[str], env: dict[str, str]) -> subprocess.Popen[
     )
 
 
-def _wait_for_health(timeout_seconds: float = 10.0) -> dict[str, object]:
+def _find_free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def _wait_for_health(broker_url: str, timeout_seconds: float = 10.0) -> dict[str, object]:
     deadline = time.time() + timeout_seconds
     last_error = ""
     while time.time() < deadline:
         try:
-            with urlopen("http://127.0.0.1:8765/health", timeout=1) as response:
+            with urlopen(f"{broker_url}/health", timeout=1) as response:
                 payload = json.loads(response.read().decode("utf-8"))
             if payload.get("ok"):
                 return payload
@@ -41,10 +48,10 @@ def _wait_for_health(timeout_seconds: float = 10.0) -> dict[str, object]:
     raise AssertionError(f"broker did not become healthy: {last_error}")
 
 
-def _post_json(path: str, payload: dict[str, object]) -> dict[str, object]:
+def _post_json(broker_url: str, path: str, payload: dict[str, object]) -> dict[str, object]:
     raw = json.dumps(payload, ensure_ascii=True, separators=(",", ":")).encode("utf-8")
     request = Request(
-        f"http://127.0.0.1:8765{path}",
+        f"{broker_url}{path}",
         data=raw,
         headers={"Content-Type": "application/json"},
         method="POST",
@@ -53,8 +60,8 @@ def _post_json(path: str, payload: dict[str, object]) -> dict[str, object]:
         return json.loads(response.read().decode("utf-8"))
 
 
-def _get_json(path: str) -> dict[str, object]:
-    with urlopen(f"http://127.0.0.1:8765{path}", timeout=5) as response:
+def _get_json(broker_url: str, path: str) -> dict[str, object]:
+    with urlopen(f"{broker_url}{path}", timeout=5) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
@@ -69,12 +76,12 @@ def _get_agent_session(report: dict[str, object], slot_id: int) -> dict[str, obj
     return None
 
 
-def _wait_for_agent_action(slot_id: int, timeout_seconds: float = 10.0) -> dict[str, object]:
+def _wait_for_agent_action(broker_url: str, slot_id: int, timeout_seconds: float = 10.0) -> dict[str, object]:
     deadline = time.time() + timeout_seconds
     last_report: dict[str, object] | None = None
     while time.time() < deadline:
         time.sleep(0.5)
-        last_report = _get_json("/report")["report"]
+        last_report = _get_json(broker_url, "/report")["report"]
         session = _get_agent_session(last_report, slot_id)
         if not session:
             continue
@@ -130,7 +137,11 @@ def _build_prompt_state(slot_id: int, bot_id: str, target_slot: int, horizontal_
 
 class CodexBotStackSmokeTestCase(unittest.TestCase):
     def test_two_heuristic_agents_publish_actions_for_both_slots(self) -> None:
+        broker_port = _find_free_port()
+        broker_url = f"http://127.0.0.1:{broker_port}"
         env_base = os.environ.copy()
+        env_base["CODEX_BROKER_PORT"] = str(broker_port)
+        env_base["CODEX_BROKER_BASE"] = broker_url
         env_base["CODEX_MODEL_PROVIDER"] = "heuristic"
         env_base["PYTHONUNBUFFERED"] = "1"
 
@@ -139,7 +150,7 @@ class CodexBotStackSmokeTestCase(unittest.TestCase):
         agent2 = None
 
         try:
-            _wait_for_health()
+            _wait_for_health(broker_url)
 
             env_slot1 = env_base.copy()
             env_slot1["CODEX_AGENT_SLOT_ID"] = "1"
@@ -155,30 +166,36 @@ class CodexBotStackSmokeTestCase(unittest.TestCase):
                 time.sleep(2.0)
 
                 _post_json(
+                    broker_url,
                     "/agent/session/start",
                     {
                         "slotId": 1,
                         "promptState": _build_prompt_state(1, "slot-1-smoke", 2, 290.0, target_in_melee_range=False),
                     },
                 )
-                slot1 = _wait_for_agent_action(1)
+                slot1 = _wait_for_agent_action(broker_url, 1)
 
                 agent2 = _start_process([PYTHON, "tools/codex_live_agent.py"], env_slot2)
                 time.sleep(2.0)
 
                 _post_json(
+                    broker_url,
                     "/agent/session/start",
                     {
                         "slotId": 2,
                         "promptState": _build_prompt_state(2, "slot-2-smoke", 1, 220.0, target_in_melee_range=True),
                     },
                 )
-                slot2 = _wait_for_agent_action(2)
+                slot2 = _wait_for_agent_action(broker_url, 2)
 
                 self.assertEqual("LocalHeuristic", slot1["controllerOwner"])
                 self.assertEqual("heuristic_fallback", slot1["controllerSource"])
+                self.assertFalse(slot1["targetVisible"])
+                self.assertEqual("heuristic_waiting_for_target", slot1["intentReason"])
                 self.assertEqual("LocalHeuristic", slot2["controllerOwner"])
                 self.assertEqual("heuristic_fallback", slot2["controllerSource"])
+                self.assertFalse(slot2["targetVisible"])
+                self.assertEqual("heuristic_waiting_for_target", slot2["intentReason"])
             finally:
                 if agent2 is not None:
                     agent2.terminate()

@@ -69,6 +69,71 @@ class BrokerSessionSnapshotTestCase(unittest.TestCase):
 
 
 class AgentDrivenSessionReportTestCase(unittest.TestCase):
+    def test_agent_session_payload_defaults_missing_target_visibility_to_false(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            },
+        )
+
+        payload = session.state_payload()
+        report = session.report_payload()
+
+        self.assertIn("targetVisible", payload["executorFeedback"])
+        self.assertFalse(payload["executorFeedback"]["targetVisible"])
+        self.assertFalse(report["targetVisible"])
+
+    def test_agent_session_publish_state_normalizes_partial_executor_feedback(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            },
+        )
+
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "botFeedback": "action AI HOLD; improve: wait for visible target.",
+                },
+            }
+        )
+
+        payload = session.state_payload()
+
+        self.assertEqual("codex", payload["executorFeedback"]["source"])
+        self.assertFalse(payload["executorFeedback"]["targetVisible"])
+
+    def test_agent_session_publish_state_ignores_non_object_executor_feedback(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            },
+        )
+
+        session.publish_state({"frame": 2, "executorFeedback": "not-an-object"})
+
+        payload = session.state_payload()
+
+        self.assertFalse(payload["executorFeedback"]["targetVisible"])
+        self.assertFalse(payload["executorFeedback"]["roundResetPending"])
+
     def test_report_payload_defaults_to_broker_default_before_first_agent_action(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,

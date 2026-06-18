@@ -88,6 +88,15 @@ def resolve_report_controller_source(source: str, agent_model: str, has_agent_ac
     return "codex_live"
 
 
+def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, Any]:
+    normalized = deepcopy(feedback) if isinstance(feedback, dict) else {}
+    if "targetVisible" not in normalized:
+        normalized["targetVisible"] = False
+    if "roundResetPending" not in normalized:
+        normalized["roundResetPending"] = False
+    return normalized
+
+
 def compact_input(input_payload: dict[str, Any] | None) -> str:
     if not isinstance(input_payload, dict):
         return "-"
@@ -373,7 +382,7 @@ class AgentDrivenSession:
         self.session_id = session_id
         self.lock = threading.RLock()
         self.prompt_state = deepcopy(initial_prompt_state)
-        self.executor_feedback: dict[str, Any] = deepcopy(initial_executor_feedback or {})
+        self.executor_feedback: dict[str, Any] = normalize_executor_feedback(initial_executor_feedback)
         self.updated_at_ms = now_ms()
         self.frame = int(initial_prompt_state.get("frame", -1))
         self.force_refresh = True
@@ -396,6 +405,7 @@ class AgentDrivenSession:
     def state_payload(self) -> dict[str, Any]:
         with self.lock:
             prompt_state = deepcopy(self.prompt_state)
+            executor_feedback = normalize_executor_feedback(self.executor_feedback)
             return {
                 "ok": True,
                 "sessionId": self.session_id,
@@ -404,7 +414,7 @@ class AgentDrivenSession:
                 "updatedAtUnixMs": self.updated_at_ms,
                 "forceRefresh": self.force_refresh,
                 "promptState": prompt_state,
-                "executorFeedback": deepcopy(self.executor_feedback),
+                "executorFeedback": executor_feedback,
                 "lastIntent": deepcopy(self.cached_intent),
                 "lastIntentUpdatedAtUnixMs": self.intent_updated_at_ms,
                 "lastError": self.last_error,
@@ -416,8 +426,9 @@ class AgentDrivenSession:
 
     def report_payload(self) -> dict[str, Any]:
         with self.lock:
-            input_payload = deepcopy((self.executor_feedback or {}).get("reportedInput") or {})
-            source = str((self.executor_feedback or {}).get("source", "")).strip()
+            executor_feedback = normalize_executor_feedback(self.executor_feedback)
+            input_payload = deepcopy(executor_feedback.get("reportedInput") or {})
+            source = str(executor_feedback.get("source", "")).strip()
             prompt_state = deepcopy(self.prompt_state)
             self_prompt = prompt_state.get("self") or {}
             arena = prompt_state.get("arena") or {}
@@ -439,28 +450,28 @@ class AgentDrivenSession:
                 "stopped": self.stopped,
                 "controllerSource": source,
                 "controllerOwner": controller_owner,
-                "summary": str((self.executor_feedback or {}).get("summary", "")),
-                "botFeedback": str((self.executor_feedback or {}).get("botFeedback", "")),
+                "summary": str(executor_feedback.get("summary", "")),
+                "botFeedback": str(executor_feedback.get("botFeedback", "")),
                 "intentMode": str((self.cached_intent or {}).get("mode", "")),
                 "intentReason": str((self.cached_intent or {}).get("reason", "")),
                 "botId": str(prompt_state.get("botId", "") or self_prompt.get("botId", "") or ""),
                 "botDisplayName": str(prompt_state.get("botDisplayName", "") or self_prompt.get("botDisplayName", "") or ""),
-                "feedbackIntentMode": str((self.executor_feedback or {}).get("intentMode", "")),
-                "feedbackIntentReason": str((self.executor_feedback or {}).get("intentReason", "")),
-                "intentAgeMs": (self.executor_feedback or {}).get("intentAgeMs", -1),
+                "feedbackIntentMode": str(executor_feedback.get("intentMode", "")),
+                "feedbackIntentReason": str(executor_feedback.get("intentReason", "")),
+                "intentAgeMs": executor_feedback.get("intentAgeMs", -1),
                 "roundsToChampion": int(arena.get("roundsToChampion", 0) or 0),
                 "playerOneWins": int(arena.get("playerOneWins", 0) or 0),
                 "playerTwoWins": int(arena.get("playerTwoWins", 0) or 0),
                 "pendingRoundWinnerSlot": int(arena.get("pendingRoundWinnerSlot", 0) or 0),
                 "pendingChampionSlot": int(arena.get("pendingChampionSlot", 0) or 0),
-                "projectileThreatActive": bool((self.executor_feedback or {}).get("projectileThreatActive", False)),
-                "targetMeleeThreatActive": bool((self.executor_feedback or {}).get("targetMeleeThreatActive", False)),
-                "targetRangedThreatActive": bool((self.executor_feedback or {}).get("targetRangedThreatActive", False)),
-                "targetUltimateThreatActive": bool((self.executor_feedback or {}).get("targetUltimateThreatActive", False)),
-                "selfCornered": bool((self.executor_feedback or {}).get("selfCornered", False)),
-                "targetCornered": bool((self.executor_feedback or {}).get("targetCornered", False)),
-                "targetVisible": bool((self.executor_feedback or {}).get("targetVisible", False)),
-                "roundResetPending": bool((self.executor_feedback or {}).get("roundResetPending", False)),
+                "projectileThreatActive": bool(executor_feedback.get("projectileThreatActive", False)),
+                "targetMeleeThreatActive": bool(executor_feedback.get("targetMeleeThreatActive", False)),
+                "targetRangedThreatActive": bool(executor_feedback.get("targetRangedThreatActive", False)),
+                "targetUltimateThreatActive": bool(executor_feedback.get("targetUltimateThreatActive", False)),
+                "selfCornered": bool(executor_feedback.get("selfCornered", False)),
+                "targetCornered": bool(executor_feedback.get("targetCornered", False)),
+                "targetVisible": bool(executor_feedback.get("targetVisible", False)),
+                "roundResetPending": bool(executor_feedback.get("roundResetPending", False)),
                 "lastInput": input_payload,
                 "lastInputSummary": compact_input(input_payload),
                 "agentActionCount": self.agent_action_count,
@@ -484,7 +495,8 @@ class AgentDrivenSession:
             self.frame = int(payload.get("frame", self.frame))
             self.force_refresh = bool(payload.get("forceRefresh", False))
             self.prompt_state = deepcopy(payload.get("promptState") or self.prompt_state)
-            self.executor_feedback = deepcopy(payload.get("executorFeedback") or self.executor_feedback)
+            if "executorFeedback" in payload:
+                self.executor_feedback = normalize_executor_feedback(payload.get("executorFeedback"))
             self.updated_at_ms = now_ms()
             self.reset_reason = ""
             return self.intent_envelope()
@@ -506,7 +518,7 @@ class AgentDrivenSession:
         with self.lock:
             self.prompt_state = deepcopy(initial_prompt_state)
             if initial_executor_feedback is not None:
-                self.executor_feedback = deepcopy(initial_executor_feedback)
+                self.executor_feedback = normalize_executor_feedback(initial_executor_feedback)
             self.frame = int(initial_prompt_state.get("frame", self.frame))
             self.updated_at_ms = now_ms()
             self.force_refresh = True
