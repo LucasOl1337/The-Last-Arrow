@@ -387,6 +387,10 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     self_arrows = max(0, int(self_state.get("arrows", 0) or 0))
     target_arrows = max(0, int(target.get("arrows", 0) or 0))
     arrow_lead = self_arrows - target_arrows
+    try:
+        horizontal_distance_value = float(arena.get("horizontalDistance", 9999.0) or 9999.0)
+    except (TypeError, ValueError):
+        horizontal_distance_value = 9999.0
     movement_stalled = has_movement_stall_feedback(state)
     vulnerable_out_of_range = has_vulnerable_out_of_range_feedback(state)
     shot_out_of_range = has_shot_out_of_range_feedback(state)
@@ -412,6 +416,19 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     can_parry_projectile = bool(self_state.get("canParryProjectile", False))
 
     if round_reset or self_hitstunned:
+        return tuned
+
+    if target_visible and "waiting_for_target" in str(tuned.get("reason", "")).lower():
+        tuned["mode"] = "pressure"
+        tuned["preferredRange"] = 320 if horizontal_distance_value <= 520 else min(420, int(horizontal_distance_value))
+        tuned["advanceBias"] = max(tuned["advanceBias"], 0.72)
+        tuned["shootBias"] = max(tuned["shootBias"], 0.5)
+        tuned["meleeBias"] = max(tuned["meleeBias"], 0.48)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.62 if can_dash else 0.38)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.24)
+        tuned["antiProjectile"] = "hold"
+        tuned["cornerEscapeBias"] = min(tuned["cornerEscapeBias"], 0.32)
+        tuned["reason"] = "target_reacquired"
         return tuned
 
     if movement_stalled and target_visible and not projectile_risk:

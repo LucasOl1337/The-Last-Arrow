@@ -1329,6 +1329,38 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertLessEqual(tuned["advanceBias"], 0.2)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
+    def test_apply_aggression_bias_promotes_stale_waiting_when_target_reappears(self) -> None:
+        state = _build_base_state()
+        state["executorFeedback"]["targetVisible"] = True
+        state["promptState"]["self"]["arrows"] = 2
+        state["promptState"]["target"]["arrows"] = 2
+        state["promptState"]["arena"]["horizontalDistance"] = 480.0
+        intent = {
+            "mode": "stabilize",
+            "preferredRange": 280,
+            "advanceBias": 0.2,
+            "shootBias": 0.2,
+            "meleeBias": 0.2,
+            "dashBias": 0.15,
+            "jumpBias": 0.15,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.4,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "heuristic_waiting_for_target",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("pressure", tuned["mode"])
+        self.assertEqual("target_reacquired", tuned["reason"])
+        self.assertGreaterEqual(tuned["advanceBias"], 0.72)
+        self.assertGreaterEqual(tuned["dashBias"], 0.6)
+        self.assertGreaterEqual(tuned["shootBias"], 0.5)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
 
 if __name__ == "__main__":
     unittest.main()
