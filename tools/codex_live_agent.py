@@ -763,6 +763,9 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     missed_punish_window = has_missed_punish_window_feedback(state)
     punish_window_available = has_punish_window_available_feedback(state)
     missed_corner_escape = has_missed_corner_escape_feedback(state)
+    missed_ultimate_escape = has_missed_ultimate_escape_feedback(state)
+    missed_melee_escape = has_missed_melee_escape_feedback(state)
+    missed_ranged_response = has_missed_ranged_response_feedback(state)
 
     projectile_eta: float | None = None
     for projectile in dangerous_projectiles:
@@ -888,7 +891,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
         })
         return intent
 
-    if target_ultimate_threat:
+    if target_ultimate_threat or missed_ultimate_escape:
         intent.update({
             "mode": "retreat",
             "preferredRange": 360,
@@ -899,11 +902,11 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
             "jumpBias": 0.42 if self_grounded else 0.2,
             "antiProjectile": "hold",
             "cornerEscapeBias": 0.82,
-            "reason": "heuristic_ultimate_escape",
+            "reason": "heuristic_missed_ultimate_escape" if missed_ultimate_escape else "heuristic_ultimate_escape",
         })
         return intent
 
-    if target_melee_threat:
+    if target_melee_threat or missed_melee_escape:
         intent.update({
             "mode": "retreat",
             "preferredRange": 280,
@@ -914,11 +917,11 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
             "jumpBias": 0.35 if self_grounded else 0.16,
             "antiProjectile": "hold",
             "cornerEscapeBias": 0.76,
-            "reason": "heuristic_melee_escape",
+            "reason": "heuristic_missed_melee_escape" if missed_melee_escape else "heuristic_melee_escape",
         })
         return intent
 
-    if target_ranged_threat and not target_vulnerable:
+    if (target_ranged_threat or missed_ranged_response) and not target_vulnerable:
         if self_arrows > 0 and can_shoot and target_in_shoot:
             intent.update({
                 "mode": "pressure",
@@ -930,7 +933,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
                 "jumpBias": 0.38 if self_grounded else 0.16,
                 "antiProjectile": "dash" if can_dash else "hold",
                 "cornerEscapeBias": 0.4,
-                "reason": "heuristic_ranged_interrupt",
+                "reason": "heuristic_missed_ranged_response" if missed_ranged_response else "heuristic_ranged_interrupt",
             })
             return intent
 
@@ -944,7 +947,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
             "jumpBias": 0.42 if self_grounded else 0.18,
             "antiProjectile": "dash" if can_dash else "hold",
             "cornerEscapeBias": 0.76 if self_cornered else 0.44,
-            "reason": "heuristic_ranged_dodge",
+            "reason": "heuristic_missed_ranged_response" if missed_ranged_response else "heuristic_ranged_dodge",
         })
         return intent
 

@@ -434,6 +434,58 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["dashBias"], 0.8)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_escapes_after_missed_ultimate_text_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["target"]["isUltimateActive"] = False
+        state["executorFeedback"]["targetUltimateThreatActive"] = False
+        state["executorFeedback"]["botFeedback"] = (
+            "missed ultimate escape; action AI PRESSURE; improve: dash or move away before pickups or trades."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("retreat", intent["mode"])
+        self.assertEqual("heuristic_missed_ultimate_escape", intent["reason"])
+        self.assertLessEqual(intent["advanceBias"], 0.12)
+        self.assertLessEqual(intent["meleeBias"], 0.22)
+        self.assertGreaterEqual(intent["dashBias"], 0.9)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
+    def test_build_heuristic_intent_escapes_after_missed_melee_text_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["target"]["isMeleeActive"] = False
+        state["executorFeedback"]["targetMeleeThreatActive"] = False
+        state["executorFeedback"]["botFeedback"] = (
+            "missed melee escape; action AI PRESSURE; improve: dash or move away before trading into active melee."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("retreat", intent["mode"])
+        self.assertEqual("heuristic_missed_melee_escape", intent["reason"])
+        self.assertLessEqual(intent["advanceBias"], 0.18)
+        self.assertLessEqual(intent["meleeBias"], 0.26)
+        self.assertGreaterEqual(intent["dashBias"], 0.88)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
+    def test_build_heuristic_intent_responds_after_missed_ranged_text_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 0
+        state["promptState"]["target"]["arrows"] = 2
+        state["executorFeedback"]["targetRangedThreatActive"] = False
+        state["executorFeedback"]["botFeedback"] = (
+            "missed ranged response; action AI COLLECT; improve: dodge, break line, or interrupt before chasing pickups."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("retreat", intent["mode"])
+        self.assertEqual("heuristic_missed_ranged_response", intent["reason"])
+        self.assertEqual("dash", intent["antiProjectile"])
+        self.assertLessEqual(intent["advanceBias"], 0.18)
+        self.assertGreaterEqual(intent["dashBias"], 0.8)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_apply_aggression_bias_respects_ultimate_threat_feedback(self) -> None:
         state = _build_base_state()
         state["executorFeedback"]["targetUltimateThreatActive"] = True
