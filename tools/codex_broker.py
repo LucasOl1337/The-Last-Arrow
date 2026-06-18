@@ -430,7 +430,11 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
             + "; improve: spend the ammo advantage before the target recovers arrows."
         )
     if is_current_resolved_threat_pressure(executor_feedback, intent) and "resolved threat pressure active now" not in bot_feedback:
-        return "resolved threat pressure active now; action pending; improve: stop retreating and retake the shot window."
+        return (
+            "resolved threat pressure active now; action "
+            + resolve_reported_action(executor_feedback)
+            + "; improve: stop retreating and retake the shot window."
+        )
     return bot_feedback
 
 

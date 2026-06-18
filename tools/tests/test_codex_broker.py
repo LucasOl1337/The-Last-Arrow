@@ -714,6 +714,12 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "selfArrows": 3,
                     "targetArrows": 1,
                     "roundResetPending": False,
+                    "reportedInput": {
+                        "frame": 41,
+                        "axis": -0.79,
+                        "aim": {"x": 1.0, "y": 0.0},
+                        "shootPressed": True,
+                    },
                 },
             }
         )
@@ -722,7 +728,7 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
 
         self.assertEqual("AI RESOLVED THREAT PRESSURE", report["summary"])
         self.assertEqual(
-            "resolved threat pressure active now; action pending; improve: stop retreating and retake the shot window.",
+            "resolved threat pressure active now; action AI SHOOT; improve: stop retreating and retake the shot window.",
             report["botFeedback"],
         )
 

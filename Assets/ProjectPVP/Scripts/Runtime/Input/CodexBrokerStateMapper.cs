@@ -138,7 +138,8 @@ namespace ProjectPVP.Input
 
             if (IsCurrentResolvedThreatPressure(snapshot, currentIntent, lastExecutorSummary))
             {
-                return "resolved threat pressure active now; action pending; improve: stop retreating and retake the shot window.";
+                return "resolved threat pressure active now; action " + ResolveReportedAction(reportedInput, null)
+                    + "; improve: stop retreating and retake the shot window.";
             }
 
             return AiArenaBotFeedbackBuilder.Build(feedbackSnapshot, lastExecutorSummary, reportedInput);
