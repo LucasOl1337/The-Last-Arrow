@@ -736,21 +736,25 @@ namespace ProjectPVP.Gameplay
 
         private float ResolveMoveSpeed()
         {
+            EnsureRuntimeSystems();
             return _statResolver.ResolveMoveSpeed();
         }
 
         private int ResolveMaxArrows()
         {
+            EnsureRuntimeSystems();
             return _statResolver.ResolveMaxArrows();
         }
 
         private float ResolveMeleeDuration()
         {
+            EnsureRuntimeSystems();
             return _statResolver.ResolveMeleeDuration();
         }
 
         private Transform ResolveProjectileAssistTarget(Vector2 origin, Vector2 initialDirection)
         {
+            EnsureRuntimeSystems();
             return _combatSystem.ResolveProjectileAssistTarget(origin, initialDirection);
         }
 
@@ -798,6 +802,14 @@ namespace ProjectPVP.Gameplay
 
         private void EnsureCharacterMechanicsRuntime()
         {
+            EnsureRuntimeSystems();
+            if (characterDefinition == null)
+            {
+                _context.CharacterMechanicsRuntime = null;
+                _context.CharacterMechanicsSource = null;
+                return;
+            }
+
             CharacterMechanicsModule mechanicsModule = characterDefinition.ResolveMechanicsModule();
 
             if (mechanicsModule == null)
@@ -814,6 +826,16 @@ namespace ProjectPVP.Gameplay
 
             _context.CharacterMechanicsSource = mechanicsModule;
             _context.CharacterMechanicsRuntime = mechanicsModule.CreateRuntime(this, characterDefinition);
+        }
+
+        private void EnsureRuntimeSystems()
+        {
+            if (_context == null || _statResolver == null || _combatSystem == null)
+            {
+                InitializeContext();
+            }
+
+            CacheReferences();
         }
 
         private void ConfigureRuntimeBody()

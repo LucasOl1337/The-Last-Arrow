@@ -176,7 +176,8 @@ namespace ProjectPVP.Gameplay
             if (shotFacing != _context.facing) _context.facing = shotFacing;
 
             Vector2 origin = GetProjectileSpawnPoint(aimDir8, shotFacing);
-            Transform assistTarget = ResolveProjectileAssistTarget(origin, aimDir8);
+            Vector2 assistOrigin = _context.Controller != null ? _context.Controller.RootPosition : origin;
+            Transform assistTarget = ResolveProjectileAssistTarget(assistOrigin, aimDir8);
 
             ProjectileController proj = ProjectileLauncher.Spawn(
                 _context.ProjectilePrefab,
@@ -242,7 +243,8 @@ namespace ProjectPVP.Gameplay
             PlayerController bestTarget = null;
 
             PlayerController.CopyActivePlayers(_playerQueryBuffer);
-            if (_playerQueryBuffer.Count > 0)
+            bool usedActiveRegistry = _playerQueryBuffer.Count > 0;
+            if (usedActiveRegistry)
             {
                 for (int index = 0; index < _playerQueryBuffer.Count; index += 1)
                 {
@@ -256,7 +258,8 @@ namespace ProjectPVP.Gameplay
                         ref bestTarget);
                 }
             }
-            else
+
+            if (!usedActiveRegistry || bestTarget == null)
             {
                 PlayerController[] players = Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
                 for (int index = 0; index < players.Length; index += 1)
@@ -391,32 +394,41 @@ namespace ProjectPVP.Gameplay
             }
 
             PlayerController.CopyActivePlayers(_playerQueryBuffer);
+            bool usedActiveRegistry = _playerQueryBuffer.Count > 0;
             PlayerController bestTarget = null;
             int bestTargetArrows = int.MaxValue;
 
             for (int index = 0; index < _playerQueryBuffer.Count; index += 1)
             {
-                PlayerController candidate = _playerQueryBuffer[index];
-                if (!CanReceiveArrowFromContact(candidate))
-                {
-                    continue;
-                }
+                ConsiderContactArrowTarget(_playerQueryBuffer[index], ref bestTarget, ref bestTargetArrows);
+            }
 
-                if (!ArePlayersTouching(candidate))
+            if (!usedActiveRegistry)
+            {
+                PlayerController[] players = Object.FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+                for (int index = 0; index < players.Length; index += 1)
                 {
-                    continue;
-                }
-
-                int candidateArrows = candidate.CurrentArrows;
-                if (candidateArrows < bestTargetArrows)
-                {
-                    bestTargetArrows = candidateArrows;
-                    bestTarget = candidate;
+                    ConsiderContactArrowTarget(players[index], ref bestTarget, ref bestTargetArrows);
                 }
             }
 
             _playerQueryBuffer.Clear();
             return bestTarget != null && TryTransferLastArrow(bestTarget);
+        }
+
+        private void ConsiderContactArrowTarget(PlayerController candidate, ref PlayerController bestTarget, ref int bestTargetArrows)
+        {
+            if (!CanReceiveArrowFromContact(candidate) || !ArePlayersTouching(candidate))
+            {
+                return;
+            }
+
+            int candidateArrows = candidate.CurrentArrows;
+            if (candidateArrows < bestTargetArrows)
+            {
+                bestTargetArrows = candidateArrows;
+                bestTarget = candidate;
+            }
         }
 
         private bool TryTransferLastArrow(PlayerController target)

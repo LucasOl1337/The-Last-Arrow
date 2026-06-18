@@ -302,6 +302,11 @@ namespace ProjectPVP.Gameplay
 
         public static Vector2 ResolveCombatantAimPoint(PlayerController combatant)
         {
+            if (combatant != null && !Application.isPlaying)
+            {
+                return combatant.transform.position;
+            }
+
             if (combatant != null && combatant.bodyCollider != null)
             {
                 return combatant.bodyCollider.bounds.center;

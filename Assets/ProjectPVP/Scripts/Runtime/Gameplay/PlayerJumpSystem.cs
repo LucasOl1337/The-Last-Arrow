@@ -64,12 +64,16 @@ namespace ProjectPVP.Gameplay
                 velocity.x = 0f;
             }
 
+            bool detachedFromUpwardWallImpact = false;
             if (_context.isTouchingWall && velocity.y > 0f && (pushingIntoWall || movingIntoWall))
             {
                 velocity.y = Mathf.Min(velocity.y, WallImpactCancelUpwardSpeed);
+                _context.wallDetachIgnoreTimer = WallJumpDetachIgnoreDuration;
+                _context.isTouchingWall = false;
+                detachedFromUpwardWallImpact = true;
             }
 
-            if (_context.isTouchingWall && !HasBufferedJump())
+            if (_context.isTouchingWall && !detachedFromUpwardWallImpact && !HasBufferedJump())
             {
                 if (velocity.y <= 0f && (pushingIntoWall || movingIntoWall))
                 {

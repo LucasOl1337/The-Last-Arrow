@@ -363,8 +363,28 @@ namespace ProjectPVP.Gameplay
         {
             if (raw.sqrMagnitude < 0.01f) return Vector2.zero;
             float angleDeg = Mathf.Atan2(raw.y, raw.x) * Mathf.Rad2Deg;
-            float snapped  = Mathf.Round(angleDeg / 45f) * 45f * Mathf.Deg2Rad;
-            return new Vector2(Mathf.Cos(snapped), Mathf.Sin(snapped));
+            int sector = Mathf.RoundToInt(angleDeg / 45f);
+            sector = ((sector % 8) + 8) % 8;
+            const float diagonal = 0.70710678118f;
+            switch (sector)
+            {
+                case 0:
+                    return Vector2.right;
+                case 1:
+                    return new Vector2(diagonal, diagonal);
+                case 2:
+                    return Vector2.up;
+                case 3:
+                    return new Vector2(-diagonal, diagonal);
+                case 4:
+                    return Vector2.left;
+                case 5:
+                    return new Vector2(-diagonal, -diagonal);
+                case 6:
+                    return Vector2.down;
+                default:
+                    return new Vector2(diagonal, -diagonal);
+            }
         }
 
         public Vector2 ResolveConfiguredSpawnWorldPosition()

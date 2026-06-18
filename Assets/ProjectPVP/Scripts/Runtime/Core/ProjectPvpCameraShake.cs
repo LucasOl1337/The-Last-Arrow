@@ -2,6 +2,7 @@ using UnityEngine;
 
 namespace ProjectPVP.Presentation
 {
+    [ExecuteAlways]
     [DisallowMultipleComponent]
     public sealed class ProjectPvpCameraShake : MonoBehaviour
     {
@@ -78,6 +79,13 @@ namespace ProjectPVP.Presentation
 
         public static bool TryShakeDefault(float intensity, float duration)
         {
+            ProjectPvpCameraShake authoredShake = Object.FindFirstObjectByType<ProjectPvpCameraShake>();
+            if (authoredShake != null && authoredShake.GetComponent<Camera>() != null)
+            {
+                authoredShake.Shake(intensity, duration);
+                return true;
+            }
+
             Camera targetCamera = Camera.main;
             if (targetCamera == null)
             {
