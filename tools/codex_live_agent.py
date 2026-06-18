@@ -203,6 +203,16 @@ def has_missed_anti_air_feedback(state: dict[str, Any]) -> bool:
     return "missed anti-air" in combined
 
 
+def has_missed_projectile_defense_feedback(state: dict[str, Any]) -> bool:
+    feedback_raw = state.get("executorFeedback")
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    combined = " ".join([
+        str(feedback.get("botFeedback", "")),
+        str(feedback.get("summary", "")),
+    ]).lower()
+    return "missed projectile defense" in combined
+
+
 def resolve_runtime_provider(selected_provider: str, codex_available: bool) -> str:
     normalized = str(selected_provider or "openai_codex").strip().lower()
     if normalized == HEURISTIC_PROVIDER:
@@ -286,12 +296,14 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     empty_shot = has_empty_shot_feedback(state)
     missed_arrow_recovery = has_missed_arrow_recovery_feedback(state)
     missed_anti_air = has_missed_anti_air_feedback(state)
+    missed_projectile_defense = has_missed_projectile_defense_feedback(state)
     try:
         dash_cooldown_left = float(self_state.get("dashCooldownLeft", 0.0) or 0.0)
     except (TypeError, ValueError):
         dash_cooldown_left = 9999.0
     can_dash = dash_cooldown_left <= 0.01 and not bool(self_state.get("isDashing"))
     self_grounded = bool(self_state.get("isGrounded", True))
+    can_parry_projectile = bool(self_state.get("canParryProjectile", False))
 
     if round_reset or self_hitstunned:
         return tuned
@@ -307,6 +319,27 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["antiProjectile"] = "hold"
         tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.92)
         tuned["reason"] = "heuristic_movement_stall_escape"
+        return tuned
+
+    if missed_projectile_defense and projectile_risk:
+        if can_dash:
+            defensive_anti_projectile = "dash"
+        elif self_grounded:
+            defensive_anti_projectile = "jump"
+        elif can_parry_projectile:
+            defensive_anti_projectile = "parry_prefer"
+        else:
+            defensive_anti_projectile = "hold"
+        tuned["mode"] = "retreat"
+        tuned["preferredRange"] = max(tuned["preferredRange"], 300)
+        tuned["advanceBias"] = min(tuned["advanceBias"], 0.16)
+        tuned["shootBias"] = min(tuned["shootBias"], 0.28)
+        tuned["meleeBias"] = min(tuned["meleeBias"], 0.22)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.94 if can_dash else 0.52)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.56 if self_grounded else 0.22)
+        tuned["antiProjectile"] = defensive_anti_projectile
+        tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.82)
+        tuned["reason"] = "missed_projectile_defense"
         return tuned
 
     if not target_visible or projectile_risk:
