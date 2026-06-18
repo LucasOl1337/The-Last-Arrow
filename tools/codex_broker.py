@@ -125,7 +125,11 @@ def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, An
         normalized["intentMode"] = "retreat"
         normalized["intentReason"] = "projectile_threat_feedback"
         if "projectile threat" not in bot_feedback.lower():
-            normalized["botFeedback"] = "projectile threat active now; action pending; improve: defend before attacking."
+            normalized["botFeedback"] = (
+                "projectile threat active now; action "
+                + resolve_reported_action(normalized)
+                + "; improve: defend before attacking."
+            )
         return normalized
 
     if bool(normalized.get("roundResetPending", False)) or not bool(normalized.get("targetVisible", False)):

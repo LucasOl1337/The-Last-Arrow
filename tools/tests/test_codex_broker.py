@@ -375,6 +375,12 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "targetVisible": False,
                     "projectileThreatActive": True,
                     "roundResetPending": False,
+                    "reportedInput": {
+                        "frame": 37,
+                        "axis": -1.0,
+                        "aim": {"x": -1.0, "y": 0.0},
+                        "dashPrimaryPressed": True,
+                    },
                 },
             }
         )
@@ -390,7 +396,7 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertEqual("retreat", report["feedbackIntentMode"])
         self.assertEqual("projectile_threat_feedback", report["feedbackIntentReason"])
         self.assertEqual(
-            "projectile threat active now; action pending; improve: defend before attacking.",
+            "projectile threat active now; action AI DASH; improve: defend before attacking.",
             report["botFeedback"],
         )
 

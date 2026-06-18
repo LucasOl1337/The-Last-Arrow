@@ -62,12 +62,14 @@ namespace ProjectPVP.Input
         {
             if (IsNewCurrentProjectileThreat(snapshot, reportedInputSnapshot))
             {
-                return "projectile threat active now; action pending; improve: defend before attacking.";
+                return "projectile threat active now; action " + ResolveReportedAction(reportedInput, null)
+                    + "; improve: defend before attacking.";
             }
 
             if (IsCurrentProjectileThreat(snapshot) && snapshot.semantics != null && !snapshot.semantics.hasTarget)
             {
-                return "projectile threat active now; action pending; improve: defend before attacking.";
+                return "projectile threat active now; action " + ResolveReportedAction(reportedInput, null)
+                    + "; improve: defend before attacking.";
             }
 
             if (IsNewCurrentRangedThreat(snapshot, reportedInputSnapshot))

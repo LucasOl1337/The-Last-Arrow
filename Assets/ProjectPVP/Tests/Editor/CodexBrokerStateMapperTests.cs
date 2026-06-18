@@ -476,12 +476,14 @@ namespace ProjectPVP.Tests.Editor
                 currentIntent: null,
                 currentSnapshot,
                 80f,
-                new CodexReportedInputFrame { frame = 42, axis = 0.75f, aim = Vector2.right },
+                new CodexReportedInputFrame { frame = 42, axis = 0.75f, aim = Vector2.right, dashPrimaryPressed = true },
                 reportedInputSnapshot);
 
             Assert.That(feedback.projectileThreatActive, Is.True);
             Assert.That(feedback.summary, Is.EqualTo("AI PROJECTILE THREAT"));
             Assert.That(feedback.botFeedback, Does.Contain("projectile threat active now"));
+            Assert.That(feedback.botFeedback, Does.Contain("action AI DASH"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("action pending"));
             Assert.That(feedback.botFeedback, Does.Not.Contain("missed projectile defense"));
         }
 
