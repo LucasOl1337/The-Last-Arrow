@@ -484,6 +484,7 @@ namespace ProjectPVP.Gameplay
 
         public void SetExternalControlLock(bool locked)
         {
+            EnsureRuntimeSystems();
             if (_externalControlLock == locked)
             {
                 if (locked && _context != null)
@@ -756,6 +757,18 @@ namespace ProjectPVP.Gameplay
         {
             EnsureRuntimeSystems();
             return _combatSystem.ResolveProjectileAssistTarget(origin, initialDirection);
+        }
+
+        private void MoveCharacter(Vector2 velocity, float deltaTime)
+        {
+            EnsureRuntimeSystems();
+            _movementSystem.MoveCharacter(ref velocity, deltaTime);
+        }
+
+        private string ResolveBaseVisualActionKey()
+        {
+            EnsureRuntimeSystems();
+            return _actionLockSystem.ResolveBaseVisualActionKey();
         }
 
         public static Sprite ResolveAnimationFrame(ActionSpriteAnimation animation, float progress, Sprite fallbackSprite = null)

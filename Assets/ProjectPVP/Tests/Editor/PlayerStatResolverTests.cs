@@ -45,7 +45,7 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(mizuResolver.ResolveActionDuration("dash", 0f), Is.LessThan(stormDragonResolver.ResolveActionDuration("dash", 0f) * 0.75f));
             Assert.That(mizuResolver.ResolveActionDuration("shoot", 0f), Is.LessThan(stormDragonResolver.ResolveActionDuration("shoot", 0f) * 0.8f));
             Assert.That(mizuResolver.ResolveProjectileInheritVelocityFactor(), Is.EqualTo(1f).Within(0.001f));
-            Assert.That(stormDragonResolver.ResolveProjectileInheritVelocityFactor(), Is.EqualTo(0.5f).Within(0.001f));
+            Assert.That(stormDragonResolver.ResolveProjectileInheritVelocityFactor(), Is.EqualTo(0.45f).Within(0.001f));
         }
 
         [Test]

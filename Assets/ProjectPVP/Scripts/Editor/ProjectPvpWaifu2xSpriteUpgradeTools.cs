@@ -478,6 +478,27 @@ namespace ProjectPVP.Editor
             string inputFilePath,
             string outputFilePath,
             int scale,
+            int noise)
+        {
+            return ExpandArgumentTemplate(
+                template,
+                inputFilePath,
+                outputFilePath,
+                scale,
+                noise,
+                ResolveNunifMethod(scale, noise),
+                BuildNunifNoiseArguments(noise),
+                string.Empty,
+                0,
+                0,
+                string.Empty);
+        }
+
+        private static string ExpandArgumentTemplate(
+            string template,
+            string inputFilePath,
+            string outputFilePath,
+            int scale,
             int noise,
             string method,
             string noiseArguments,

@@ -48,12 +48,15 @@ namespace ProjectPVP.Tests.Editor
             TestCharacterMechanicsModule mechanicsModule = ScriptableObject.CreateInstance<TestCharacterMechanicsModule>();
             GameObject projectilePrefabRoot = new GameObject("ProjectilePrefab");
             ProjectileController projectilePrefab = projectilePrefabRoot.AddComponent<ProjectileController>();
+            Texture2D defaultSpriteTexture = new Texture2D(8, 8);
+            Sprite defaultSprite = null;
 
             try
             {
                 definition.id = "mizu";
                 definition.displayName = "Mizu";
-                definition.defaultSprite = Sprite.Create(Texture2D.whiteTexture, new Rect(0f, 0f, 8f, 8f), new Vector2(0.5f, 0.5f));
+                defaultSprite = Sprite.Create(defaultSpriteTexture, new Rect(0f, 0f, 8f, 8f), new Vector2(0.5f, 0.5f));
+                definition.defaultSprite = defaultSprite;
                 definition.projectileOriginOffset = new Vector2(54f, 80f);
                 definition.spriteAnchorOffset = new Vector2(15f, 0f);
                 definition.spriteScale = new Vector2(1.2f, 1.4f);
@@ -107,6 +110,8 @@ namespace ProjectPVP.Tests.Editor
             }
             finally
             {
+                Object.DestroyImmediate(defaultSprite);
+                Object.DestroyImmediate(defaultSpriteTexture);
                 Object.DestroyImmediate(bootstrapProfile);
                 Object.DestroyImmediate(definition);
                 Object.DestroyImmediate(slotProfile);
@@ -399,13 +404,20 @@ namespace ProjectPVP.Tests.Editor
                 controller.body = body;
                 controller.bodyCollider = bodyCollider;
                 controller.groundCheckDistance = 16f;
+                MethodInfo awake = typeof(PlayerController).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic);
+                FieldInfo contextField = typeof(PlayerController).GetField("_context", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(awake, Is.Not.Null);
+                Assert.That(contextField, Is.Not.Null);
+                awake.Invoke(controller, null);
+                bodyCollider.size = new Vector2(20f, 40f);
+                bodyCollider.offset = Vector2.zero;
 
                 body.position = new Vector2(20f, 32f);
                 playerRoot.transform.position = body.position;
 
-                FieldInfo groundedField = typeof(PlayerController).GetField("_isGrounded", BindingFlags.Instance | BindingFlags.NonPublic);
-                Assert.That(groundedField, Is.Not.Null);
-                groundedField.SetValue(controller, true);
+                PlayerContext context = (PlayerContext)contextField.GetValue(controller);
+                Assert.That(context, Is.Not.Null);
+                context.isGrounded = true;
 
                 MethodInfo moveCharacter = typeof(PlayerController).GetMethod("MoveCharacter", BindingFlags.Instance | BindingFlags.NonPublic);
                 Assert.That(moveCharacter, Is.Not.Null);
@@ -444,20 +456,21 @@ namespace ProjectPVP.Tests.Editor
                 controller.body = body;
                 controller.bodyCollider = bodyCollider;
                 body.linearVelocity = new Vector2(24f, 0f);
+                MethodInfo awake = typeof(PlayerController).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic);
+                FieldInfo contextField = typeof(PlayerController).GetField("_context", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(awake, Is.Not.Null);
+                Assert.That(contextField, Is.Not.Null);
+                awake.Invoke(controller, null);
 
-                FieldInfo groundedField = typeof(PlayerController).GetField("_isGrounded", BindingFlags.Instance | BindingFlags.NonPublic);
-                FieldInfo coyoteField = typeof(PlayerController).GetField("_coyoteTimeLeft", BindingFlags.Instance | BindingFlags.NonPublic);
-                FieldInfo inputFrameField = typeof(PlayerController).GetField("_currentInputFrame", BindingFlags.Instance | BindingFlags.NonPublic);
                 MethodInfo resolveActionMethod = typeof(PlayerController).GetMethod("ResolveBaseVisualActionKey", BindingFlags.Instance | BindingFlags.NonPublic);
 
-                Assert.That(groundedField, Is.Not.Null);
-                Assert.That(coyoteField, Is.Not.Null);
-                Assert.That(inputFrameField, Is.Not.Null);
                 Assert.That(resolveActionMethod, Is.Not.Null);
 
-                groundedField.SetValue(controller, false);
-                coyoteField.SetValue(controller, 0.08f);
-                inputFrameField.SetValue(controller, new PlayerInputFrame { axis = 1f });
+                PlayerContext context = (PlayerContext)contextField.GetValue(controller);
+                Assert.That(context, Is.Not.Null);
+                context.isGrounded = false;
+                context.coyoteTimeLeft = 0.08f;
+                context.currentInputFrame = new PlayerInputFrame { axis = 1f };
 
                 string actionKey = (string)resolveActionMethod.Invoke(controller, null);
 

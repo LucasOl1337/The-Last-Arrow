@@ -1175,7 +1175,10 @@ namespace ProjectPVP.Tests.Editor
         {
             MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
                 "HandleBrokerRequestFailure",
-                BindingFlags.Instance | BindingFlags.NonPublic);
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                System.Type.EmptyTypes,
+                null);
             FieldInfo sessionIdField = typeof(CodexBrokerCombatantInputSource).GetField(
                 "_sessionId",
                 BindingFlags.Instance | BindingFlags.NonPublic);

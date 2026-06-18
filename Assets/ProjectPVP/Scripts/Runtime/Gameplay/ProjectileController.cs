@@ -472,6 +472,7 @@ namespace ProjectPVP.Gameplay
                 transform.position = origin;
             }
 
+            EnsureHitCollider();
             if (hitCollider != null)
             {
                 ApplyFlightHitbox();
@@ -1211,6 +1212,7 @@ namespace ProjectPVP.Gameplay
 
         private void ApplyHitboxProfile(Vector2 size, Vector2 offset)
         {
+            EnsureHitCollider();
             if (hitCollider == null)
             {
                 return;
@@ -1218,6 +1220,19 @@ namespace ProjectPVP.Gameplay
 
             hitCollider.size = size;
             hitCollider.offset = offset;
+        }
+
+        private void EnsureHitCollider()
+        {
+            if (hitCollider == null)
+            {
+                hitCollider = GetComponent<BoxCollider2D>();
+            }
+
+            if (hitCollider == null)
+            {
+                hitCollider = gameObject.AddComponent<BoxCollider2D>();
+            }
         }
     }
 }

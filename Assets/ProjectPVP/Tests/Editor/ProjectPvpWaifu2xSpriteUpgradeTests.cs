@@ -165,7 +165,11 @@ namespace ProjectPVP.Tests.Editor
             Type toolsType = editorAssembly.GetType(ToolsTypeName, throwOnError: false);
             Assert.That(toolsType, Is.Not.Null, "Expected editor type '{0}' to exist.", ToolsTypeName);
 
-            MethodInfo method = toolsType.GetMethod(methodName, BindingFlags.Static | BindingFlags.NonPublic);
+            MethodInfo method = toolsType
+                .GetMethods(BindingFlags.Static | BindingFlags.NonPublic)
+                .FirstOrDefault(candidate =>
+                    string.Equals(candidate.Name, methodName, StringComparison.Ordinal)
+                    && candidate.GetParameters().Length == arguments.Length);
             Assert.That(method, Is.Not.Null, "Expected static helper method '{0}' on '{1}'.", methodName, ToolsTypeName);
             return method.Invoke(null, arguments);
         }

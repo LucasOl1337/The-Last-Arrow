@@ -12,6 +12,8 @@ namespace ProjectPVP.Tests.Editor
     {
         private static readonly MethodInfo PlayerAwakeMethod =
             typeof(PlayerController).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo PlayerOnDisableMethod =
+            typeof(PlayerController).GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly FieldInfo PlayerContextField =
             typeof(PlayerController).GetField("_context", BindingFlags.Instance | BindingFlags.NonPublic);
 
@@ -428,6 +430,7 @@ namespace ProjectPVP.Tests.Editor
         public void OnDisable_ResetsInputStateToPreventStaleHeldInputs()
         {
             Assert.That(PlayerAwakeMethod, Is.Not.Null);
+            Assert.That(PlayerOnDisableMethod, Is.Not.Null);
 
             GameObject root = new GameObject("RespawnServiceOnDisableResetPlayer");
 
@@ -443,7 +446,7 @@ namespace ProjectPVP.Tests.Editor
                 inputSource.SetBufferedInput();
                 Assert.That(inputSource.ResetCount, Is.Zero);
 
-                player.enabled = false;
+                PlayerOnDisableMethod.Invoke(player, null);
 
                 Assert.That(inputSource.ResetCount, Is.EqualTo(1));
                 Assert.That(inputSource.BufferedInputCleared, Is.True);

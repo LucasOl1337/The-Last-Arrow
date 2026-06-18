@@ -661,6 +661,7 @@ namespace ProjectPVP.Tests.Editor
 
                 Assert.That(loser.TryKill(winner, "Projectile"), Is.True);
                 HandlePlayerDeathMethod.Invoke(matchController, new object[] { loser });
+                ResolveQueuedDeathsMethod.Invoke(matchController, null);
                 BeginRespawnFreezeMethod.Invoke(matchController, new object[] { 0.25f });
                 ShowChampionAnnouncementMethod.Invoke(matchController, new object[] { CombatantSlotId.SlotOne, 0.5f });
 
@@ -669,7 +670,11 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(matchController.ChampionAnnouncementSlot, Is.EqualTo(CombatantSlotId.SlotOne));
                 Assert.That(matchController.LastRoundDeathSummary, Is.Not.Empty);
 
-                matchObject.SetActive(false);
+                MethodInfo onDisable = typeof(MatchController).GetMethod("OnDisable", BindingFlags.Instance | BindingFlags.NonPublic);
+                MethodInfo onEnable = typeof(MatchController).GetMethod("OnEnable", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(onDisable, Is.Not.Null);
+                Assert.That(onEnable, Is.Not.Null);
+                onDisable.Invoke(matchController, null);
 
                 Assert.That(matchController.IsRoundResetPending, Is.False);
                 Assert.That(matchController.IsRespawnFreezeActive, Is.False);
@@ -677,7 +682,7 @@ namespace ProjectPVP.Tests.Editor
                 Assert.That(matchController.LastRoundDeathSummary, Is.Empty);
                 Assert.That(matchController.LastRoundDeathPosition, Is.EqualTo(Vector2.zero));
 
-                matchObject.SetActive(true);
+                onEnable.Invoke(matchController, null);
                 HandlePlayerDeathMethod.Invoke(matchController, new object[] { loser });
 
                 Assert.That(matchController.IsRoundResetPending, Is.True);

@@ -58,10 +58,12 @@ namespace ProjectPVP.Tests.Editor
 
             timers.ShowChampionAnnouncement(CombatantSlotId.SlotTwo, 1f);
             RoundTimerTickResult firstTick = timers.Tick(0.4f);
-            RoundTimerTickResult secondTick = timers.Tick(0.6f);
 
             Assert.That(firstTick.ChampionAnnouncementEnded, Is.False);
             Assert.That(timers.ChampionAnnouncementSlot, Is.EqualTo(CombatantSlotId.SlotTwo));
+
+            RoundTimerTickResult secondTick = timers.Tick(0.6f);
+
             Assert.That(secondTick.ChampionAnnouncementEnded, Is.True);
             Assert.That(timers.ChampionAnnouncementSlot, Is.EqualTo(CombatantSlotId.None));
         }

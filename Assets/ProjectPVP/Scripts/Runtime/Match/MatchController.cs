@@ -113,7 +113,7 @@ namespace ProjectPVP.Match
         public int PlayerOneWins => GetWins(CombatantSlotId.SlotOne);
         public int PlayerTwoWins => GetWins(CombatantSlotId.SlotTwo);
         public int RoundsToChampion => Mathf.Max(1, maxWins);
-        public bool IsRoundResetPending => _roundResetRoutine != null;
+        public bool IsRoundResetPending => _roundResetRoutine != null || _resolveQueuedDeathsPending || _pendingDeadPlayers.Count > 0;
         public bool IsRespawnFreezeActive => _roundTimers.IsRespawnFreezeActive;
         public int CurrentRespawnSeedIndex => NormalizeRespawnSeedIndex(currentRespawnSeedIndex);
         public string CurrentRespawnSeedLabel => TryGetRespawnSeed(CurrentRespawnSeedIndex, out RoundRespawnSeed seed)

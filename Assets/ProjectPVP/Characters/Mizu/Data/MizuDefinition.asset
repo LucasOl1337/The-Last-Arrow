@@ -265,7 +265,7 @@ MonoBehaviour:
     skipLeft: 0
     targetVisualHeight: 0
     groundAnchorRatio: 1
-    duration: 0.24
+    duration: 0.16
     cancelable: 0
     speed: 12
     spriteScale: 1

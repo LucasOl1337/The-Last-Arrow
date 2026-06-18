@@ -591,6 +591,11 @@ namespace ProjectPVP.Input
             return CodexBrokerRequestLifecycle.TryComplete(ref _strategyRequest, requestVersion);
         }
 
+        private static bool IsCurrentRequestVersion(int requestVersion, int currentVersion)
+        {
+            return CodexBrokerRequestLifecycle.IsCurrentVersion(requestVersion, currentVersion);
+        }
+
         private void InvalidateStrategyRequest()
         {
             CodexBrokerRequestLifecycle.Invalidate(ref _strategyRequest);
