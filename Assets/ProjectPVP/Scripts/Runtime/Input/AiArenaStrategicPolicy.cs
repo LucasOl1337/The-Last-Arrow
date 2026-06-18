@@ -54,7 +54,17 @@ namespace ProjectPVP.Input
                 && semantics.targetAbove
                 && semantics.targetInShootRange
                 && canShoot;
-            bool effectiveDefensiveRetreatIntent = defensiveRetreatIntent && !recoverAfterResolvedProjectileThreat && !attackAfterResolvedThreat;
+            bool pressureAfterResolvedThreat = defensiveRetreatIntent
+                && !semantics.incomingProjectileThreat
+                && !semantics.targetUsingRanged
+                && !semantics.targetUsingMelee
+                && !semantics.targetUsingUltimate
+                && targetArrows <= 0
+                && self.arrows > 0;
+            bool effectiveDefensiveRetreatIntent = defensiveRetreatIntent
+                && !recoverAfterResolvedProjectileThreat
+                && !attackAfterResolvedThreat
+                && !pressureAfterResolvedThreat;
             float cornerEscapeAxis = ResolveCornerEscapeAxis(snapshot, semantics, self, towardTarget);
             bool escapingCorner = false;
 

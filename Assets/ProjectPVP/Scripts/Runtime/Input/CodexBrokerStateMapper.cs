@@ -85,6 +85,11 @@ namespace ProjectPVP.Input
                 return "anti-air chase active now; action pending; improve: climb into range before spending arrows.";
             }
 
+            if (IsCurrentLastArrowPressure(snapshot, lastExecutorSummary))
+            {
+                return "last-arrow pressure active now; action pending; improve: spend the ammo advantage before the target recovers arrows.";
+            }
+
             return AiArenaBotFeedbackBuilder.Build(feedbackSnapshot, lastExecutorSummary, reportedInput);
         }
 
@@ -127,6 +132,11 @@ namespace ProjectPVP.Input
             if (IsCurrentAntiAirChase(snapshot, currentIntent, lastExecutorSummary))
             {
                 return "AI ANTI AIR CHASE";
+            }
+
+            if (IsCurrentLastArrowPressure(snapshot, lastExecutorSummary))
+            {
+                return "AI LAST ARROW PRESSURE";
             }
 
             if (string.IsNullOrWhiteSpace(lastExecutorSummary))
@@ -210,6 +220,27 @@ namespace ProjectPVP.Input
 
             return string.IsNullOrWhiteSpace(lastExecutorSummary)
                 || lastExecutorSummary.IndexOf("anti air", System.StringComparison.OrdinalIgnoreCase) < 0;
+        }
+
+        private static bool IsCurrentLastArrowPressure(AiArenaSnapshotEnvelope snapshot, string lastExecutorSummary)
+        {
+            if (snapshot == null
+                || snapshot.semantics == null
+                || snapshot.self == null
+                || !snapshot.semantics.hasTarget
+                || snapshot.semantics.incomingProjectileThreat
+                || snapshot.semantics.targetUsingRanged
+                || snapshot.semantics.targetUsingMelee
+                || snapshot.semantics.targetUsingUltimate
+                || snapshot.semantics.selfCornered
+                || snapshot.self.arrows <= 0
+                || ResolveTargetArrows(snapshot) != 0)
+            {
+                return false;
+            }
+
+            return string.IsNullOrWhiteSpace(lastExecutorSummary)
+                || lastExecutorSummary.IndexOf("last arrow pressure", System.StringComparison.OrdinalIgnoreCase) < 0;
         }
 
         private static bool IsAntiAirIntent(CodexStrategyIntent intent)

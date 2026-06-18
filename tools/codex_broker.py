@@ -168,6 +168,19 @@ def is_current_anti_air_shot(executor_feedback: dict[str, Any]) -> bool:
     )
 
 
+def is_current_last_arrow_pressure(executor_feedback: dict[str, Any]) -> bool:
+    return (
+        bool(executor_feedback.get("targetVisible", False))
+        and not bool(executor_feedback.get("projectileThreatActive", False))
+        and not bool(executor_feedback.get("targetRangedThreatActive", False))
+        and not bool(executor_feedback.get("targetMeleeThreatActive", False))
+        and not bool(executor_feedback.get("targetUltimateThreatActive", False))
+        and not bool(executor_feedback.get("selfCornered", False))
+        and safe_int(executor_feedback.get("selfArrows", -1), -1) > 0
+        and safe_int(executor_feedback.get("targetArrows", -1), -1) == 0
+    )
+
+
 def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, Any] | None = None) -> str:
     summary = str(executor_feedback.get("summary", "") or "")
     if bool(executor_feedback.get("roundResetPending", False)):
@@ -184,6 +197,8 @@ def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, 
         return "AI ANTI AIR"
     if is_current_anti_air_chase(executor_feedback, intent) and "ANTI AIR" not in summary.upper():
         return "AI ANTI AIR CHASE"
+    if is_current_last_arrow_pressure(executor_feedback) and "LAST ARROW PRESSURE" not in summary.upper():
+        return "AI LAST ARROW PRESSURE"
     if not summary.strip():
         return "AI MOVE"
     return summary
@@ -195,6 +210,8 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
         return "anti-air shot active now; action pending; improve: take the vertical shot before repositioning."
     if is_current_anti_air_chase(executor_feedback, intent) and "anti-air chase active now" not in bot_feedback:
         return "anti-air chase active now; action pending; improve: climb into range before spending arrows."
+    if is_current_last_arrow_pressure(executor_feedback) and "last-arrow pressure active now" not in bot_feedback:
+        return "last-arrow pressure active now; action pending; improve: spend the ammo advantage before the target recovers arrows."
     return bot_feedback
 
 

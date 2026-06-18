@@ -580,6 +580,45 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_ReportsCurrentLastArrowPressureWhenInputSnapshotIsOlder()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 3,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        arrows = 0,
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetInShootRange = true,
+                    horizontalDistance = 850f,
+                    verticalDistance = 120f,
+                    targetDirection = Vector2.right,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI DEFENSIVE RETREAT",
+                new CodexStrategyIntent { mode = "retreat", reason = "target_ranged_threat" },
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 109, axis = 0.94f, aim = Vector2.left });
+
+            Assert.That(feedback.summary, Is.EqualTo("AI LAST ARROW PRESSURE"));
+            Assert.That(feedback.botFeedback, Does.Contain("last-arrow pressure active now"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("enemy ranged active"));
+        }
+
+        [Test]
         public void ResolveControllerOwner_ReturnsEnvelopeOwnerWhenPresent()
         {
             string owner = CodexBrokerStateMapper.ResolveControllerOwner(

@@ -2863,6 +2863,72 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_ResolvedThreatPressuresTargetWithNoArrows()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 3,
+                    shootCooldownLeft = 0f,
+                    dashCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 0,
+                        position = new Vector2(850f, -120f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 850f,
+                    verticalDistance = 120f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = new Vector2(0.98f, -0.2f),
+                    targetInShootRange = true,
+                    targetInMeleeRange = false,
+                    targetInUltimateRange = false,
+                    selfHasArrows = true,
+                    incomingProjectileThreat = false,
+                    targetUsingRanged = false,
+                    targetUsingMelee = false,
+                    targetUsingUltimate = false,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "retreat",
+                preferredRange = 360,
+                shootBias = 0.1f,
+                advanceBias = 0.1f,
+                meleeBias = 0.1f,
+                dashBias = 0.1f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = false,
+                cornerEscapeBias = 0.1f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "target_ranged_threat",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI LAST ARROW PRESSURE"));
+            Assert.That(decision.shootPressed, Is.True);
+            Assert.That(decision.shootHeld, Is.True);
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+            Assert.That(decision.dashPrimaryPressed, Is.False);
+        }
+
+        [Test]
         public void StrategicPolicy_UsesArrowLeadPressureToTakeTheShot()
         {
             var snapshot = new AiArenaSnapshotEnvelope

@@ -576,6 +576,53 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
             report["botFeedback"],
         )
 
+    def test_report_payload_normalizes_current_last_arrow_pressure_from_semantics(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 850.0},
+            },
+        )
+
+        session.publish_action(
+            {
+                "mode": "retreat",
+                "reason": "target_ranged_threat",
+            }
+        )
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI DEFENSIVE RETREAT",
+                    "botFeedback": "enemy ranged active; action AI DEFENSIVE RETREAT; improve: clear the arrow line before committing.",
+                    "targetVisible": True,
+                    "targetInShootRange": True,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetMeleeThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "selfCornered": False,
+                    "selfArrows": 3,
+                    "targetArrows": 0,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI LAST ARROW PRESSURE", report["summary"])
+        self.assertEqual(
+            "last-arrow pressure active now; action pending; improve: spend the ammo advantage before the target recovers arrows.",
+            report["botFeedback"],
+        )
+
     def test_report_payload_keeps_projectile_summary_ahead_of_ranged_threat(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,
