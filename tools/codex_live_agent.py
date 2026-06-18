@@ -256,6 +256,16 @@ def has_anti_air_opportunity_feedback(state: dict[str, Any]) -> bool:
     return "anti-air opportunity" in combined
 
 
+def has_active_anti_air_shot_feedback(state: dict[str, Any]) -> bool:
+    feedback_raw = state.get("executorFeedback")
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    combined = " ".join([
+        str(feedback.get("botFeedback", "")),
+        str(feedback.get("summary", "")),
+    ]).lower()
+    return "anti-air shot active now" in combined
+
+
 def has_missed_projectile_defense_feedback(state: dict[str, Any]) -> bool:
     feedback_raw = state.get("executorFeedback")
     feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
@@ -448,6 +458,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     ) and has_known_recoverable_projectile(state)
     missed_anti_air = has_missed_anti_air_feedback(state)
     anti_air_opportunity = has_anti_air_opportunity_feedback(state)
+    active_anti_air_shot = has_active_anti_air_shot_feedback(state)
     missed_projectile_defense = has_missed_projectile_defense_feedback(state)
     projectile_threat_feedback = has_projectile_threat_feedback(state)
     missed_punish_window = has_missed_punish_window_feedback(state)
@@ -558,13 +569,19 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["reason"] = "missed_ranged_response" if missed_ranged_response else "target_ranged_threat"
         return tuned
 
-    if (missed_anti_air or anti_air_opportunity) and target_above:
+    if (missed_anti_air or anti_air_opportunity or active_anti_air_shot) and target_above:
         anti_air_shoot_bias = 0.42
         if in_shoot and self_arrows > 0:
-            anti_air_shoot_bias = 0.72 if anti_air_opportunity else 0.68
+            if active_anti_air_shot:
+                anti_air_shoot_bias = 0.88
+            else:
+                anti_air_shoot_bias = 0.72 if anti_air_opportunity else 0.68
         anti_air_jump_bias = 0.34
         if self_grounded:
-            anti_air_jump_bias = 0.56 if anti_air_opportunity else 0.74
+            if active_anti_air_shot:
+                anti_air_jump_bias = 0.42
+            else:
+                anti_air_jump_bias = 0.56 if anti_air_opportunity else 0.74
         tuned["mode"] = "pressure"
         tuned["preferredRange"] = min(tuned["preferredRange"], 300)
         tuned["advanceBias"] = max(tuned["advanceBias"], 0.78)
@@ -575,7 +592,10 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["antiAir"] = True
         tuned["antiProjectile"] = "hold"
         tuned["cornerEscapeBias"] = min(tuned["cornerEscapeBias"], 0.3)
-        tuned["reason"] = "missed_anti_air" if missed_anti_air else "anti_air_opportunity"
+        if active_anti_air_shot:
+            tuned["reason"] = "anti_air_shot_active"
+        else:
+            tuned["reason"] = "missed_anti_air" if missed_anti_air else "anti_air_opportunity"
         return tuned
 
     if (missed_punish_window or punish_window_available) and (in_melee or in_shoot):
@@ -849,6 +869,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     ) and has_known_recoverable_projectile(state)
     missed_anti_air = has_missed_anti_air_feedback(state)
     anti_air_opportunity = has_anti_air_opportunity_feedback(state)
+    active_anti_air_shot = has_active_anti_air_shot_feedback(state)
     missed_projectile_defense = has_missed_projectile_defense_feedback(state)
     projectile_threat_feedback = has_projectile_threat_feedback(state)
     missed_punish_window = has_missed_punish_window_feedback(state)
@@ -1044,13 +1065,19 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
         })
         return intent
 
-    if (missed_anti_air or anti_air_opportunity) and target_above:
+    if (missed_anti_air or anti_air_opportunity or active_anti_air_shot) and target_above:
         anti_air_shoot_bias = 0.42
         if target_in_shoot and can_shoot:
-            anti_air_shoot_bias = 0.74 if anti_air_opportunity else 0.72
+            if active_anti_air_shot:
+                anti_air_shoot_bias = 0.88
+            else:
+                anti_air_shoot_bias = 0.74 if anti_air_opportunity else 0.72
         anti_air_jump_bias = 0.34
         if self_grounded:
-            anti_air_jump_bias = 0.58 if anti_air_opportunity else 0.78
+            if active_anti_air_shot:
+                anti_air_jump_bias = 0.42
+            else:
+                anti_air_jump_bias = 0.58 if anti_air_opportunity else 0.78
         intent.update({
             "mode": "pressure",
             "preferredRange": 280,
@@ -1062,7 +1089,11 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
             "antiAir": True,
             "antiProjectile": "hold",
             "cornerEscapeBias": 0.24,
-            "reason": "heuristic_missed_anti_air" if missed_anti_air else "heuristic_anti_air_opportunity",
+            "reason": (
+                "heuristic_anti_air_shot_active"
+                if active_anti_air_shot
+                else "heuristic_missed_anti_air" if missed_anti_air else "heuristic_anti_air_opportunity"
+            ),
         })
         return intent
 
