@@ -4053,6 +4053,94 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CodexBrokerCombatantInputSource_AntiAirShotOverridesPassiveMovement()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ApplyAntiAirShotFailsafe",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo currentIntentField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_currentIntent",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+            Assert.That(currentIntentField, Is.Not.Null);
+
+            GameObject root = new GameObject("AntiAirShotInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                currentIntentField.SetValue(input, new CodexStrategyIntent
+                {
+                    mode = "pressure",
+                    preferredRange = 280,
+                    advanceBias = 0.78f,
+                    shootBias = 0.88f,
+                    meleeBias = 0.18f,
+                    dashBias = 0.32f,
+                    jumpBias = 0.34f,
+                    antiProjectile = "hold",
+                    antiAir = false,
+                    cornerEscapeBias = 0.18f,
+                    expiresInMs = 360,
+                    reason = "last_arrow_pressure",
+                });
+
+                var snapshot = new AiArenaSnapshotEnvelope
+                {
+                    schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                    self = new AiArenaCombatantObservation
+                    {
+                        slotId = 1,
+                        arrows = 1,
+                        shootCooldownLeft = 0f,
+                        isGrounded = true,
+                    },
+                    opponents = new List<AiArenaCombatantObservation>
+                    {
+                        new AiArenaCombatantObservation
+                        {
+                            slotId = 2,
+                            arrows = 0,
+                            canParryProjectile = false,
+                            canBlockProjectiles = false,
+                        },
+                    },
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                        targetSlotId = 2,
+                        horizontalDistance = 272f,
+                        verticalDistance = 116f,
+                        targetDirection = Vector2.left,
+                        targetAbove = true,
+                        targetInShootRange = true,
+                        incomingProjectileThreat = false,
+                        targetUsingUltimate = false,
+                    },
+                };
+                var passiveFrame = new PlayerInputFrame
+                {
+                    axis = 0f,
+                    jumpHeld = true,
+                    aim = new Vector2(-0.86f, 0.5f),
+                };
+
+                var resolved = (PlayerInputFrame)method.Invoke(input, new object[] { snapshot, passiveFrame });
+
+                Assert.That(resolved.shootPressed, Is.True);
+                Assert.That(resolved.shootHeld, Is.True);
+                Assert.That(resolved.axis, Is.LessThan(0f));
+                Assert.That(resolved.left, Is.True);
+                Assert.That(resolved.right, Is.False);
+                Assert.That(resolved.jumpHeld, Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void HeuristicPolicy_DodgesUltimateBeforeCollectingArrow()
         {
             var snapshot = new AiArenaSnapshotEnvelope

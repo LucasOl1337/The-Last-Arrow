@@ -190,6 +190,7 @@ namespace ProjectPVP.Input
             _currentFrame = ObserveMovementStall(snapshot, _currentFrame);
             _currentFrame = ApplyRecoverArrowFeedbackFailsafe(snapshot, _currentFrame);
             _currentFrame = ApplyLastArrowCommitFailsafe(snapshot, _currentFrame);
+            _currentFrame = ApplyAntiAirShotFailsafe(snapshot, _currentFrame);
             _lastReportedFrame = _currentFrame;
             _previousSnapshot = snapshot;
             _frameIndex += 1;
@@ -908,9 +909,79 @@ namespace ProjectPVP.Input
             return frame;
         }
 
+        private PlayerInputFrame ApplyAntiAirShotFailsafe(AiArenaSnapshotEnvelope snapshot, PlayerInputFrame frame)
+        {
+            if (!IsAntiAirShotIntent(_currentIntent)
+                || snapshot == null
+                || snapshot.self == null
+                || snapshot.semantics == null
+                || snapshot.opponents == null
+                || snapshot.opponents.Count == 0
+                || snapshot.opponents[0] == null
+                || snapshot.semantics.incomingProjectileThreat
+                || snapshot.semantics.targetUsingUltimate
+                || !snapshot.semantics.hasTarget
+                || !snapshot.semantics.targetAbove
+                || !snapshot.semantics.targetInShootRange)
+            {
+                return frame;
+            }
+
+            AiArenaCombatantObservation target = snapshot.opponents[0];
+            bool targetCanStopProjectile = !target.isDead && (target.canParryProjectile || target.canBlockProjectiles);
+            bool canShoot = snapshot.self.arrows > 0
+                && snapshot.self.shootCooldownLeft <= 0.01f
+                && !targetCanStopProjectile;
+            if (!canShoot || HasCommittedAction(frame))
+            {
+                return frame;
+            }
+
+            float towardTarget = snapshot.semantics.targetDirection.x >= 0f ? 1f : -1f;
+            Vector2 aim = frame.aim.sqrMagnitude > 0.001f
+                ? frame.aim.normalized
+                : snapshot.semantics.targetDirection.normalized;
+            if (aim.sqrMagnitude <= 0.001f)
+            {
+                aim = new Vector2(towardTarget, 0.45f).normalized;
+            }
+            else if (aim.y < 0.28f)
+            {
+                aim = new Vector2(Mathf.Sign(aim.x == 0f ? towardTarget : aim.x), 0.45f).normalized;
+            }
+
+            frame.aim = aim;
+            frame.axis = Mathf.Clamp(towardTarget * 0.25f, -1f, 1f);
+            frame.left = frame.axis < -0.1f;
+            frame.right = frame.axis > 0.1f;
+            frame.down = false;
+            frame.shootPressed = true;
+            frame.shootHeld = true;
+            frame.meleePressed = false;
+            frame.ultimatePressed = false;
+            frame.dashPrimaryPressed = false;
+            frame.dashSecondaryPressed = false;
+            _debugSummary = "AI ANTI AIR";
+            _lastExecutorSummary = _debugSummary;
+            _botFeedback = DecorateBotFeedbackForExecutorSource(
+                _lastExecutorSource,
+                AiArenaBotFeedbackBuilder.Build(snapshot, _debugSummary, frame));
+            return frame;
+        }
+
         private void ResetMovementStall()
         {
             _movementStallEscape.Reset();
+        }
+
+        private static bool HasCommittedAction(PlayerInputFrame frame)
+        {
+            return frame.shootPressed
+                || frame.shootHeld
+                || frame.meleePressed
+                || frame.ultimatePressed
+                || frame.dashPrimaryPressed
+                || frame.dashSecondaryPressed;
         }
 
         private static bool IsRecoverArrowFeedbackIntent(CodexStrategyIntent intent)
@@ -941,6 +1012,31 @@ namespace ProjectPVP.Input
             }
 
             return intent.reason.Trim().ToLowerInvariant().Contains("last_arrow_stalled_commit");
+        }
+
+        private static bool IsAntiAirShotIntent(CodexStrategyIntent intent)
+        {
+            if (intent == null)
+            {
+                return false;
+            }
+
+            if (intent.antiAir)
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(intent.reason))
+            {
+                return false;
+            }
+
+            string normalized = intent.reason.Trim().ToLowerInvariant();
+            return normalized.Contains("anti_air_shot_active")
+                || normalized.Contains("anti_air_opportunity")
+                || normalized.Contains("missed_anti_air")
+                || normalized.Contains("last_arrow_pressure")
+                || normalized.Contains("last_arrow_stalled_commit");
         }
 
         private void ApplyBrokerEnvelope(string responseJson)
