@@ -750,6 +750,45 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_ReportsStalledLastArrowPressureWhenInputHasNoAction()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 1,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        arrows = 0,
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetInShootRange = true,
+                    horizontalDistance = 564f,
+                    verticalDistance = 206f,
+                    targetDirection = Vector2.left,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI LAST ARROW PRESSURE",
+                new CodexStrategyIntent { mode = "pressure", reason = "last_arrow_pressure" },
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 8834, axis = 0f, aim = Vector2.left });
+
+            Assert.That(feedback.summary, Is.EqualTo("AI LAST ARROW STALLED"));
+            Assert.That(feedback.botFeedback, Does.Contain("last-arrow pressure stalled"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("active now"));
+        }
+
+        [Test]
         public void ResolveControllerOwner_ReturnsEnvelopeOwnerWhenPresent()
         {
             string owner = CodexBrokerStateMapper.ResolveControllerOwner(

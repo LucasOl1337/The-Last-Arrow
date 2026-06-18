@@ -21,7 +21,7 @@ namespace ProjectPVP.Input
             return new CodexExecutorFeedback
             {
                 source = lastExecutorSource,
-                summary = ResolveCurrentAwareSummary(lastExecutorSummary, currentIntent, snapshot, reportedInputSnapshot),
+                summary = ResolveCurrentAwareSummary(lastExecutorSummary, currentIntent, snapshot, reportedInputSnapshot, resolvedReportedInput),
                 botFeedback = ResolveCurrentAwareBotFeedback(snapshot, reportedInputSnapshot, feedbackSnapshot, currentIntent, lastExecutorSummary, resolvedReportedInput),
                 intentMode = currentIntent != null ? currentIntent.mode : string.Empty,
                 intentReason = currentIntent != null ? currentIntent.reason : string.Empty,
@@ -98,6 +98,11 @@ namespace ProjectPVP.Input
 
             if (IsCurrentLastArrowPressure(snapshot, lastExecutorSummary))
             {
+                if (IsStalledLastArrowPressureInput(reportedInput))
+                {
+                    return "last-arrow pressure stalled; action none; improve: shoot, dash in, or move into a clean shot before the target recovers arrows.";
+                }
+
                 return "last-arrow pressure active now; action pending; improve: spend the ammo advantage before the target recovers arrows.";
             }
 
@@ -113,7 +118,8 @@ namespace ProjectPVP.Input
             string lastExecutorSummary,
             CodexStrategyIntent currentIntent,
             AiArenaSnapshotEnvelope snapshot,
-            AiArenaSnapshotEnvelope reportedInputSnapshot)
+            AiArenaSnapshotEnvelope reportedInputSnapshot,
+            CodexReportedInputFrame reportedInput)
         {
             if (snapshot != null && snapshot.arena != null && snapshot.arena.roundResetPending)
             {
@@ -152,6 +158,11 @@ namespace ProjectPVP.Input
 
             if (IsCurrentLastArrowPressure(snapshot, lastExecutorSummary))
             {
+                if (IsStalledLastArrowPressureInput(reportedInput))
+                {
+                    return "AI LAST ARROW STALLED";
+                }
+
                 return "AI LAST ARROW PRESSURE";
             }
 
@@ -272,6 +283,18 @@ namespace ProjectPVP.Input
 
             return string.IsNullOrWhiteSpace(lastExecutorSummary)
                 || lastExecutorSummary.IndexOf("last arrow pressure", System.StringComparison.OrdinalIgnoreCase) < 0;
+        }
+
+        private static bool IsStalledLastArrowPressureInput(CodexReportedInputFrame reportedInput)
+        {
+            return reportedInput != null
+                && Mathf.Abs(reportedInput.axis) <= 0.1f
+                && !reportedInput.shootPressed
+                && !reportedInput.shootHeld
+                && !reportedInput.meleePressed
+                && !reportedInput.ultimatePressed
+                && !reportedInput.dashPrimaryPressed
+                && !reportedInput.dashSecondaryPressed;
         }
 
         private static bool IsCurrentResolvedThreatPressure(AiArenaSnapshotEnvelope snapshot, CodexStrategyIntent currentIntent, string lastExecutorSummary)

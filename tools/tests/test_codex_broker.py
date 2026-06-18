@@ -761,6 +761,66 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
             report["botFeedback"],
         )
 
+    def test_report_payload_marks_stalled_last_arrow_pressure_when_input_has_no_action(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 564.0},
+            },
+        )
+
+        session.publish_action(
+            {
+                "mode": "pressure",
+                "reason": "last_arrow_pressure",
+            }
+        )
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI LAST ARROW PRESSURE",
+                    "botFeedback": "last-arrow pressure active now; action pending; improve: spend the ammo advantage before the target recovers arrows.",
+                    "targetVisible": True,
+                    "targetInShootRange": True,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetMeleeThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "selfCornered": False,
+                    "selfArrows": 1,
+                    "targetArrows": 0,
+                    "roundResetPending": False,
+                    "reportedInput": {
+                        "frame": 8834,
+                        "axis": 0.0,
+                        "aim": {"x": -1.0, "y": 0.0},
+                        "jumpPressed": False,
+                        "jumpHeld": False,
+                        "shootPressed": False,
+                        "shootHeld": False,
+                        "meleePressed": False,
+                        "ultimatePressed": False,
+                        "dashPrimaryPressed": False,
+                        "dashSecondaryPressed": False,
+                    },
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI LAST ARROW STALLED", report["summary"])
+        self.assertEqual(
+            "last-arrow pressure stalled; action none; improve: shoot, dash in, or move into a clean shot before the target recovers arrows.",
+            report["botFeedback"],
+        )
+
     def test_report_payload_keeps_projectile_summary_ahead_of_ranged_threat(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,

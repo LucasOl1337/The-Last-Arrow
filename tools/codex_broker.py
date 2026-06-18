@@ -202,6 +202,21 @@ def is_current_last_arrow_pressure(executor_feedback: dict[str, Any]) -> bool:
     )
 
 
+def is_stalled_last_arrow_pressure_input(executor_feedback: dict[str, Any]) -> bool:
+    reported_input = executor_feedback.get("reportedInput")
+    if not isinstance(reported_input, dict):
+        return False
+    return (
+        abs(safe_float(reported_input.get("axis", 0), 0)) <= 0.1
+        and not bool(reported_input.get("shootPressed", False))
+        and not bool(reported_input.get("shootHeld", False))
+        and not bool(reported_input.get("meleePressed", False))
+        and not bool(reported_input.get("ultimatePressed", False))
+        and not bool(reported_input.get("dashPrimaryPressed", False))
+        and not bool(reported_input.get("dashSecondaryPressed", False))
+    )
+
+
 def is_current_resolved_threat_pressure(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> bool:
     return (
         is_ranged_or_projectile_threat_intent(intent)
@@ -247,6 +262,8 @@ def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, 
         return "AI ANTI AIR"
     if is_current_anti_air_chase(executor_feedback, intent) and "ANTI AIR" not in summary.upper():
         return "AI ANTI AIR CHASE"
+    if is_current_last_arrow_pressure(executor_feedback) and is_stalled_last_arrow_pressure_input(executor_feedback):
+        return "AI LAST ARROW STALLED"
     if is_current_last_arrow_pressure(executor_feedback) and "LAST ARROW PRESSURE" not in summary.upper():
         return "AI LAST ARROW PRESSURE"
     if is_current_resolved_threat_pressure(executor_feedback, intent) and "RESOLVED THREAT PRESSURE" not in summary.upper():
@@ -264,6 +281,8 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
         return "anti-air shot active now; action pending; improve: take the vertical shot before repositioning."
     if is_current_anti_air_chase(executor_feedback, intent) and "anti-air chase active now" not in bot_feedback:
         return "anti-air chase active now; action pending; improve: climb into range before spending arrows."
+    if is_current_last_arrow_pressure(executor_feedback) and is_stalled_last_arrow_pressure_input(executor_feedback):
+        return "last-arrow pressure stalled; action none; improve: shoot, dash in, or move into a clean shot before the target recovers arrows."
     if is_current_last_arrow_pressure(executor_feedback) and "last-arrow pressure active now" not in bot_feedback:
         return "last-arrow pressure active now; action pending; improve: spend the ammo advantage before the target recovers arrows."
     if is_current_resolved_threat_pressure(executor_feedback, intent) and "resolved threat pressure active now" not in bot_feedback:
