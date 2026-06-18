@@ -10,15 +10,17 @@ namespace ProjectPVP.Input
             CodexStrategyIntent currentIntent,
             AiArenaSnapshotEnvelope snapshot,
             float intentAgeMs,
-            CodexReportedInputFrame reportedInput)
+            CodexReportedInputFrame reportedInput,
+            AiArenaSnapshotEnvelope reportedInputSnapshot = null)
         {
             CodexReportedInputFrame resolvedReportedInput = reportedInput != null ? reportedInput : new CodexReportedInputFrame();
+            AiArenaSnapshotEnvelope feedbackSnapshot = reportedInputSnapshot ?? snapshot;
 
             return new CodexExecutorFeedback
             {
                 source = lastExecutorSource,
                 summary = lastExecutorSummary,
-                botFeedback = AiArenaBotFeedbackBuilder.Build(snapshot, lastExecutorSummary, resolvedReportedInput),
+                botFeedback = AiArenaBotFeedbackBuilder.Build(feedbackSnapshot, lastExecutorSummary, resolvedReportedInput),
                 intentMode = currentIntent != null ? currentIntent.mode : string.Empty,
                 intentReason = currentIntent != null ? currentIntent.reason : string.Empty,
                 projectileThreatActive = snapshot != null && snapshot.semantics != null && snapshot.semantics.incomingProjectileThreat,

@@ -226,6 +226,55 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_AlignsBotFeedbackWithReportedInputSnapshot()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.14f,
+                    shouldDashEvade = true,
+                },
+            };
+            var reportedInputSnapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetInShootRange = true,
+                    horizontalDistance = 360f,
+                },
+            };
+            var reportedInput = new CodexReportedInputFrame
+            {
+                frame = 34,
+                shootPressed = true,
+                shootHeld = true,
+                aim = Vector2.right,
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI ZONE SHOT",
+                currentIntent: null,
+                currentSnapshot,
+                90f,
+                reportedInput,
+                reportedInputSnapshot);
+
+            Assert.That(feedback.projectileThreatActive, Is.True);
+            Assert.That(feedback.reportedInput, Is.SameAs(reportedInput));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("missed projectile defense"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("projectile threat 0.14s"));
+        }
+
+        [Test]
         public void ResolveControllerOwner_ReturnsEnvelopeOwnerWhenPresent()
         {
             string owner = CodexBrokerStateMapper.ResolveControllerOwner(

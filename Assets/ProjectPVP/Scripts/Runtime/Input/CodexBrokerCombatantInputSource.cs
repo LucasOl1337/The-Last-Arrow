@@ -431,7 +431,8 @@ namespace ProjectPVP.Input
                     _currentIntent,
                     snapshot,
                     IntentAgeMs,
-                    BuildReportedInput(_lastReportedFrame)),
+                    BuildReportedInput(_lastReportedFrame),
+                    _previousSnapshot),
             };
 
             StartCoroutine(SendJsonRequest(
@@ -516,7 +517,8 @@ namespace ProjectPVP.Input
                     _currentIntent,
                     snapshot,
                     IntentAgeMs,
-                    BuildReportedInput(_lastReportedFrame)),
+                    BuildReportedInput(_lastReportedFrame),
+                    _previousSnapshot),
             };
 
             StartCoroutine(SendJsonRequest(

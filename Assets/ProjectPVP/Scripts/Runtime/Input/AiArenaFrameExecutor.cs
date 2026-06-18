@@ -70,6 +70,11 @@ namespace ProjectPVP.Input
             bool jumpPressed = self.isGrounded && state.jumpCooldownLeft <= 0f && decision.jumpPressed;
             bool wantsDash = decision.dashPrimaryPressed || decision.dashSecondaryPressed;
             bool dashPressed = self.dashCooldownLeft <= 0.01f && !self.isDashing && state.dashCooldownLeft <= 0f && wantsDash;
+            if (incomingProjectileThreat && wantsDash && !dashPressed && self.isGrounded && state.jumpCooldownLeft <= 0f)
+            {
+                jumpPressed = true;
+            }
+
             bool dashPrimaryPressed = dashPressed && decision.dashPrimaryPressed;
             bool dashSecondaryPressed = dashPressed && decision.dashSecondaryPressed;
             bool holdJump = jumpPressed || decision.jumpHeld;
@@ -117,9 +122,7 @@ namespace ProjectPVP.Input
             }
 
             float axis = Mathf.Clamp(decision.moveAxis, -1f, 1f);
-            debugSummary = string.IsNullOrWhiteSpace(decision.debugSummary)
-                ? "AI | OK"
-                : decision.debugSummary;
+            debugSummary = ResolveExecutedDebugSummary(decision, incomingProjectileThreat, wantsDash, dashPressed, jumpPressed, axis);
 
             return new PlayerInputFrame
             {
@@ -139,6 +142,29 @@ namespace ProjectPVP.Input
                 dashPrimaryPressed = dashPrimaryPressed,
                 dashSecondaryPressed = dashSecondaryPressed,
             };
+        }
+
+        private static string ResolveExecutedDebugSummary(
+            AiArenaDecisionEnvelope decision,
+            bool incomingProjectileThreat,
+            bool wantsDash,
+            bool dashPressed,
+            bool jumpPressed,
+            float moveAxis)
+        {
+            if (incomingProjectileThreat && wantsDash && !dashPressed && jumpPressed)
+            {
+                return "AI PROJECTILE JUMP";
+            }
+
+            if (incomingProjectileThreat && wantsDash && !dashPressed && Mathf.Abs(moveAxis) > 0.1f)
+            {
+                return "AI PROJECTILE DRIFT";
+            }
+
+            return string.IsNullOrWhiteSpace(decision.debugSummary)
+                ? "AI | OK"
+                : decision.debugSummary;
         }
 
         public static PlayerInputFrame BuildFallbackFrame(

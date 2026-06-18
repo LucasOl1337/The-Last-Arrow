@@ -226,6 +226,143 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildFrame_JumpsAgainstProjectileWhenRequestedDashIsOnExecutorCooldown()
+        {
+            var self = new AiArenaControllerSnapshot
+            {
+                isValid = true,
+                slotId = 1,
+                facing = 1,
+                isGrounded = true,
+                arrows = 2,
+                dashCooldownLeft = 0f,
+                position = Vector2.zero,
+            };
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = self.slotId,
+                    facing = self.facing,
+                    isGrounded = self.isGrounded,
+                    arrows = self.arrows,
+                    position = self.position,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.12f,
+                    incomingProjectileDirection = Vector2.left,
+                    shouldDashEvade = true,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                dashPrimaryPressed = true,
+                moveAxis = 1f,
+                aimX = 1f,
+                aimY = 0f,
+                debugSummary = "AI PROJECTILE DASH",
+            };
+            AiArenaExecutionState state = new AiArenaExecutionState
+            {
+                dashCooldownLeft = 0.35f,
+            };
+            string debugSummary = string.Empty;
+
+            PlayerInputFrame frame = AiArenaFrameExecutor.BuildFrame(
+                ref state,
+                self,
+                snapshot,
+                decision,
+                frameIndex: 19,
+                shootInterval: 0.25f,
+                meleeInterval: 0.45f,
+                jumpInterval: 0.6f,
+                dashInterval: 0.85f,
+                ultimateInterval: 1.5f,
+                ref debugSummary);
+
+            Assert.That(frame.dashPrimaryPressed, Is.False);
+            Assert.That(frame.jumpPressed, Is.True);
+            Assert.That(frame.jumpHeld, Is.True);
+            Assert.That(frame.axis, Is.EqualTo(1f).Within(0.0001f));
+            Assert.That(debugSummary, Is.EqualTo("AI PROJECTILE JUMP"));
+        }
+
+        [Test]
+        public void BuildFrame_ReportsProjectileDriftWhenDashAndJumpAreUnavailable()
+        {
+            var self = new AiArenaControllerSnapshot
+            {
+                isValid = true,
+                slotId = 1,
+                facing = 1,
+                isGrounded = false,
+                arrows = 2,
+                dashCooldownLeft = 0f,
+                position = Vector2.zero,
+            };
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = self.slotId,
+                    facing = self.facing,
+                    isGrounded = self.isGrounded,
+                    arrows = self.arrows,
+                    position = self.position,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.33f,
+                    incomingProjectileDirection = Vector2.left,
+                    shouldDashEvade = true,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                dashPrimaryPressed = true,
+                moveAxis = 1f,
+                aimX = 1f,
+                aimY = 0f,
+                debugSummary = "AI PROJECTILE DASH",
+            };
+            AiArenaExecutionState state = new AiArenaExecutionState
+            {
+                dashCooldownLeft = 0.35f,
+            };
+            string debugSummary = string.Empty;
+
+            PlayerInputFrame frame = AiArenaFrameExecutor.BuildFrame(
+                ref state,
+                self,
+                snapshot,
+                decision,
+                frameIndex: 20,
+                shootInterval: 0.25f,
+                meleeInterval: 0.45f,
+                jumpInterval: 0.6f,
+                dashInterval: 0.85f,
+                ultimateInterval: 1.5f,
+                ref debugSummary);
+
+            Assert.That(frame.dashPrimaryPressed, Is.False);
+            Assert.That(frame.jumpPressed, Is.False);
+            Assert.That(frame.axis, Is.EqualTo(1f).Within(0.0001f));
+            Assert.That(debugSummary, Is.EqualTo("AI PROJECTILE DRIFT"));
+        }
+
+        [Test]
         public void BuildFrame_GatesSecondaryDashWithExecutorCooldown()
         {
             var self = new AiArenaControllerSnapshot
