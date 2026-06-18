@@ -297,6 +297,25 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["cornerEscapeBias"], 0.84)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_ignores_unknown_recover_arrow_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 0
+        state["promptState"]["target"]["arrows"] = 0
+        state["promptState"]["recoverableProjectiles"] = []
+        state["executorFeedback"]["recoverableProjectileAvailable"] = False
+        state["executorFeedback"]["recoverableProjectileCount"] = 0
+        state["executorFeedback"]["nearestRecoverableProjectileDistance"] = -1.0
+        state["executorFeedback"]["botFeedback"] = (
+            "recover arrow at unknown distance; action AI MOVE; improve: recover ammo before forcing trades."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertNotEqual("retreat", intent["mode"])
+        self.assertNotEqual("heuristic_recover_arrow_feedback", intent["reason"])
+        self.assertGreaterEqual(intent["advanceBias"], 0.6)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_build_heuristic_intent_rechallenges_after_missed_anti_air_feedback(self) -> None:
         state = _build_base_state()
         state["promptState"]["arena"] = {
@@ -988,6 +1007,41 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertLessEqual(tuned["meleeBias"], 0.3)
         self.assertGreaterEqual(tuned["dashBias"], 0.82)
         self.assertGreaterEqual(tuned["cornerEscapeBias"], 0.84)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
+    def test_apply_aggression_bias_ignores_unknown_recover_arrow_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 0
+        state["promptState"]["target"]["arrows"] = 0
+        state["promptState"]["recoverableProjectiles"] = []
+        state["executorFeedback"]["recoverableProjectileAvailable"] = False
+        state["executorFeedback"]["recoverableProjectileCount"] = 0
+        state["executorFeedback"]["nearestRecoverableProjectileDistance"] = -1.0
+        state["executorFeedback"]["botFeedback"] = (
+            "recover arrow at unknown distance; action AI MOVE; improve: recover ammo before forcing trades."
+        )
+        intent = {
+            "mode": "pressure",
+            "preferredRange": 240,
+            "advanceBias": 0.76,
+            "shootBias": 0.4,
+            "meleeBias": 0.52,
+            "dashBias": 0.58,
+            "jumpBias": 0.22,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.2,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "ammo_search",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("pressure", tuned["mode"])
+        self.assertEqual("ammo_search", tuned["reason"])
+        self.assertGreaterEqual(tuned["advanceBias"], 0.6)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
     def test_apply_aggression_bias_rechallenges_after_missed_anti_air_feedback(self) -> None:

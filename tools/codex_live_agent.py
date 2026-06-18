@@ -204,6 +204,28 @@ def has_recover_arrow_feedback(state: dict[str, Any]) -> bool:
     return "recover arrow at" in combined
 
 
+def has_known_recoverable_projectile(state: dict[str, Any]) -> bool:
+    prompt_state_raw = state.get("promptState")
+    prompt_state = prompt_state_raw if isinstance(prompt_state_raw, dict) else {}
+    recoverable_projectiles = prompt_state.get("recoverableProjectiles")
+    if isinstance(recoverable_projectiles, list) and len(recoverable_projectiles) > 0:
+        return True
+
+    feedback_raw = state.get("executorFeedback")
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    if bool(feedback.get("recoverableProjectileAvailable", False)):
+        return True
+    try:
+        if int(feedback.get("recoverableProjectileCount", 0) or 0) > 0:
+            return True
+    except (TypeError, ValueError):
+        pass
+    try:
+        return float(feedback.get("nearestRecoverableProjectileDistance", -1.0) or -1.0) >= 0.0
+    except (TypeError, ValueError):
+        return False
+
+
 def has_missed_anti_air_feedback(state: dict[str, Any]) -> bool:
     feedback_raw = state.get("executorFeedback")
     feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
@@ -396,7 +418,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     shot_out_of_range = has_shot_out_of_range_feedback(state)
     empty_shot = has_empty_shot_feedback(state)
     missed_arrow_recovery = has_missed_arrow_recovery_feedback(state)
-    recover_arrow = has_recover_arrow_feedback(state)
+    recover_arrow = has_recover_arrow_feedback(state) and has_known_recoverable_projectile(state)
     missed_anti_air = has_missed_anti_air_feedback(state)
     anti_air_opportunity = has_anti_air_opportunity_feedback(state)
     missed_projectile_defense = has_missed_projectile_defense_feedback(state)
@@ -779,7 +801,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     shot_out_of_range = has_shot_out_of_range_feedback(state)
     empty_shot = has_empty_shot_feedback(state)
     missed_arrow_recovery = has_missed_arrow_recovery_feedback(state)
-    recover_arrow = has_recover_arrow_feedback(state)
+    recover_arrow = has_recover_arrow_feedback(state) and has_known_recoverable_projectile(state)
     missed_anti_air = has_missed_anti_air_feedback(state)
     anti_air_opportunity = has_anti_air_opportunity_feedback(state)
     missed_projectile_defense = has_missed_projectile_defense_feedback(state)

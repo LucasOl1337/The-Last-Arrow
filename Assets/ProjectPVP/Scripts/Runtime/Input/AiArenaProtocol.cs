@@ -249,7 +249,7 @@ namespace ProjectPVP.Input
                     + "; improve: close distance, aim a valid line, or hold fire.";
             }
 
-            if (semantics.shouldCollectProjectile || isOutOfArrows)
+            if (semantics.shouldCollectProjectile)
             {
                 string distance = semantics.collectibleProjectileDistance >= 0f
                     ? semantics.collectibleProjectileDistance.ToString("0") + "u"
@@ -260,6 +260,11 @@ namespace ProjectPVP.Input
                 }
 
                 return "recover arrow at " + distance + "; action " + action + "; improve: recover ammo before forcing trades.";
+            }
+
+            if (isOutOfArrows)
+            {
+                return "out of arrows with no recovery visible; action " + action + "; improve: reposition and search for a pickup instead of waiting.";
             }
 
             if (semantics.selfCornered)

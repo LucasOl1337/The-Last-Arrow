@@ -1492,6 +1492,34 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotFeedbackBuilder_ReportsSearchWhenOutOfArrowsWithoutVisibleRecovery()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 0,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    shouldCollectProjectile = false,
+                    collectibleProjectileDistance = -1f,
+                },
+            };
+            var decision = new AiArenaDecisionEnvelope
+            {
+                debugSummary = "AI MOVE",
+            };
+
+            string feedback = AiArenaBotFeedbackBuilder.Build(snapshot, decision);
+
+            Assert.That(feedback, Does.Contain("out of arrows with no recovery visible"));
+            Assert.That(feedback, Does.Contain("reposition and search"));
+            Assert.That(feedback, Does.Not.Contain("recover arrow at unknown distance"));
+        }
+
+        [Test]
         public void BotFeedbackBuilder_ReportsMissedArrowRecoveryWhenDecisionMovesAwayFromCollectible()
         {
             var snapshot = new AiArenaSnapshotEnvelope
