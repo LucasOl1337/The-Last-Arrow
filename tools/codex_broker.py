@@ -155,6 +155,19 @@ def is_current_anti_air_chase(executor_feedback: dict[str, Any], intent: dict[st
     )
 
 
+def is_current_anti_air_shot(executor_feedback: dict[str, Any]) -> bool:
+    return (
+        bool(executor_feedback.get("targetVisible", False))
+        and bool(executor_feedback.get("targetAbove", False))
+        and bool(executor_feedback.get("targetInShootRange", False))
+        and bool(executor_feedback.get("shouldAntiAir", False))
+        and not bool(executor_feedback.get("projectileThreatActive", False))
+        and not bool(executor_feedback.get("targetRangedThreatActive", False))
+        and not bool(executor_feedback.get("targetUltimateThreatActive", False))
+        and safe_int(executor_feedback.get("selfArrows", -1), -1) > 0
+    )
+
+
 def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, Any] | None = None) -> str:
     summary = str(executor_feedback.get("summary", "") or "")
     if bool(executor_feedback.get("roundResetPending", False)):
@@ -167,6 +180,8 @@ def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, 
         return "AI RANGED THREAT"
     if bool(executor_feedback.get("selfCornered", False)) and "CORNER" not in summary.upper():
         return "AI CORNER THREAT"
+    if is_current_anti_air_shot(executor_feedback) and "ANTI AIR" not in summary.upper():
+        return "AI ANTI AIR"
     if is_current_anti_air_chase(executor_feedback, intent) and "ANTI AIR" not in summary.upper():
         return "AI ANTI AIR CHASE"
     return summary
@@ -174,6 +189,8 @@ def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, 
 
 def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> str:
     bot_feedback = str(executor_feedback.get("botFeedback", "")).strip()
+    if is_current_anti_air_shot(executor_feedback) and "anti-air shot active now" not in bot_feedback:
+        return "anti-air shot active now; action pending; improve: take the vertical shot before repositioning."
     if is_current_anti_air_chase(executor_feedback, intent) and "anti-air chase active now" not in bot_feedback:
         return "anti-air chase active now; action pending; improve: climb into range before spending arrows."
     return bot_feedback

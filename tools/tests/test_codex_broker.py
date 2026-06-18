@@ -492,6 +492,53 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
             report["botFeedback"],
         )
 
+    def test_report_payload_normalizes_current_anti_air_shot_from_semantics(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 520.0},
+            },
+        )
+
+        session.publish_action(
+            {
+                "mode": "pressure",
+                "reason": "target_ranged_threat",
+                "antiAir": False,
+            }
+        )
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI DEFENSIVE RETREAT",
+                    "botFeedback": "enemy ranged active; action AI DEFENSIVE RETREAT; improve: clear the arrow line before committing.",
+                    "targetVisible": True,
+                    "targetAbove": True,
+                    "targetInShootRange": True,
+                    "shouldAntiAir": True,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "selfArrows": 2,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI ANTI AIR", report["summary"])
+        self.assertEqual(
+            "anti-air shot active now; action pending; improve: take the vertical shot before repositioning.",
+            report["botFeedback"],
+        )
+
     def test_report_payload_keeps_projectile_summary_ahead_of_ranged_threat(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,

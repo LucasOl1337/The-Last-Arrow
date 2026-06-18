@@ -27,6 +27,7 @@ namespace ProjectPVP.Input
             int arrowLead = self.arrows - targetArrows;
             bool cornerEscapeIntent = IsCornerEscapeIntent(intent);
             bool antiAirIntent = IsAntiAirIntent(intent);
+            bool antiAirOpportunity = antiAirIntent || semantics.shouldAntiAir;
             bool deferCollectionForCornerEscape = cornerEscapeIntent || AiArenaHeuristicPolicy.ShouldDeferCollectionForCornerEscape(semantics);
             bool prioritizeCollection = semantics.shouldCollectProjectile
                 && (self.arrows <= 1 || targetArrows > self.arrows)
@@ -44,7 +45,16 @@ namespace ProjectPVP.Input
                 && !semantics.targetUsingMelee
                 && !semantics.targetUsingUltimate
                 && semantics.shouldCollectProjectile;
-            bool effectiveDefensiveRetreatIntent = defensiveRetreatIntent && !recoverAfterResolvedProjectileThreat;
+            bool attackAfterResolvedThreat = defensiveRetreatIntent
+                && !semantics.incomingProjectileThreat
+                && !semantics.targetUsingRanged
+                && !semantics.targetUsingMelee
+                && !semantics.targetUsingUltimate
+                && semantics.shouldAntiAir
+                && semantics.targetAbove
+                && semantics.targetInShootRange
+                && canShoot;
+            bool effectiveDefensiveRetreatIntent = defensiveRetreatIntent && !recoverAfterResolvedProjectileThreat && !attackAfterResolvedThreat;
             float cornerEscapeAxis = ResolveCornerEscapeAxis(snapshot, semantics, self, towardTarget);
             bool escapingCorner = false;
 
@@ -183,7 +193,7 @@ namespace ProjectPVP.Input
                 escapingCorner = true;
             }
 
-            if (antiAirIntent
+            if (antiAirOpportunity
                 && semantics.targetAbove
                 && !semantics.targetInShootRange
                 && self.arrows > 0
@@ -253,7 +263,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (antiAirIntent
+            if (antiAirOpportunity
                 && semantics.targetAbove
                 && semantics.targetInShootRange
                 && canShoot

@@ -75,6 +75,11 @@ namespace ProjectPVP.Input
                 return "corner pressure active now; action pending; improve: escape toward arena center before attacking.";
             }
 
+            if (IsCurrentAntiAirShot(snapshot, lastExecutorSummary))
+            {
+                return "anti-air shot active now; action pending; improve: take the vertical shot before repositioning.";
+            }
+
             if (IsCurrentAntiAirChase(snapshot, currentIntent, lastExecutorSummary))
             {
                 return "anti-air chase active now; action pending; improve: climb into range before spending arrows.";
@@ -112,6 +117,11 @@ namespace ProjectPVP.Input
             if (IsNewCurrentCornerThreat(snapshot, reportedInputSnapshot))
             {
                 return "AI CORNER THREAT";
+            }
+
+            if (IsCurrentAntiAirShot(snapshot, lastExecutorSummary))
+            {
+                return "AI ANTI AIR";
             }
 
             if (IsCurrentAntiAirChase(snapshot, currentIntent, lastExecutorSummary))
@@ -168,6 +178,27 @@ namespace ProjectPVP.Input
                 || snapshot.semantics.targetInShootRange
                 || snapshot.self.arrows <= 0
                 || !IsAntiAirIntent(currentIntent))
+            {
+                return false;
+            }
+
+            return string.IsNullOrWhiteSpace(lastExecutorSummary)
+                || lastExecutorSummary.IndexOf("anti air", System.StringComparison.OrdinalIgnoreCase) < 0;
+        }
+
+        private static bool IsCurrentAntiAirShot(AiArenaSnapshotEnvelope snapshot, string lastExecutorSummary)
+        {
+            if (snapshot == null
+                || snapshot.semantics == null
+                || snapshot.self == null
+                || !snapshot.semantics.hasTarget
+                || snapshot.semantics.incomingProjectileThreat
+                || snapshot.semantics.targetUsingRanged
+                || snapshot.semantics.targetUsingUltimate
+                || !snapshot.semantics.targetAbove
+                || !snapshot.semantics.targetInShootRange
+                || !snapshot.semantics.shouldAntiAir
+                || snapshot.self.arrows <= 0)
             {
                 return false;
             }

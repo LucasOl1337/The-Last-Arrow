@@ -512,6 +512,40 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_ReportsCurrentAntiAirShotWhenInputSnapshotIsOlder()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetAbove = true,
+                    targetInShootRange = true,
+                    shouldAntiAir = true,
+                    horizontalDistance = 520f,
+                    verticalDistance = 140f,
+                    targetDirection = Vector2.right,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI DEFENSIVE RETREAT",
+                new CodexStrategyIntent { mode = "pressure", reason = "target_ranged_threat" },
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 42, axis = -0.8f, aim = Vector2.right });
+
+            Assert.That(feedback.summary, Is.EqualTo("AI ANTI AIR"));
+            Assert.That(feedback.botFeedback, Does.Contain("anti-air shot active now"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("enemy ranged active"));
+        }
+
+        [Test]
         public void ResolveControllerOwner_ReturnsEnvelopeOwnerWhenPresent()
         {
             string owner = CodexBrokerStateMapper.ResolveControllerOwner(

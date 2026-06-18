@@ -4614,6 +4614,145 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_SemanticAntiAirShootsWhenTargetAboveAndInRange()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                    dashCooldownLeft = 0f,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                    isDashing = false,
+                    isGrounded = true,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 2,
+                        position = new Vector2(620f, 160f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 620f,
+                    verticalDistance = 160f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = new Vector2(0.92f, 0.39f),
+                    targetAbove = true,
+                    targetInShootRange = true,
+                    targetInMeleeRange = false,
+                    targetInUltimateRange = false,
+                    shouldAntiAir = true,
+                    selfHasArrows = true,
+                    incomingProjectileThreat = false,
+                    targetUsingRanged = false,
+                    targetUsingUltimate = false,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "retreat",
+                preferredRange = 360,
+                advanceBias = 0.2f,
+                shootBias = 0.1f,
+                meleeBias = 0.1f,
+                dashBias = 0.2f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = false,
+                expiresInMs = 400,
+                reason = "heuristic_movement_stall_escape",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI ANTI AIR"));
+            Assert.That(decision.shootPressed, Is.True);
+            Assert.That(decision.shootHeld, Is.True);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+            Assert.That(decision.dashPrimaryPressed, Is.False);
+        }
+
+        [Test]
+        public void StrategicPolicy_ResolvedRangedThreatAllowsAntiAirShot()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                    dashCooldownLeft = 0f,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                    isDashing = false,
+                    isGrounded = true,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 2,
+                        position = new Vector2(480f, 140f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 480f,
+                    verticalDistance = 140f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = new Vector2(0.96f, 0.28f),
+                    targetAbove = true,
+                    targetInShootRange = true,
+                    shouldAntiAir = true,
+                    selfHasArrows = true,
+                    incomingProjectileThreat = false,
+                    targetUsingRanged = false,
+                    targetUsingMelee = false,
+                    targetUsingUltimate = false,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "pressure",
+                preferredRange = 360,
+                advanceBias = 0.4f,
+                shootBias = 0.1f,
+                meleeBias = 0.1f,
+                dashBias = 0.2f,
+                jumpBias = 0.1f,
+                antiProjectile = "hold",
+                antiAir = false,
+                expiresInMs = 400,
+                reason = "target_ranged_threat",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI ANTI AIR"));
+            Assert.That(decision.shootPressed, Is.True);
+            Assert.That(decision.shootHeld, Is.True);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+            Assert.That(decision.dashPrimaryPressed, Is.False);
+        }
+
+        [Test]
         public void StrategicPolicy_ParryPreferClearsOffenseDuringProjectileThreat()
         {
             var snapshot = new AiArenaSnapshotEnvelope
