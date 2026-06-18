@@ -63,9 +63,14 @@ namespace ProjectPVP.Match
         public bool autoEnableSlotTwoDebugBotOnPlay = true;
         public bool autoForceCodexBrokerForSlotTwoOnPlay = false;
         public AiBrainKind slotTwoDebugAiBrain = AiBrainKind.LocalHeuristic;
+        public global::UnityEngine.KeyCode toggleSlotOneControlKey = global::UnityEngine.KeyCode.F6;
+        public global::UnityEngine.KeyCode toggleSlotTwoControlKey = global::UnityEngine.KeyCode.F7;
         public global::UnityEngine.KeyCode codexBotReplanKey = global::UnityEngine.KeyCode.F8;
         public global::UnityEngine.KeyCode codexBotRestartKey = global::UnityEngine.KeyCode.F9;
         public global::UnityEngine.KeyCode codexBotAgentModeToggleKey = global::UnityEngine.KeyCode.F10;
+        [Header("Start Menu")]
+        public bool showStartMenuOnPlay = true;
+        public AiBrainKind menuAiBrain = AiBrainKind.LocalHeuristic;
 
         private AudioSource _musicSource;
         [SerializeField] private int[] slotWins = new int[2];
@@ -75,12 +80,18 @@ namespace ProjectPVP.Match
         private CombatantSlotProfile _slotTwoOriginalProfile;
         private CombatantSlotProfile _slotTwoRuntimeBotProfile;
         private bool _slotTwoBotShortcutEnabled;
+        private readonly Dictionary<CombatantSlotId, CombatantSlotProfile> _debugOriginalProfiles = new Dictionary<CombatantSlotId, CombatantSlotProfile>();
+        private readonly Dictionary<CombatantSlotId, CombatantSlotProfile> _debugRuntimeProfiles = new Dictionary<CombatantSlotId, CombatantSlotProfile>();
+        private readonly HashSet<CombatantSlotId> _debugBotEnabledSlots = new HashSet<CombatantSlotId>();
         private CombatantSlotId _pendingRoundWinnerSlot = CombatantSlotId.None;
         private CombatantSlotId _pendingChampionSlot = CombatantSlotId.None;
         private string _lastRoundDeathSummary = string.Empty;
         private Vector2 _lastRoundDeathPosition = Vector2.zero;
         private readonly List<PlayerController> _pendingDeadPlayers = new List<PlayerController>(2);
         private bool _resolveQueuedDeathsPending;
+        private ProjectPvpAscensionMenuOverlay _startMenuOverlay;
+        private bool _matchStarted;
+        private bool _runtimeBotAutomationEnabledForMatch = true;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void BootstrapSlotTwoCodexBot()
@@ -97,6 +108,12 @@ namespace ProjectPVP.Match
                 MatchController controller = controllers[index];
                 if (controller == null)
                 {
+                    continue;
+                }
+
+                if (controller.showStartMenuOnPlay)
+                {
+                    Debug.Log($"[CodexBot] Bootstrap leaving MatchController instance {controller.name} for start menu configuration.");
                     continue;
                 }
 
@@ -184,8 +201,195 @@ namespace ProjectPVP.Match
         private void Start()
         {
             SyncRosterAliases();
+            if (showStartMenuOnPlay)
+            {
+                PrepareStartMenu();
+                return;
+            }
+
             Debug.Log($"[CodexBot] MatchController.Start applying runtime bot automation auto-play={autoEnableSlotTwoDebugBotOnPlay} forceBrain={autoForceCodexBrokerForSlotTwoOnPlay}");
-            ApplyCodexBotAutomationForPlay();
+            StartMatchWithCurrentRoster(applyRuntimeBotAutomation: true);
+        }
+
+        private void PrepareStartMenu()
+        {
+            _matchStarted = false;
+            _runtimeBotAutomationEnabledForMatch = false;
+            CacheSceneSpawnPoints();
+            EnsureMusicSource();
+            PlayArenaMusic();
+            SetPlayersExternalControlLock(true);
+            EnsureStartMenuOverlay();
+            _startMenuOverlay.Show(this, CreateInitialMenuSelection());
+        }
+
+        private void EnsureStartMenuOverlay()
+        {
+            if (_startMenuOverlay == null)
+            {
+                _startMenuOverlay = GetComponent<ProjectPvpAscensionMenuOverlay>();
+            }
+
+            if (_startMenuOverlay == null)
+            {
+                _startMenuOverlay = gameObject.AddComponent<ProjectPvpAscensionMenuOverlay>();
+            }
+        }
+
+        private ProjectPvpMenuSelection CreateInitialMenuSelection()
+        {
+            SyncRosterAliases();
+            ProjectPvpMenuGameMode initialMode = ProjectPvpMenuSelectionService.ResolveInitialMode(
+                Slots,
+                autoEnableSlotTwoDebugBotOnPlay);
+            ProjectPvpMenuSelection selection = ProjectPvpMenuSelectionService.BuildDefault(
+                Slots,
+                AvailableCharacters,
+                initialMode);
+            selection.AiBrain = menuAiBrain;
+            return selection;
+        }
+
+        internal void BeginMatchFromMenu(ProjectPvpMenuSelection selection)
+        {
+            if (_matchStarted)
+            {
+                return;
+            }
+
+            ApplyMenuSelection(selection ?? CreateInitialMenuSelection());
+            if (_startMenuOverlay != null)
+            {
+                _startMenuOverlay.Hide();
+            }
+
+            StartMatchWithCurrentRoster(applyRuntimeBotAutomation: false);
+        }
+
+        internal void ApplyMenuSelection(ProjectPvpMenuSelection selection)
+        {
+            if (selection == null)
+            {
+                return;
+            }
+
+            SyncRosterAliases();
+            UnsubscribePlayers();
+            ApplyMenuSlotSelection(selection, selection.GetSlot(CombatantSlotId.SlotOne));
+            ApplyMenuSlotSelection(selection, selection.GetSlot(CombatantSlotId.SlotTwo));
+            SyncRosterAliases();
+            SubscribePlayers();
+        }
+
+        private void ApplyMenuSlotSelection(ProjectPvpMenuSelection selection, ProjectPvpMenuSlotSelection slotSelection)
+        {
+            if (selection == null || slotSelection == null)
+            {
+                return;
+            }
+
+            CombatantSlotConfig slot = GetSlot(slotSelection.SlotId);
+            if (slot == null)
+            {
+                return;
+            }
+
+            CharacterBootstrapProfile previousCharacterProfile = slot.characterProfile;
+            CharacterBootstrapProfile selectedCharacterProfile = slotSelection.CharacterProfile;
+            slot.characterProfile = selectedCharacterProfile;
+            slot.selectedCharacter = selectedCharacterProfile != null
+                ? selectedCharacterProfile.ResolveCharacterDefinition()
+                : slot.selectedCharacter;
+
+            slot.playerProfile = ProjectPvpMenuSelectionService.CreateRuntimeControlProfile(
+                slot.playerProfile,
+                slot.slotId,
+                slotSelection.AiEnabled,
+                selection.AiBrain);
+
+            bool characterChanged = selectedCharacterProfile != null && previousCharacterProfile != selectedCharacterProfile;
+            if (slot.controller == null || characterChanged || ControllerCharacterDiffers(slot.controller, selectedCharacterProfile))
+            {
+                RebuildControllerForMenuSelection(slot);
+                return;
+            }
+
+            slot.ApplySelectionToController();
+        }
+
+        private static bool ControllerCharacterDiffers(PlayerController controller, CharacterBootstrapProfile selectedCharacterProfile)
+        {
+            if (controller == null || selectedCharacterProfile == null)
+            {
+                return false;
+            }
+
+            return controller.characterDefinition != selectedCharacterProfile.ResolveCharacterDefinition();
+        }
+
+        private void RebuildControllerForMenuSelection(CombatantSlotConfig slot)
+        {
+            if (slot == null)
+            {
+                return;
+            }
+
+            PlayerController previousController = slot.controller;
+            Transform controllerParent = previousController != null ? previousController.transform.parent : null;
+            DestroyMenuReplacedController(previousController);
+            slot.controller = null;
+            AssignLegacyControllerAlias(slot);
+            slot.controller = CreateRuntimeController(slot, controllerParent);
+            AssignLegacyControllerAlias(slot);
+            slot.ApplySelectionToController();
+        }
+
+        private void DestroyMenuReplacedController(PlayerController controller)
+        {
+            if (controller == null)
+            {
+                return;
+            }
+
+            controller.Died -= HandlePlayerDeath;
+            if (Application.isPlaying)
+            {
+                Destroy(controller.gameObject);
+            }
+            else
+            {
+                DestroyImmediate(controller.gameObject);
+            }
+        }
+
+        private void AssignLegacyControllerAlias(CombatantSlotConfig slot)
+        {
+            if (slot == null)
+            {
+                return;
+            }
+
+            if (slot.slotId == CombatantSlotId.SlotOne)
+            {
+                legacySlotOneController = slot.controller;
+                return;
+            }
+
+            if (slot.slotId == CombatantSlotId.SlotTwo)
+            {
+                legacySlotTwoController = slot.controller;
+            }
+        }
+
+        private void StartMatchWithCurrentRoster(bool applyRuntimeBotAutomation)
+        {
+            if (_matchStarted)
+            {
+                return;
+            }
+
+            _matchStarted = true;
+            _runtimeBotAutomationEnabledForMatch = applyRuntimeBotAutomation;
             EnsureRoundHudOverlay();
             CacheSceneSpawnPoints();
             EnsureMusicSource();
@@ -197,6 +401,11 @@ namespace ProjectPVP.Match
         private void Update()
         {
             if (!Application.isPlaying)
+            {
+                return;
+            }
+
+            if (!_matchStarted)
             {
                 return;
             }
@@ -217,11 +426,17 @@ namespace ProjectPVP.Match
                 EnsurePlayerTwoDebugBotEnabled(!_slotTwoBotShortcutEnabled);
             }
 
+            HandleRuntimeControlToggleShortcuts();
             HandleCodexBotControlShortcuts();
         }
 
         private void LateUpdate()
         {
+            if (!_matchStarted)
+            {
+                return;
+            }
+
             if (!wrapEnabled)
             {
                 return;
@@ -248,6 +463,19 @@ namespace ProjectPVP.Match
             if (codexBotAgentModeToggleKey != global::UnityEngine.KeyCode.None && RuntimeInput.GetKeyDown(codexBotAgentModeToggleKey))
             {
                 ToggleCodexBotAgentMode("shortcut_" + codexBotAgentModeToggleKey);
+            }
+        }
+
+        private void HandleRuntimeControlToggleShortcuts()
+        {
+            if (toggleSlotOneControlKey != global::UnityEngine.KeyCode.None && RuntimeInput.GetKeyDown(toggleSlotOneControlKey))
+            {
+                ToggleSlotBotControl(CombatantSlotId.SlotOne);
+            }
+
+            if (toggleSlotTwoControlKey != global::UnityEngine.KeyCode.None && RuntimeInput.GetKeyDown(toggleSlotTwoControlKey))
+            {
+                ToggleSlotBotControl(CombatantSlotId.SlotTwo);
             }
         }
 
@@ -367,6 +595,16 @@ namespace ProjectPVP.Match
                     yield return player;
                 }
             }
+        }
+
+        public bool ToggleSlotBotControl(CombatantSlotId slotId)
+        {
+            return SetSlotBotControlEnabled(slotId, !_debugBotEnabledSlots.Contains(slotId));
+        }
+
+        public bool SetSlotBotControlEnabled(CombatantSlotId slotId, bool enabled)
+        {
+            return EnsureSlotDebugBotEnabled(slotId, enabled, forceReapply: false);
         }
 
         public int GetWins(CombatantSlotId slotId)
@@ -506,38 +744,85 @@ namespace ProjectPVP.Match
 
         private void EnsurePlayerTwoDebugBotEnabled(bool enabled, bool forceReapply = false)
         {
+            bool changed = EnsureSlotDebugBotEnabled(CombatantSlotId.SlotTwo, enabled, forceReapply);
             CombatantSlotConfig slot = GetSlot(CombatantSlotId.SlotTwo);
-            if (slot == null || (enabled == _slotTwoBotShortcutEnabled && !forceReapply))
+            _slotTwoBotShortcutEnabled = _debugBotEnabledSlots.Contains(CombatantSlotId.SlotTwo);
+            _slotTwoOriginalProfile = _debugOriginalProfiles.TryGetValue(CombatantSlotId.SlotTwo, out CombatantSlotProfile originalProfile)
+                ? originalProfile
+                : null;
+            _slotTwoRuntimeBotProfile = _debugRuntimeProfiles.TryGetValue(CombatantSlotId.SlotTwo, out CombatantSlotProfile runtimeProfile)
+                ? runtimeProfile
+                : null;
+
+            if (changed && slot != null)
             {
-                return;
+                Debug.Log($"[CodexBot] Slot 2 bot enabled={enabled} brain={slotTwoDebugAiBrain} profileMode={slot.playerProfile?.controlMode} controller={(slot.controller != null ? slot.controller.name : "<null>")}");
+            }
+        }
+
+        private bool EnsureSlotDebugBotEnabled(CombatantSlotId slotId, bool enabled, bool forceReapply = false)
+        {
+            CombatantSlotConfig slot = GetSlot(slotId);
+            if (slot == null || (enabled == _debugBotEnabledSlots.Contains(slotId) && !forceReapply))
+            {
+                return false;
             }
 
             if (enabled)
             {
-                if (!_slotTwoBotShortcutEnabled)
+                if (!_debugBotEnabledSlots.Contains(slotId) && !_debugOriginalProfiles.ContainsKey(slotId))
                 {
-                    _slotTwoOriginalProfile = slot.playerProfile;
+                    _debugOriginalProfiles[slotId] = slot.playerProfile;
                 }
 
-                _slotTwoRuntimeBotProfile = RuntimeBotAssignmentService.CreateRuntimeControlOverrideProfile(
-                    slot.ResolvePlayerProfile(),
-                    CombatantSlotId.SlotTwo,
+                CombatantSlotProfile sourceProfile = _debugOriginalProfiles.TryGetValue(slotId, out CombatantSlotProfile originalProfile)
+                    ? originalProfile
+                    : slot.ResolvePlayerProfile();
+                CombatantSlotProfile runtimeBotProfile = RuntimeBotAssignmentService.CreateRuntimeControlOverrideProfile(
+                    sourceProfile,
+                    slotId,
                     CombatantControlMode.AI,
-                    slotTwoDebugAiBrain);
-                slot.playerProfile = _slotTwoRuntimeBotProfile;
-                _slotTwoBotShortcutEnabled = true;
+                    ResolveDebugAiBrain(slotId));
+                if (runtimeBotProfile == null)
+                {
+                    return false;
+                }
+
+                slot.playerProfile = runtimeBotProfile;
+                _debugRuntimeProfiles[slotId] = runtimeBotProfile;
+                _debugBotEnabledSlots.Add(slotId);
             }
             else
             {
-                slot.playerProfile = _slotTwoOriginalProfile;
-                _slotTwoOriginalProfile = null;
-                _slotTwoRuntimeBotProfile = null;
-                _slotTwoBotShortcutEnabled = false;
+                if (_debugOriginalProfiles.TryGetValue(slotId, out CombatantSlotProfile originalProfile))
+                {
+                    slot.playerProfile = originalProfile;
+                    _debugOriginalProfiles.Remove(slotId);
+                }
+                else
+                {
+                    slot.playerProfile = RuntimeBotAssignmentService.CreateRuntimeControlOverrideProfile(
+                        slot.ResolvePlayerProfile(),
+                        slotId,
+                        CombatantControlMode.Human,
+                        AiBrainKind.LocalHeuristic);
+                }
+
+                _debugRuntimeProfiles.Remove(slotId);
+                _debugBotEnabledSlots.Remove(slotId);
             }
 
             slot.ApplySelectionToController();
-            Debug.Log($"[CodexBot] Slot 2 bot enabled={enabled} brain={slotTwoDebugAiBrain} profileMode={slot.playerProfile?.controlMode} controller={(slot.controller != null ? slot.controller.name : "<null>")}");
+            Debug.Log($"[CodexBot] {slotId.ToDisplayName()} control={(enabled ? "AI" : "Human")} brain={ResolveDebugAiBrain(slotId)} profileMode={slot.playerProfile?.controlMode} controller={(slot.controller != null ? slot.controller.name : "<null>")}");
             PrewarmCodexSessionForController(slot.controller);
+            return true;
+        }
+
+        private AiBrainKind ResolveDebugAiBrain(CombatantSlotId slotId)
+        {
+            return slotId == CombatantSlotId.SlotTwo
+                ? slotTwoDebugAiBrain
+                : AiBrainKind.LocalHeuristic;
         }
 
         private void EnsureSlotTwoCodexBotReadyForPlay()
@@ -778,7 +1063,11 @@ namespace ProjectPVP.Match
         private void RespawnPlayers(bool applyFreeze = true)
         {
             SyncRosterAliases();
-            ApplyCodexBotAutomationForPlay();
+            if (_runtimeBotAutomationEnabledForMatch)
+            {
+                ApplyCodexBotAutomationForPlay();
+            }
+
             ProjectileController.DestroyActiveProjectilesForRoundReset();
 
             List<RespawnSlotCommand> respawnCommands = RespawnService.BuildRespawnCommands(
@@ -1207,7 +1496,7 @@ namespace ProjectPVP.Match
             }
         }
 
-        private PlayerController CreateRuntimeController(CombatantSlotConfig slot)
+        private PlayerController CreateRuntimeController(CombatantSlotConfig slot, Transform parentOverride = null)
         {
             if (slot == null)
             {
@@ -1241,7 +1530,9 @@ namespace ProjectPVP.Match
 
             try
             {
-                Transform parent = transform.parent != null ? transform.parent : transform;
+                Transform parent = parentOverride != null
+                    ? parentOverride
+                    : (transform.parent != null ? transform.parent : transform);
                 PlayerController spawnedController = CharacterBootstrapFactory.CreateCombatant(
                     characterProfile,
                     slot.slotId,

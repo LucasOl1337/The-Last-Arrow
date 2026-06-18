@@ -1059,7 +1059,7 @@ namespace ProjectPVP.Gameplay
             EnsurePreferredInputSource();
             ApplySlotProfileToInputSource();
 
-            if (_context.RuntimeInputSource != null)
+            if (_context != null && _context.RuntimeInputSource != null)
             {
                 _context.RuntimeInputSource.ConfigureForSlot(SlotId);
             }
@@ -1071,7 +1071,10 @@ namespace ProjectPVP.Gameplay
                 && (slotProfile == null || slotProfile.ResolveControlMode() == CombatantControlMode.Human))
             {
                 configurableInput.ApplySlotProfile(slotProfile, SlotId);
-                _context.RuntimeInputSource = configurableInput;
+                if (_context != null)
+                {
+                    _context.RuntimeInputSource = configurableInput;
+                }
             }
         }
 
@@ -1160,7 +1163,10 @@ namespace ProjectPVP.Gameplay
             }
 
             inputSource = preferredInput;
-            _context.RuntimeInputSource = preferredInput as ICombatantInputSource;
+            if (_context != null)
+            {
+                _context.RuntimeInputSource = preferredInput as ICombatantInputSource;
+            }
         }
 
         private void CaptureInputFrame()
