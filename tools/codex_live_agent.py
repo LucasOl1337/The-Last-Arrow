@@ -233,6 +233,16 @@ def has_missed_projectile_defense_feedback(state: dict[str, Any]) -> bool:
     return "missed projectile defense" in combined
 
 
+def has_projectile_threat_feedback(state: dict[str, Any]) -> bool:
+    feedback_raw = state.get("executorFeedback")
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    combined = " ".join([
+        str(feedback.get("botFeedback", "")),
+        str(feedback.get("summary", "")),
+    ]).lower()
+    return "projectile threat" in combined
+
+
 def has_missed_punish_window_feedback(state: dict[str, Any]) -> bool:
     feedback_raw = state.get("executorFeedback")
     feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
@@ -379,6 +389,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     missed_anti_air = has_missed_anti_air_feedback(state)
     anti_air_opportunity = has_anti_air_opportunity_feedback(state)
     missed_projectile_defense = has_missed_projectile_defense_feedback(state)
+    projectile_threat_feedback = has_projectile_threat_feedback(state)
     missed_punish_window = has_missed_punish_window_feedback(state)
     punish_window_available = has_punish_window_available_feedback(state)
     missed_corner_escape = has_missed_corner_escape_feedback(state)
@@ -409,7 +420,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["reason"] = "heuristic_movement_stall_escape"
         return tuned
 
-    if missed_projectile_defense and projectile_risk:
+    if missed_projectile_defense or projectile_threat_feedback:
         if can_dash:
             defensive_anti_projectile = "dash"
         elif self_grounded:
@@ -427,7 +438,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["jumpBias"] = max(tuned["jumpBias"], 0.56 if self_grounded else 0.22)
         tuned["antiProjectile"] = defensive_anti_projectile
         tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.82)
-        tuned["reason"] = "missed_projectile_defense"
+        tuned["reason"] = "missed_projectile_defense" if missed_projectile_defense else "projectile_threat_feedback"
         return tuned
 
     if missed_corner_escape and self_cornered:

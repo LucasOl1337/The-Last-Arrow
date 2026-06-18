@@ -31,6 +31,7 @@ namespace ProjectPVP.Input
         [Min(50)] public int minStrategyIntervalMs = 300;
         [Min(100)] public int maxStrategyAgeMs = 1500;
         [Min(50)] public int brokerRequestTimeoutMs = 150;
+        [Min(600)] public int brokerSessionStartTimeoutMs = 3000;
         public bool autoStartSession = true;
         public bool keepSessionAliveAcrossRounds = true;
         public bool useAgentDrivenMode = true;
@@ -534,14 +535,15 @@ namespace ProjectPVP.Input
         private void RecoverStaleBrokerRequests()
         {
             float now = Time.realtimeSinceStartup;
-            float staleWindowMs = Mathf.Max(brokerRequestTimeoutMs * 4f, 2000f);
+            float sessionStartStaleWindowMs = Mathf.Max(brokerSessionStartTimeoutMs * 2f, 4000f);
+            float strategyStaleWindowMs = Mathf.Max(brokerRequestTimeoutMs * 4f, 2000f);
 
-            if (CodexBrokerRequestLifecycle.IsStale(_sessionStartRequest, now, staleWindowMs))
+            if (CodexBrokerRequestLifecycle.IsStale(_sessionStartRequest, now, sessionStartStaleWindowMs))
             {
                 InvalidateSessionStartRequest("AI | Session start watchdog recovered");
             }
 
-            if (CodexBrokerRequestLifecycle.IsStale(_strategyRequest, now, staleWindowMs))
+            if (CodexBrokerRequestLifecycle.IsStale(_strategyRequest, now, strategyStaleWindowMs))
             {
                 InvalidateStrategyRequest();
                 HandleBrokerRequestFailure();
@@ -899,7 +901,7 @@ namespace ProjectPVP.Input
 
             UnityWebRequestAsyncOperation operation = request.SendWebRequest();
             float startedAt = Time.realtimeSinceStartup;
-            int effectiveTimeoutMs = Mathf.Max(brokerRequestTimeoutMs, 600);
+            int effectiveTimeoutMs = ResolveBrokerRequestTimeoutMs(path, brokerRequestTimeoutMs, brokerSessionStartTimeoutMs);
             while (!operation.isDone)
             {
                 if ((Time.realtimeSinceStartup - startedAt) * 1000f > effectiveTimeoutMs)
@@ -934,6 +936,17 @@ namespace ProjectPVP.Input
             }
 
             request.Dispose();
+        }
+
+        private static int ResolveBrokerRequestTimeoutMs(string path, int requestTimeoutMs, int sessionStartTimeoutMs)
+        {
+            int minimumRequestTimeoutMs = Mathf.Max(requestTimeoutMs, 600);
+            if (path == "/agent/session/start" || path == "/session/start")
+            {
+                return Mathf.Max(sessionStartTimeoutMs, minimumRequestTimeoutMs);
+            }
+
+            return minimumRequestTimeoutMs;
         }
     }
 }

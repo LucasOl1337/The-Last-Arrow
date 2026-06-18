@@ -190,6 +190,32 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CodexBrokerCombatantInputSource_SessionStartUsesLongerBrokerTimeout()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ResolveBrokerRequestTimeoutMs",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+
+            int timeout = (int)method.Invoke(null, new object[] { "/agent/session/start", 150, 3000 });
+
+            Assert.That(timeout, Is.EqualTo(3000));
+        }
+
+        [Test]
+        public void CodexBrokerCombatantInputSource_StateRequestKeepsShortBrokerTimeoutFloor()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ResolveBrokerRequestTimeoutMs",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+
+            int timeout = (int)method.Invoke(null, new object[] { "/agent/state", 150, 3000 });
+
+            Assert.That(timeout, Is.EqualTo(600));
+        }
+
+        [Test]
         public void CodexBrokerCombatantInputSource_RequestImmediateReplanMarksManualRefresh()
         {
             MethodInfo shouldForceRefreshMethod = typeof(CodexBrokerCombatantInputSource).GetMethod(
