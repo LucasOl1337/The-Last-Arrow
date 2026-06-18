@@ -207,6 +207,53 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertEqual("local-heuristic", report["agentModel"])
         self.assertTrue(report["hasAgentAction"])
 
+    def test_report_payload_derives_bot_feedback_from_agent_action_when_executor_feedback_is_missing(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            },
+        )
+
+        session.update_agent_status(
+            {
+                "sessionId": "agent-session",
+                "model": "local-heuristic",
+                "phase": "idle",
+                "thinking": False,
+                "note": "Posted stabilize (heuristic_waiting_for_target)",
+            }
+        )
+        session.publish_action(
+            {
+                "mode": "stabilize",
+                "preferredRange": 280,
+                "advanceBias": 0.2,
+                "shootBias": 0.2,
+                "meleeBias": 0.2,
+                "dashBias": 0.15,
+                "jumpBias": 0.15,
+                "antiProjectile": "hold",
+                "antiAir": False,
+                "punishRecovery": True,
+                "cornerEscapeBias": 0.4,
+                "focusTargetSlot": 1,
+                "expiresInMs": 360,
+                "reason": "heuristic_waiting_for_target",
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual(
+            "agent action stabilize; reason heuristic_waiting_for_target; improve: wait for visible target before committing.",
+            report["botFeedback"],
+        )
+
     def test_report_payload_includes_bot_feedback_from_executor_feedback(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,

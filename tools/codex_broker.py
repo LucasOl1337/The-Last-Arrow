@@ -121,6 +121,27 @@ def compact_input(input_payload: dict[str, Any] | None) -> str:
     return f"axis={axis:+.2f} aim=({aim_x:+.2f},{aim_y:+.2f}) btns={button_text}"
 
 
+def derive_agent_bot_feedback(intent: dict[str, Any], has_agent_action: bool) -> str:
+    if not has_agent_action:
+        return ""
+
+    mode = str((intent or {}).get("mode", "") or "").strip() or "unknown"
+    reason = str((intent or {}).get("reason", "") or "").strip() or "unknown"
+    improve = "keep measuring whether this plan converts into damage or survival."
+    if "waiting_for_target" in reason:
+        improve = "wait for visible target before committing."
+    elif "projectile" in reason:
+        improve = "respect projectile timing before attacking."
+    elif "corner" in reason:
+        improve = "recover center control before committing."
+    elif "punish" in reason:
+        improve = "convert vulnerability quickly."
+    elif "last_arrow" in reason:
+        improve = "confirm visibility and keep pressure tight."
+
+    return f"agent action {mode}; reason {reason}; improve: {improve}"
+
+
 def log_event(label: str, **fields: Any) -> None:
     parts = [f"{key}={value}" for key, value in fields.items()]
     suffix = f" | {' '.join(parts)}" if parts else ""
@@ -437,6 +458,9 @@ class AgentDrivenSession:
             controller_owner = describe_controller(source)
             if source.startswith("codex_") and not has_agent_action:
                 controller_owner = "BrokerDefault"
+            bot_feedback = str(executor_feedback.get("botFeedback", "")).strip()
+            if not bot_feedback:
+                bot_feedback = derive_agent_bot_feedback(self.cached_intent, has_agent_action)
             heartbeat_age_ms = -1
             if self.agent_last_heartbeat_ms > 0:
                 heartbeat_age_ms = max(0, now_ms() - self.agent_last_heartbeat_ms)
@@ -451,7 +475,7 @@ class AgentDrivenSession:
                 "controllerSource": source,
                 "controllerOwner": controller_owner,
                 "summary": str(executor_feedback.get("summary", "")),
-                "botFeedback": str(executor_feedback.get("botFeedback", "")),
+                "botFeedback": bot_feedback,
                 "intentMode": str((self.cached_intent or {}).get("mode", "")),
                 "intentReason": str((self.cached_intent or {}).get("reason", "")),
                 "botId": str(prompt_state.get("botId", "") or self_prompt.get("botId", "") or ""),
