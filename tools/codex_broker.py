@@ -94,6 +94,18 @@ def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, An
         normalized["targetVisible"] = False
     if "roundResetPending" not in normalized:
         normalized["roundResetPending"] = False
+    summary = str(normalized.get("summary", "") or "")
+    bot_feedback = str(normalized.get("botFeedback", "") or "")
+    if (
+        bool(normalized.get("targetRangedThreatActive", False))
+        and not bool(normalized.get("projectileThreatActive", False))
+        and "RANGED" not in summary.upper()
+        and bot_feedback.startswith("missed ranged response")
+    ):
+        normalized["botFeedback"] = (
+            "ranged threat active now; action pending; improve: dodge, break line, "
+            "or interrupt before chasing pickups."
+        )
     return normalized
 
 
