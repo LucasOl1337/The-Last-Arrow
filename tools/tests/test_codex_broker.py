@@ -178,6 +178,99 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertTrue(report["targetUltimateThreatActive"])
         self.assertTrue(report["selfCornered"])
 
+    def test_agent_session_start_feedback_is_available_to_agent_payload(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            },
+            {
+                "targetVisible": False,
+                "roundResetPending": True,
+                "botFeedback": "waiting for arena snapshot; improve: verify bot observation setup.",
+            },
+        )
+
+        payload = session.state_payload()
+        report = session.report_payload()
+
+        self.assertFalse(payload["executorFeedback"]["targetVisible"])
+        self.assertTrue(payload["executorFeedback"]["roundResetPending"])
+        self.assertEqual(
+            "waiting for arena snapshot; improve: verify bot observation setup.",
+            payload["executorFeedback"]["botFeedback"],
+        )
+        self.assertFalse(report["targetVisible"])
+        self.assertTrue(report["roundResetPending"])
+
+    def test_agent_session_reuse_replaces_initial_executor_feedback(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            },
+            {
+                "targetVisible": True,
+                "roundResetPending": False,
+            },
+        )
+
+        session.refresh_start(
+            {
+                "frame": 2,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            },
+            {
+                "targetVisible": False,
+                "roundResetPending": True,
+            },
+        )
+
+        payload = session.state_payload()
+
+        self.assertFalse(payload["executorFeedback"]["targetVisible"])
+        self.assertTrue(payload["executorFeedback"]["roundResetPending"])
+
+    def test_agent_session_reuse_without_feedback_keeps_previous_executor_feedback(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            },
+            {
+                "targetVisible": False,
+                "roundResetPending": True,
+            },
+        )
+
+        session.refresh_start(
+            {
+                "frame": 2,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 320.0},
+            }
+        )
+
+        payload = session.state_payload()
+
+        self.assertFalse(payload["executorFeedback"]["targetVisible"])
+        self.assertTrue(payload["executorFeedback"]["roundResetPending"])
+
 
 if __name__ == "__main__":
     unittest.main()

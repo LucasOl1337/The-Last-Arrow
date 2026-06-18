@@ -229,6 +229,32 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CodexBrokerSessionStartRequest_SerializesInitialExecutorFeedback()
+        {
+            var request = new CodexBrokerSessionStartRequest
+            {
+                slotId = 2,
+                promptState = new CodexPromptState
+                {
+                    frame = 12,
+                },
+                executorFeedback = new CodexExecutorFeedback
+                {
+                    targetVisible = false,
+                    roundResetPending = true,
+                    botFeedback = "waiting for arena snapshot; improve: verify bot observation setup.",
+                },
+            };
+
+            string json = JsonUtility.ToJson(request);
+
+            Assert.That(json, Does.Contain("\"executorFeedback\""));
+            Assert.That(json, Does.Contain("\"targetVisible\":false"));
+            Assert.That(json, Does.Contain("\"roundResetPending\":true"));
+            Assert.That(json, Does.Contain("waiting for arena snapshot"));
+        }
+
+        [Test]
         public void CodexBrokerCombatantInputSource_RequestImmediateReplanMarksManualRefresh()
         {
             MethodInfo shouldForceRefreshMethod = typeof(CodexBrokerCombatantInputSource).GetMethod(

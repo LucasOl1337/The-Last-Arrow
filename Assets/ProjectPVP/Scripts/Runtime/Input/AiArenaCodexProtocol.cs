@@ -42,6 +42,7 @@ namespace ProjectPVP.Input
     {
         public int slotId;
         public CodexPromptState promptState = new CodexPromptState();
+        public CodexExecutorFeedback executorFeedback = new CodexExecutorFeedback();
     }
 
     [Serializable]

@@ -137,7 +137,7 @@ namespace ProjectPVP.Input
                 StartCoroutine(SendResetRequest(_sessionId, "round_reset"));
             }
 
-            EnsureSessionStarted(promptState);
+            EnsureSessionStarted(snapshot, promptState);
             if (useAgentDrivenMode)
             {
                 PushAgentStateIfNeeded(snapshot, promptState);
@@ -275,7 +275,8 @@ namespace ProjectPVP.Input
             }
 
             Debug.Log($"[CodexBot] CodexBrokerCombatantInputSource.PrewarmSession slot {slotId}.");
-            EnsureSessionStarted(BuildPromptState(TryBuildSnapshot()));
+            AiArenaSnapshotEnvelope snapshot = TryBuildSnapshot();
+            EnsureSessionStarted(snapshot, BuildPromptState(snapshot));
         }
 
         private bool HasFreshIntent()
@@ -344,7 +345,7 @@ namespace ProjectPVP.Input
             return AiArenaHeuristicPolicy.Decide(snapshot);
         }
 
-        private void EnsureSessionStarted(CodexPromptState promptState)
+        private void EnsureSessionStarted(AiArenaSnapshotEnvelope snapshot, CodexPromptState promptState)
         {
             if (!autoStartSession || _sessionStartRequest.InFlight || !string.IsNullOrWhiteSpace(_sessionId))
             {
@@ -361,6 +362,13 @@ namespace ProjectPVP.Input
             {
                 slotId = slotId,
                 promptState = promptState,
+                executorFeedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                    _lastExecutorSource,
+                    _lastExecutorSummary,
+                    _currentIntent,
+                    snapshot,
+                    IntentAgeMs,
+                    BuildReportedInput(_lastReportedFrame)),
             };
             StartCoroutine(SendJsonRequest(
                 useAgentDrivenMode ? "/agent/session/start" : "/session/start",

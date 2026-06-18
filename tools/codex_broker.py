@@ -362,12 +362,18 @@ class BrokerSession:
 
 
 class AgentDrivenSession:
-    def __init__(self, slot_id: int, session_id: str, initial_prompt_state: dict[str, Any]):
+    def __init__(
+        self,
+        slot_id: int,
+        session_id: str,
+        initial_prompt_state: dict[str, Any],
+        initial_executor_feedback: dict[str, Any] | None = None,
+    ):
         self.slot_id = slot_id
         self.session_id = session_id
         self.lock = threading.RLock()
         self.prompt_state = deepcopy(initial_prompt_state)
-        self.executor_feedback: dict[str, Any] = {}
+        self.executor_feedback: dict[str, Any] = deepcopy(initial_executor_feedback or {})
         self.updated_at_ms = now_ms()
         self.frame = int(initial_prompt_state.get("frame", -1))
         self.force_refresh = True
@@ -492,9 +498,15 @@ class AgentDrivenSession:
             self.force_refresh = False
             return self.intent_envelope()
 
-    def refresh_start(self, initial_prompt_state: dict[str, Any]) -> dict[str, Any]:
+    def refresh_start(
+        self,
+        initial_prompt_state: dict[str, Any],
+        initial_executor_feedback: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         with self.lock:
             self.prompt_state = deepcopy(initial_prompt_state)
+            if initial_executor_feedback is not None:
+                self.executor_feedback = deepcopy(initial_executor_feedback)
             self.frame = int(initial_prompt_state.get("frame", self.frame))
             self.updated_at_ms = now_ms()
             self.force_refresh = True
@@ -769,6 +781,8 @@ class BrokerHandler(BaseHTTPRequestHandler):
         slot_id = int(payload.get("slotId", 2))
         prompt_state_raw = payload.get("promptState")
         prompt_state = prompt_state_raw if isinstance(prompt_state_raw, dict) else {}
+        executor_feedback_raw = payload.get("executorFeedback")
+        executor_feedback = executor_feedback_raw if isinstance(executor_feedback_raw, dict) else None
         log_event(
             "agent_session_start_request",
             slot=slot_id,
@@ -779,19 +793,20 @@ class BrokerHandler(BaseHTTPRequestHandler):
             existing_session_id = AGENT_SESSION_BY_SLOT.get(slot_id, "")
             existing_session = AGENT_SESSIONS.get(existing_session_id) if existing_session_id else None
             if existing_session is not None and not existing_session.stopped:
-                envelope = existing_session.refresh_start(prompt_state)
+                envelope = existing_session.refresh_start(prompt_state, executor_feedback)
                 append_trace_event("unity_agent_session_reused", {
                     "slotId": slot_id,
                     "sessionId": existing_session.session_id,
                     "frame": int(prompt_state.get("frame", -1)),
                     "promptState": prompt_state,
+                    "executorFeedback": deepcopy(executor_feedback or {}),
                 })
                 log_event("agent_session_started", slot=slot_id, session=existing_session.session_id[:16], frame=prompt_state.get("frame", -1), reused=True)
                 self._write_json(200, envelope)
                 return
 
             session_id = f"agent-slot-{slot_id}-{now_ms()}"
-            session = AgentDrivenSession(slot_id, session_id, prompt_state)
+            session = AgentDrivenSession(slot_id, session_id, prompt_state, executor_feedback)
             AGENT_SESSIONS[session_id] = session
             AGENT_SESSION_BY_SLOT[slot_id] = session_id
         append_trace_event("unity_agent_session_started", {
@@ -799,6 +814,7 @@ class BrokerHandler(BaseHTTPRequestHandler):
             "sessionId": session_id,
             "frame": int(prompt_state.get("frame", -1)),
             "promptState": prompt_state,
+            "executorFeedback": deepcopy(executor_feedback or {}),
         })
         log_event("agent_session_started", slot=slot_id, session=session_id[:16], frame=prompt_state.get("frame", -1), reused=False)
         self._write_json(200, session.intent_envelope())
