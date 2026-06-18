@@ -29,10 +29,12 @@ namespace ProjectPVP.Input
             bool antiAirIntent = IsAntiAirIntent(intent);
             bool antiAirOpportunity = antiAirIntent || semantics.shouldAntiAir;
             bool antiAirChaseOpportunity = semantics.shouldAntiAir || (antiAirIntent && semantics.verticalDistance >= 96f);
+            bool movementStallEscapeIntent = IsMovementStallEscapeIntent(intent);
             bool deferCollectionForCornerEscape = cornerEscapeIntent || AiArenaHeuristicPolicy.ShouldDeferCollectionForCornerEscape(semantics);
             bool prioritizeCollection = semantics.shouldCollectProjectile
                 && (self.arrows <= 1 || targetArrows > self.arrows)
-                && !deferCollectionForCornerEscape;
+                && !deferCollectionForCornerEscape
+                && !movementStallEscapeIntent;
 
             float towardTarget = semantics.targetDirection.x >= 0f ? 1f : -1f;
             float awayFromTarget = -towardTarget;
@@ -100,7 +102,8 @@ namespace ProjectPVP.Input
                 decision.dashSecondaryPressed = false;
                 decision.jumpPressed = AiArenaHeuristicPolicy.ShouldJumpForCollectible(semantics.collectibleProjectileDirection, self);
                 decision.jumpHeld = decision.jumpPressed;
-                decision.moveAxis = AiArenaHeuristicPolicy.ResolveCollectionMoveAxis(semantics.collectibleProjectileDirection);
+                decision.moveAxis = AiArenaHeuristicPolicy.ResolveCollectionMoveAxis(semantics.collectibleProjectileDirection, self);
+                decision.dashPrimaryPressed = AiArenaHeuristicPolicy.ShouldDashForAirborneCollectible(semantics.collectibleProjectileDirection, self, canDash);
                 decision.debugSummary = "AI COLLECT ARROW";
             }
 
@@ -448,11 +451,19 @@ namespace ProjectPVP.Input
             return normalized.Contains("missed_ultimate_escape")
                 || normalized.Contains("missed_melee_escape")
                 || normalized.Contains("missed_ranged_response")
+                || normalized.Contains("movement_stall_escape")
                 || normalized.Contains("target_ultimate_threat")
                 || normalized.Contains("target_melee_threat")
                 || normalized.Contains("target_ranged_threat")
                 || normalized.Contains("missed_projectile_defense")
                 || normalized.Contains("projectile_threat_feedback");
+        }
+
+        private static bool IsMovementStallEscapeIntent(CodexStrategyIntent intent)
+        {
+            return intent != null
+                && !string.IsNullOrWhiteSpace(intent.reason)
+                && intent.reason.Trim().ToLowerInvariant().Contains("movement_stall_escape");
         }
 
         private static bool IsCornerEscapeIntent(CodexStrategyIntent intent)

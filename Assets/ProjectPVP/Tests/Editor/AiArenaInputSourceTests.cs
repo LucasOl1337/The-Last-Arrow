@@ -3496,6 +3496,190 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void HeuristicPolicy_AirDriftsTowardVerticallyAlignedArrow()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = -1,
+                    arrows = 0,
+                    isGrounded = false,
+                    dashCooldownLeft = 0f,
+                    isDashing = false,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 3,
+                        position = new Vector2(0f, -120f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 0f,
+                    verticalDistance = 120f,
+                    targetDirection = Vector2.down,
+                    predictedTargetDirection = Vector2.down,
+                    selfHasArrows = false,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 292f,
+                    collectibleProjectileDirection = Vector2.up,
+                    shouldCollectProjectile = true,
+                },
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaHeuristicPolicy.Decide(snapshot);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI COLLECT ARROW"));
+            Assert.That(decision.moveAxis, Is.LessThan(-0.5f));
+            Assert.That(decision.jumpPressed, Is.False);
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+        }
+
+        [Test]
+        public void StrategicPolicy_AirDriftsTowardVerticallyAlignedArrow()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 0,
+                    isGrounded = false,
+                    dashCooldownLeft = 0f,
+                    isDashing = false,
+                    shootCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 3,
+                        position = new Vector2(0f, -120f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 0f,
+                    verticalDistance = 120f,
+                    targetDirection = Vector2.down,
+                    predictedTargetDirection = Vector2.down,
+                    targetInShootRange = true,
+                    selfHasArrows = false,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 292f,
+                    collectibleProjectileDirection = Vector2.up,
+                    shouldCollectProjectile = true,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "retreat",
+                preferredRange = 300,
+                shootBias = 0.14f,
+                advanceBias = 0.18f,
+                meleeBias = 0.28f,
+                dashBias = 0.82f,
+                jumpBias = 0.16f,
+                antiProjectile = "hold",
+                antiAir = false,
+                punishRecovery = true,
+                cornerEscapeBias = 0.86f,
+                focusTargetSlot = 2,
+                expiresInMs = 360,
+                reason = "missed_arrow_recovery",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI COLLECT ARROW"));
+            Assert.That(decision.moveAxis, Is.GreaterThan(0.5f));
+            Assert.That(decision.jumpPressed, Is.False);
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+        }
+
+        [Test]
+        public void StrategicPolicy_EscapesMovementStallInsteadOfCollectingArrow()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 0,
+                    isGrounded = false,
+                    dashCooldownLeft = 0f,
+                    isDashing = false,
+                    shootCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 1,
+                        position = new Vector2(260f, -90f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 260f,
+                    verticalDistance = 90f,
+                    targetDirection = new Vector2(1f, -0.2f).normalized,
+                    predictedTargetDirection = new Vector2(1f, -0.2f).normalized,
+                    targetInShootRange = true,
+                    selfHasArrows = false,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 292f,
+                    collectibleProjectileDirection = Vector2.up,
+                    shouldCollectProjectile = true,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "retreat",
+                preferredRange = 320,
+                shootBias = 0.24f,
+                advanceBias = 0.12f,
+                meleeBias = 0.2f,
+                dashBias = 0.94f,
+                jumpBias = 0.28f,
+                antiProjectile = "hold",
+                antiAir = false,
+                punishRecovery = true,
+                cornerEscapeBias = 0.92f,
+                focusTargetSlot = 2,
+                expiresInMs = 360,
+                reason = "heuristic_movement_stall_escape",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI DEFENSIVE RETREAT"));
+            Assert.That(decision.moveAxis, Is.LessThan(-0.6f));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+        }
+
+        [Test]
         public void HeuristicPolicy_DodgesUltimateBeforeCollectingArrow()
         {
             var snapshot = new AiArenaSnapshotEnvelope

@@ -285,6 +285,28 @@ def is_stalled_long_range_pressure_input(executor_feedback: dict[str, Any], inte
     )
 
 
+def is_stalled_arrow_recovery_input(executor_feedback: dict[str, Any]) -> bool:
+    reported_input = executor_feedback.get("reportedInput")
+    if not isinstance(reported_input, dict):
+        return False
+
+    summary = str(executor_feedback.get("summary", "") or "").upper()
+    bot_feedback = str(executor_feedback.get("botFeedback", "") or "").lower()
+    recovery_feedback = "AI COLLECT ARROW" in summary or "missed arrow recovery" in bot_feedback
+    return (
+        recovery_feedback
+        and bool(executor_feedback.get("targetVisible", False))
+        and bool(executor_feedback.get("recoverableProjectileAvailable", False))
+        and safe_int(executor_feedback.get("recoverableProjectileCount", 0), 0) > 0
+        and not bool(executor_feedback.get("projectileThreatActive", False))
+        and abs(safe_float(reported_input.get("axis", 0), 0)) < 0.2
+        and not bool(reported_input.get("jumpPressed", False))
+        and not bool(reported_input.get("jumpHeld", False))
+        and not bool(reported_input.get("dashPrimaryPressed", False))
+        and not bool(reported_input.get("dashSecondaryPressed", False))
+    )
+
+
 def is_current_resolved_corner_pressure(executor_feedback: dict[str, Any]) -> bool:
     summary = str(executor_feedback.get("summary", "") or "").lower()
     bot_feedback = str(executor_feedback.get("botFeedback", "") or "").lower()
@@ -434,6 +456,26 @@ def normalize_long_range_pressure_stall_feedback(
     normalized["botFeedback"] = (
         "long-range movement stalled; action weak advance; improve: commit to closing distance "
         "with strong movement, jump, or dash."
+    )
+    normalized["intentMode"] = "retreat"
+    normalized["intentReason"] = "heuristic_movement_stall_escape"
+    return normalized
+
+
+def normalize_arrow_recovery_stall_feedback(executor_feedback: dict[str, Any]) -> dict[str, Any]:
+    if not is_stalled_arrow_recovery_input(executor_feedback):
+        return executor_feedback
+
+    normalized = deepcopy(executor_feedback)
+    distance = safe_float(normalized.get("nearestRecoverableProjectileDistance", -1), -1)
+    if distance >= 0:
+        distance_text = f"{distance:.0f}u"
+    else:
+        distance_text = "known pickup"
+    normalized["summary"] = "AI ARROW RECOVERY STALLED"
+    normalized["botFeedback"] = (
+        f"arrow recovery movement stalled at {distance_text}; action none; improve: "
+        "move, jump, or dash toward the pickup before re-engaging."
     )
     normalized["intentMode"] = "retreat"
     normalized["intentReason"] = "heuristic_movement_stall_escape"
@@ -792,6 +834,7 @@ class AgentDrivenSession:
             executor_feedback = normalize_executor_feedback(self.executor_feedback)
             executor_feedback = normalize_visible_target_feedback_intent(executor_feedback, self.cached_intent)
             executor_feedback = normalize_long_range_pressure_stall_feedback(executor_feedback, self.cached_intent)
+            executor_feedback = normalize_arrow_recovery_stall_feedback(executor_feedback)
             return {
                 "ok": True,
                 "sessionId": self.session_id,
@@ -815,6 +858,7 @@ class AgentDrivenSession:
             executor_feedback = normalize_executor_feedback(self.executor_feedback)
             executor_feedback = normalize_visible_target_feedback_intent(executor_feedback, self.cached_intent)
             executor_feedback = normalize_long_range_pressure_stall_feedback(executor_feedback, self.cached_intent)
+            executor_feedback = normalize_arrow_recovery_stall_feedback(executor_feedback)
             input_payload = deepcopy(executor_feedback.get("reportedInput") or {})
             source = str(executor_feedback.get("source", "")).strip()
             prompt_state = deepcopy(self.prompt_state)

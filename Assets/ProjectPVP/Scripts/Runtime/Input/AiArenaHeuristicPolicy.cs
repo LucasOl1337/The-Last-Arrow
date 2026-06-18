@@ -132,8 +132,9 @@ namespace ProjectPVP.Input
             }
             else if (prioritizeCollection && !semantics.targetUsingUltimate)
             {
-                axis = ResolveCollectionMoveAxis(semantics.collectibleProjectileDirection);
+                axis = ResolveCollectionMoveAxis(semantics.collectibleProjectileDirection, self);
                 useJump = ShouldJumpForCollectible(semantics.collectibleProjectileDirection, self);
+                useDash = ShouldDashForAirborneCollectible(semantics.collectibleProjectileDirection, self, canDash);
                 decision.debugSummary = "AI COLLECT ARROW";
             }
 
@@ -308,12 +309,42 @@ namespace ProjectPVP.Input
             return 0f;
         }
 
+        internal static float ResolveCollectionMoveAxis(
+            Vector2 collectibleDirection,
+            AiArenaCombatantObservation self)
+        {
+            float horizontalAxis = ResolveCollectionMoveAxis(collectibleDirection);
+            if (Mathf.Abs(horizontalAxis) > 0.1f)
+            {
+                return horizontalAxis;
+            }
+
+            if (self != null && !self.isGrounded && collectibleDirection.y > 0.1f)
+            {
+                return self.facing >= 0 ? 0.65f : -0.65f;
+            }
+
+            return 0f;
+        }
+
         internal static bool ShouldJumpForCollectible(
             Vector2 collectibleDirection,
             AiArenaCombatantObservation self)
         {
             return self != null
                 && self.isGrounded
+                && collectibleDirection.y > 0.35f;
+        }
+
+        internal static bool ShouldDashForAirborneCollectible(
+            Vector2 collectibleDirection,
+            AiArenaCombatantObservation self,
+            bool canDash)
+        {
+            return canDash
+                && self != null
+                && !self.isGrounded
+                && Mathf.Abs(collectibleDirection.x) <= 0.1f
                 && collectibleDirection.y > 0.35f;
         }
 

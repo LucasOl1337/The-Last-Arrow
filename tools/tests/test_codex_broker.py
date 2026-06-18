@@ -495,6 +495,66 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertEqual("retreat", report["intentMode"])
         self.assertEqual("heuristic_movement_stall_escape", report["intentReason"])
 
+    def test_state_payload_marks_arrow_recovery_stalled_when_pickup_input_is_idle(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            1,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-1"},
+                "target": {"slotId": 2},
+                "arena": {"horizontalDistance": 268.0},
+            },
+        )
+        session.publish_action(
+            {
+                "mode": "retreat",
+                "reason": "missed_arrow_recovery",
+                "antiAir": False,
+            }
+        )
+        session.publish_state(
+            {
+                "frame": 9565,
+                "executorFeedback": {
+                    "source": "codex_live",
+                    "summary": "AI COLLECT ARROW",
+                    "intentMode": "retreat",
+                    "intentReason": "missed_arrow_recovery",
+                    "botFeedback": "missed arrow recovery at 292u; action AI COLLECT ARROW; improve: move toward pickup before forcing trades.",
+                    "targetVisible": True,
+                    "roundResetPending": False,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetMeleeThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "selfArrows": 0,
+                    "targetArrows": 1,
+                    "recoverableProjectileAvailable": True,
+                    "recoverableProjectileCount": 4,
+                    "nearestRecoverableProjectileDistance": 297.6,
+                    "reportedInput": {
+                        "axis": 0.0,
+                        "aim": {"x": 0.99, "y": -0.10},
+                        "jumpPressed": False,
+                        "jumpHeld": False,
+                        "dashPrimaryPressed": False,
+                        "dashSecondaryPressed": False,
+                    },
+                },
+            }
+        )
+
+        payload = session.state_payload()
+        report = session.report_payload()
+
+        self.assertEqual("AI ARROW RECOVERY STALLED", payload["executorFeedback"]["summary"])
+        self.assertIn("arrow recovery movement stalled at 298u", payload["executorFeedback"]["botFeedback"])
+        self.assertEqual("retreat", payload["executorFeedback"]["intentMode"])
+        self.assertEqual("heuristic_movement_stall_escape", payload["executorFeedback"]["intentReason"])
+        self.assertEqual("AI ARROW RECOVERY STALLED", report["summary"])
+        self.assertEqual("heuristic_movement_stall_escape", report["intentReason"])
+
     def test_report_payload_normalizes_summary_for_current_corner_threat(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,
