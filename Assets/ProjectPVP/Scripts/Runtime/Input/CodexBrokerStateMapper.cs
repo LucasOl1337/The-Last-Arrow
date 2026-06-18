@@ -191,6 +191,11 @@ namespace ProjectPVP.Input
 
         private static string ResolveCurrentAwareIntentMode(CodexStrategyIntent currentIntent, AiArenaSnapshotEnvelope snapshot)
         {
+            if (IsRoundResetOrNoTarget(snapshot))
+            {
+                return "stabilize";
+            }
+
             if (IsCurrentRangedThreat(snapshot))
             {
                 return ResolveSelfArrows(snapshot) > 0 ? "pressure" : "retreat";
@@ -201,12 +206,24 @@ namespace ProjectPVP.Input
 
         private static string ResolveCurrentAwareIntentReason(CodexStrategyIntent currentIntent, AiArenaSnapshotEnvelope snapshot)
         {
+            if (IsRoundResetOrNoTarget(snapshot))
+            {
+                return "heuristic_waiting_for_target";
+            }
+
             if (IsCurrentRangedThreat(snapshot))
             {
                 return "target_ranged_threat";
             }
 
             return currentIntent != null ? currentIntent.reason : string.Empty;
+        }
+
+        private static bool IsRoundResetOrNoTarget(AiArenaSnapshotEnvelope snapshot)
+        {
+            return snapshot != null
+                && ((snapshot.arena != null && snapshot.arena.roundResetPending)
+                    || (snapshot.semantics != null && !snapshot.semantics.hasTarget));
         }
 
         private static bool IsNewCurrentProjectileThreat(AiArenaSnapshotEnvelope snapshot, AiArenaSnapshotEnvelope reportedInputSnapshot)

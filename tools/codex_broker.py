@@ -121,6 +121,11 @@ def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, An
     normalized.setdefault("targetArrows", -1)
     summary = str(normalized.get("summary", "") or "")
     bot_feedback = str(normalized.get("botFeedback", "") or "")
+    if bool(normalized.get("roundResetPending", False)) or not bool(normalized.get("targetVisible", False)):
+        normalized["intentMode"] = "stabilize"
+        normalized["intentReason"] = "heuristic_waiting_for_target"
+        return normalized
+
     current_ranged_threat = (
         bool(normalized.get("targetRangedThreatActive", False))
         and not bool(normalized.get("projectileThreatActive", False))

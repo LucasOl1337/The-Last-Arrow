@@ -387,6 +387,35 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_NormalizesStaleIntentForCurrentNoTargetState()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                arena = new AiArenaArenaObservation
+                {
+                    roundResetPending = false,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = false,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI ANTI AIR CHASE",
+                new CodexStrategyIntent { mode = "pressure", reason = "heuristic_anti_air" },
+                currentSnapshot,
+                180f,
+                new CodexReportedInputFrame { frame = 210, axis = 0f, aim = Vector2.left });
+
+            Assert.That(feedback.summary, Is.EqualTo("AI | Fallback:no_target"));
+            Assert.That(feedback.intentMode, Is.EqualTo("stabilize"));
+            Assert.That(feedback.intentReason, Is.EqualTo("heuristic_waiting_for_target"));
+            Assert.That(feedback.botFeedback, Does.Contain("no target visible"));
+        }
+
+        [Test]
         public void BuildExecutorFeedback_ReportsCurrentProjectileThreatSummaryWhenInputSnapshotIsOlder()
         {
             var currentSnapshot = new AiArenaSnapshotEnvelope

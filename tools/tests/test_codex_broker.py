@@ -333,6 +333,8 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                 "executorFeedback": {
                     "source": "codex",
                     "summary": "AI DEFENSIVE RETREAT",
+                    "intentMode": "pressure",
+                    "intentReason": "heuristic_anti_air",
                     "botFeedback": "no target visible; improve: verify spawn, camera, or opponent tracking.",
                     "targetVisible": False,
                     "roundResetPending": False,
@@ -341,9 +343,14 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         )
 
         report = session.report_payload()
+        payload = session.state_payload()
 
         self.assertEqual("AI | Fallback:no_target", report["summary"])
         self.assertFalse(report["targetVisible"])
+        self.assertEqual("stabilize", payload["executorFeedback"]["intentMode"])
+        self.assertEqual("heuristic_waiting_for_target", payload["executorFeedback"]["intentReason"])
+        self.assertEqual("stabilize", report["feedbackIntentMode"])
+        self.assertEqual("heuristic_waiting_for_target", report["feedbackIntentReason"])
 
     def test_report_payload_uses_move_summary_when_executor_summary_is_empty(self) -> None:
         session = codex_broker.AgentDrivenSession(
