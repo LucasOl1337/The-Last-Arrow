@@ -243,6 +243,16 @@ def has_missed_ultimate_escape_feedback(state: dict[str, Any]) -> bool:
     return "missed ultimate escape" in combined
 
 
+def has_missed_melee_escape_feedback(state: dict[str, Any]) -> bool:
+    feedback_raw = state.get("executorFeedback")
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    combined = " ".join([
+        str(feedback.get("botFeedback", "")),
+        str(feedback.get("summary", "")),
+    ]).lower()
+    return "missed melee escape" in combined
+
+
 def resolve_runtime_provider(selected_provider: str, codex_available: bool) -> str:
     normalized = str(selected_provider or "openai_codex").strip().lower()
     if normalized == HEURISTIC_PROVIDER:
@@ -330,6 +340,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     missed_punish_window = has_missed_punish_window_feedback(state)
     missed_corner_escape = has_missed_corner_escape_feedback(state)
     missed_ultimate_escape = has_missed_ultimate_escape_feedback(state)
+    missed_melee_escape = has_missed_melee_escape_feedback(state)
     try:
         dash_cooldown_left = float(self_state.get("dashCooldownLeft", 0.0) or 0.0)
     except (TypeError, ValueError):
@@ -404,7 +415,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["reason"] = "missed_ultimate_escape" if missed_ultimate_escape else "target_ultimate_threat"
         return tuned
 
-    if target_melee_threat:
+    if target_melee_threat or missed_melee_escape:
         tuned["mode"] = "retreat"
         tuned["preferredRange"] = max(tuned["preferredRange"], 260)
         tuned["advanceBias"] = min(tuned["advanceBias"], 0.18)
@@ -414,7 +425,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["jumpBias"] = max(tuned["jumpBias"], 0.34 if self_grounded else 0.18)
         tuned["antiProjectile"] = "hold"
         tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.7)
-        tuned["reason"] = "target_melee_threat"
+        tuned["reason"] = "missed_melee_escape" if missed_melee_escape else "target_melee_threat"
         return tuned
 
     if target_ranged_threat:
