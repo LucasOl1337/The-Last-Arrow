@@ -266,6 +266,33 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["dashBias"], 0.68)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_challenges_anti_air_opportunity_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 280.0,
+            "verticalDistance": 180.0,
+            "targetInMeleeRange": False,
+            "targetInUltimateRange": False,
+            "targetInShootRange": True,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": True,
+        }
+        state["executorFeedback"]["botFeedback"] = (
+            "anti-air opportunity; action AI SHOOT; improve: challenge vertical approaches before landing."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("pressure", intent["mode"])
+        self.assertEqual("heuristic_anti_air_opportunity", intent["reason"])
+        self.assertTrue(intent["antiAir"])
+        self.assertGreaterEqual(intent["shootBias"], 0.72)
+        self.assertGreaterEqual(intent["jumpBias"], 0.5)
+        self.assertGreaterEqual(intent["dashBias"], 0.64)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_build_heuristic_intent_converts_missed_punish_window_feedback(self) -> None:
         state = _build_base_state()
         state["promptState"]["target"]["arrows"] = 0
@@ -806,6 +833,49 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(tuned["shootBias"], 0.68)
         self.assertGreaterEqual(tuned["jumpBias"], 0.7)
         self.assertGreaterEqual(tuned["dashBias"], 0.68)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
+    def test_apply_aggression_bias_challenges_anti_air_opportunity_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 280.0,
+            "verticalDistance": 180.0,
+            "targetInMeleeRange": False,
+            "targetInUltimateRange": False,
+            "targetInShootRange": True,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": True,
+        }
+        state["executorFeedback"]["botFeedback"] = (
+            "anti-air opportunity; action AI SHOOT; improve: challenge vertical approaches before landing."
+        )
+        intent = {
+            "mode": "zone",
+            "preferredRange": 420,
+            "advanceBias": 0.2,
+            "shootBias": 0.3,
+            "meleeBias": 0.7,
+            "dashBias": 0.2,
+            "jumpBias": 0.1,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.2,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "passive_zone",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("pressure", tuned["mode"])
+        self.assertEqual("anti_air_opportunity", tuned["reason"])
+        self.assertTrue(tuned["antiAir"])
+        self.assertGreaterEqual(tuned["shootBias"], 0.72)
+        self.assertGreaterEqual(tuned["jumpBias"], 0.5)
+        self.assertGreaterEqual(tuned["dashBias"], 0.64)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
     def test_apply_aggression_bias_converts_missed_punish_window_feedback(self) -> None:
