@@ -3888,6 +3888,83 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CodexBrokerCombatantInputSource_StalledRecoveryCommitOverridesWeakMovement()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ApplyRecoverArrowFeedbackFailsafe",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo currentIntentField = typeof(CodexBrokerCombatantInputSource).GetField(
+                "_currentIntent",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+            Assert.That(currentIntentField, Is.Not.Null);
+
+            GameObject root = new GameObject("StalledRecoveryCommitInput");
+            CodexBrokerCombatantInputSource input = root.AddComponent<CodexBrokerCombatantInputSource>();
+
+            try
+            {
+                currentIntentField.SetValue(input, new CodexStrategyIntent
+                {
+                    mode = "retreat",
+                    preferredRange = 300,
+                    advanceBias = 0.46f,
+                    shootBias = 0.1f,
+                    meleeBias = 0.22f,
+                    dashBias = 0.94f,
+                    jumpBias = 0.72f,
+                    antiProjectile = "hold",
+                    cornerEscapeBias = 0.9f,
+                    expiresInMs = 360,
+                    reason = "heuristic_recover_arrow_feedback_stalled_commit",
+                });
+
+                var snapshot = new AiArenaSnapshotEnvelope
+                {
+                    schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                    self = new AiArenaCombatantObservation
+                    {
+                        slotId = 1,
+                        facing = -1,
+                        arrows = 0,
+                        isGrounded = false,
+                        dashCooldownLeft = 0f,
+                        isDashing = false,
+                    },
+                    semantics = new AiArenaSemanticObservation
+                    {
+                        hasTarget = true,
+                        targetSlotId = 2,
+                        shouldCollectProjectile = true,
+                        hasCollectibleProjectile = true,
+                        collectibleProjectileDistance = 298f,
+                        collectibleProjectileDirection = Vector2.up,
+                        incomingProjectileThreat = false,
+                        targetUsingUltimate = false,
+                    },
+                };
+                var weakWrongFrame = new PlayerInputFrame
+                {
+                    axis = 0.16f,
+                    right = true,
+                    aim = Vector2.right,
+                };
+
+                var resolved = (PlayerInputFrame)method.Invoke(input, new object[] { snapshot, weakWrongFrame });
+
+                Assert.That(resolved.axis, Is.LessThan(-0.5f));
+                Assert.That(resolved.left, Is.True);
+                Assert.That(resolved.right, Is.False);
+                Assert.That(resolved.dashPrimaryPressed, Is.True);
+                Assert.That(resolved.shootPressed, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
+        [Test]
         public void HeuristicPolicy_DodgesUltimateBeforeCollectingArrow()
         {
             var snapshot = new AiArenaSnapshotEnvelope

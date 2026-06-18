@@ -790,12 +790,13 @@ namespace ProjectPVP.Input
                 return frame;
             }
 
+            bool stalledRecoveryCommit = IsRecoverArrowStalledCommitIntent(_currentIntent);
             bool alreadyMoving = Mathf.Abs(frame.axis) > 0.1f
                 || frame.jumpPressed
                 || frame.jumpHeld
                 || frame.dashPrimaryPressed
                 || frame.dashSecondaryPressed;
-            if (alreadyMoving)
+            if (alreadyMoving && !stalledRecoveryCommit)
             {
                 return frame;
             }
@@ -925,6 +926,13 @@ namespace ProjectPVP.Input
             return normalized.Contains("recover_arrow_feedback")
                 || normalized.Contains("recover_missed_arrow")
                 || normalized.Contains("recover_arrow_after_empty_shot");
+        }
+
+        private static bool IsRecoverArrowStalledCommitIntent(CodexStrategyIntent intent)
+        {
+            return intent != null
+                && !string.IsNullOrWhiteSpace(intent.reason)
+                && intent.reason.Trim().ToLowerInvariant().Contains("recover_arrow_feedback_stalled_commit");
         }
 
         private static bool IsLastArrowCommitIntent(CodexStrategyIntent intent)
