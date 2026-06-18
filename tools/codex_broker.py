@@ -332,6 +332,20 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
     return bot_feedback
 
 
+def resolve_report_intent_mode(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> str:
+    feedback_mode = str(executor_feedback.get("intentMode", "") or "").strip()
+    if feedback_mode:
+        return feedback_mode
+    return str((intent or {}).get("mode", "") or "")
+
+
+def resolve_report_intent_reason(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> str:
+    feedback_reason = str(executor_feedback.get("intentReason", "") or "").strip()
+    if feedback_reason:
+        return feedback_reason
+    return str((intent or {}).get("reason", "") or "")
+
+
 def compact_input(input_payload: dict[str, Any] | None) -> str:
     if not isinstance(input_payload, dict):
         return "-"
@@ -711,8 +725,10 @@ class AgentDrivenSession:
                 "controllerOwner": controller_owner,
                 "summary": resolve_report_summary(executor_feedback, self.cached_intent),
                 "botFeedback": bot_feedback,
-                "intentMode": str((self.cached_intent or {}).get("mode", "")),
-                "intentReason": str((self.cached_intent or {}).get("reason", "")),
+                "intentMode": resolve_report_intent_mode(executor_feedback, self.cached_intent),
+                "intentReason": resolve_report_intent_reason(executor_feedback, self.cached_intent),
+                "cachedIntentMode": str((self.cached_intent or {}).get("mode", "")),
+                "cachedIntentReason": str((self.cached_intent or {}).get("reason", "")),
                 "botId": str(prompt_state.get("botId", "") or self_prompt.get("botId", "") or ""),
                 "botDisplayName": str(prompt_state.get("botDisplayName", "") or self_prompt.get("botDisplayName", "") or ""),
                 "feedbackIntentMode": str(executor_feedback.get("intentMode", "")),

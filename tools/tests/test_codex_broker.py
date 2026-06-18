@@ -677,6 +677,53 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertEqual("pressure", report["feedbackIntentMode"])
         self.assertEqual("target_ranged_threat", report["feedbackIntentReason"])
 
+    def test_report_payload_uses_feedback_intent_as_effective_intent(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            1,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-1"},
+                "target": {"slotId": 2},
+                "arena": {"horizontalDistance": 575.0},
+            },
+        )
+        session.publish_action(
+            {
+                "mode": "pressure",
+                "reason": "heuristic_default_pressure",
+                "antiProjectile": "hold",
+            }
+        )
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI PROJECTILE THREAT",
+                    "botFeedback": "projectile threat active now; action pending; improve: defend before attacking.",
+                    "intentMode": "retreat",
+                    "intentReason": "projectile_threat_feedback",
+                    "targetVisible": True,
+                    "projectileThreatActive": True,
+                    "targetRangedThreatActive": True,
+                    "selfArrows": 3,
+                    "targetArrows": 2,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI PROJECTILE THREAT", report["summary"])
+        self.assertEqual("retreat", report["intentMode"])
+        self.assertEqual("projectile_threat_feedback", report["intentReason"])
+        self.assertEqual("pressure", report["cachedIntentMode"])
+        self.assertEqual("heuristic_default_pressure", report["cachedIntentReason"])
+        self.assertEqual("retreat", report["feedbackIntentMode"])
+        self.assertEqual("projectile_threat_feedback", report["feedbackIntentReason"])
+
     def test_report_payload_normalizes_current_anti_air_chase_from_cached_intent(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,
