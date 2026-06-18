@@ -34,6 +34,7 @@ namespace ProjectPVP.Input
             float awayFromTarget = -towardTarget;
             float preferredRange = Mathf.Max(80f, intent.preferredRange);
             float distanceError = semantics.horizontalDistance - preferredRange;
+            bool defensiveRetreatIntent = IsDefensiveRetreatIntent(intent);
             bool escapingCorner = false;
 
             if (prioritizeCollection && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !semantics.targetUsingRanged)
@@ -95,17 +96,27 @@ namespace ProjectPVP.Input
                         break;
                     case "retreat":
                     case "stabilize":
-                        decision.moveAxis = semantics.horizontalDistance < preferredRange * 0.75f
-                            ? awayFromTarget * Mathf.Lerp(0.45f, 1f, Mathf.Clamp01(intent.cornerEscapeBias))
-                            : semantics.horizontalDistance > preferredRange * 1.15f
-                                ? towardTarget * Mathf.Lerp(0.2f, 0.55f, Mathf.Clamp01(intent.advanceBias))
-                                : 0f;
-                        decision.meleePressed = canMelee && semantics.targetInMeleeRange && (semantics.targetVulnerable || semantics.shouldPunish) && intent.meleeBias >= 0.22f;
-                        decision.ultimatePressed = false;
-                        if (!decision.meleePressed && canShoot && semantics.targetInShootRange && (intent.shootBias >= 0.2f || semantics.horizontalDistance > preferredRange * 0.6f))
+                        if (defensiveRetreatIntent)
                         {
-                            decision.shootPressed = true;
-                            decision.shootHeld = true;
+                            ClearCombatActions(decision);
+                            decision.moveAxis = awayFromTarget * Mathf.Lerp(0.65f, 1f, Mathf.Clamp01(intent.cornerEscapeBias));
+                            decision.dashPrimaryPressed = canDash && intent.dashBias >= 0.75f;
+                            decision.debugSummary = "AI DEFENSIVE RETREAT";
+                        }
+                        else
+                        {
+                            decision.moveAxis = semantics.horizontalDistance < preferredRange * 0.75f
+                                ? awayFromTarget * Mathf.Lerp(0.45f, 1f, Mathf.Clamp01(intent.cornerEscapeBias))
+                                : semantics.horizontalDistance > preferredRange * 1.15f
+                                    ? towardTarget * Mathf.Lerp(0.2f, 0.55f, Mathf.Clamp01(intent.advanceBias))
+                                    : 0f;
+                            decision.meleePressed = canMelee && semantics.targetInMeleeRange && (semantics.targetVulnerable || semantics.shouldPunish) && intent.meleeBias >= 0.22f;
+                            decision.ultimatePressed = false;
+                            if (!decision.meleePressed && canShoot && semantics.targetInShootRange && (intent.shootBias >= 0.2f || semantics.horizontalDistance > preferredRange * 0.6f))
+                            {
+                                decision.shootPressed = true;
+                                decision.shootHeld = true;
+                            }
                         }
                         break;
                     case "punish":
@@ -360,6 +371,24 @@ namespace ProjectPVP.Input
                 "parry_prefer" => "parry_prefer",
                 _ => "hold",
             };
+        }
+
+        private static bool IsDefensiveRetreatIntent(CodexStrategyIntent intent)
+        {
+            if (intent == null || string.IsNullOrWhiteSpace(intent.reason))
+            {
+                return false;
+            }
+
+            string normalized = intent.reason.Trim().ToLowerInvariant();
+            return normalized.Contains("missed_ultimate_escape")
+                || normalized.Contains("missed_melee_escape")
+                || normalized.Contains("missed_ranged_response")
+                || normalized.Contains("target_ultimate_threat")
+                || normalized.Contains("target_melee_threat")
+                || normalized.Contains("target_ranged_threat")
+                || normalized.Contains("missed_projectile_defense")
+                || normalized.Contains("projectile_threat_feedback");
         }
 
         private static void ClearCombatActions(AiArenaDecisionEnvelope decision)
