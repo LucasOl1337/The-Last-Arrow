@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Globalization;
 using ProjectPVP.Gameplay;
@@ -202,7 +201,7 @@ namespace ProjectPVP.Match
                 return;
             }
 
-            Camera targetCamera = Camera.main != null ? Camera.main : Object.FindFirstObjectByType<Camera>();
+            Camera targetCamera = Camera.main != null ? Camera.main : UnityEngine.Object.FindFirstObjectByType<Camera>();
             if (targetCamera == null)
             {
                 return;
@@ -425,7 +424,7 @@ namespace ProjectPVP.Match
 
         private static string ExtractLabeledBotCoachClause(string feedback, string marker)
         {
-            int markerIndex = feedback.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            int markerIndex = feedback.IndexOf(marker, System.StringComparison.OrdinalIgnoreCase);
             if (markerIndex < 0)
             {
                 return string.Empty;

@@ -167,6 +167,30 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertLess(intent["shootBias"], 0.5)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_recovers_after_empty_shot_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 0
+        state["promptState"]["target"]["arrows"] = 2
+        state["promptState"]["recoverableProjectiles"] = [
+            {"sourceSlotId": 2, "distanceToSelf": 96.0},
+        ]
+        state["executorFeedback"]["recoverableProjectileAvailable"] = True
+        state["executorFeedback"]["recoverableProjectileCount"] = 1
+        state["executorFeedback"]["nearestRecoverableProjectileDistance"] = 96.0
+        state["executorFeedback"]["botFeedback"] = (
+            "shot attempted without arrows; action AI SHOOT; improve: recover arrow before shooting."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("retreat", intent["mode"])
+        self.assertEqual("heuristic_recover_arrow_after_empty_shot", intent["reason"])
+        self.assertLessEqual(intent["shootBias"], 0.1)
+        self.assertLessEqual(intent["meleeBias"], 0.28)
+        self.assertGreaterEqual(intent["dashBias"], 0.78)
+        self.assertGreaterEqual(intent["cornerEscapeBias"], 0.82)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_build_heuristic_intent_uses_projectile_evade(self) -> None:
         state = _build_base_state()
         state["promptState"]["arena"] = {
@@ -318,6 +342,46 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(tuned["advanceBias"], 0.88)
         self.assertGreaterEqual(tuned["dashBias"], 0.78)
         self.assertLess(tuned["shootBias"], 0.5)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
+    def test_apply_aggression_bias_recovers_after_empty_shot_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 0
+        state["promptState"]["target"]["arrows"] = 1
+        state["promptState"]["recoverableProjectiles"] = [
+            {"sourceSlotId": 2, "distanceToSelf": 96.0},
+        ]
+        state["executorFeedback"]["recoverableProjectileAvailable"] = True
+        state["executorFeedback"]["recoverableProjectileCount"] = 1
+        state["executorFeedback"]["nearestRecoverableProjectileDistance"] = 96.0
+        state["executorFeedback"]["botFeedback"] = (
+            "shot attempted without arrows; action AI SHOOT; improve: recover arrow before shooting."
+        )
+        intent = {
+            "mode": "pressure",
+            "preferredRange": 180,
+            "advanceBias": 0.84,
+            "shootBias": 0.82,
+            "meleeBias": 0.74,
+            "dashBias": 0.3,
+            "jumpBias": 0.2,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.2,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "stale_pressure",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("retreat", tuned["mode"])
+        self.assertEqual("empty_shot_recover_arrow", tuned["reason"])
+        self.assertLessEqual(tuned["shootBias"], 0.1)
+        self.assertLessEqual(tuned["meleeBias"], 0.3)
+        self.assertGreaterEqual(tuned["dashBias"], 0.78)
+        self.assertGreaterEqual(tuned["cornerEscapeBias"], 0.82)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
     def test_heuristic_intent_preserves_movement_stall_escape_after_aggression_bias(self) -> None:
