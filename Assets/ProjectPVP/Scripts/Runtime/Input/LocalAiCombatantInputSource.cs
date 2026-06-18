@@ -5,7 +5,7 @@ using UnityEngine;
 namespace ProjectPVP.Input
 {
     [DisallowMultipleComponent]
-    public sealed class LocalAiCombatantInputSource : MonoBehaviour, ICombatantInputSource, IBotFeedbackInputSource
+    public sealed class LocalAiCombatantInputSource : MonoBehaviour, ICombatantInputSource, IBotFeedbackInputSource, IBotCoachStatusInputSource
     {
         [Min(1)] public int slotId = 1;
         [Header("Combat Ranges")]
@@ -41,6 +41,7 @@ namespace ProjectPVP.Input
         public int ActiveGamepadSlot => -1;
         public string FaceButtonDebug => _debugSummary;
         public string BotFeedback => _botFeedback;
+        public string BotControllerStatus => "local-ai";
 
         public void CaptureFrame()
         {

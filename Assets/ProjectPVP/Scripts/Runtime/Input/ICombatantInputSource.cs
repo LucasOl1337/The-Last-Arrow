@@ -17,4 +17,9 @@ namespace ProjectPVP.Input
     {
         string BotFeedback { get; }
     }
+
+    public interface IBotCoachStatusInputSource
+    {
+        string BotControllerStatus { get; }
+    }
 }

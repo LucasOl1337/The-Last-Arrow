@@ -580,6 +580,25 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BotCoachHud_AppendsControllerStatusWhenAvailable()
+        {
+            Assert.That(TryBuildBotCoachLineMethod, Is.Not.Null);
+
+            var input = new FeedbackInputSource
+            {
+                Feedback = "projectile threat active now; action pending; improve: defend before attacking.",
+                Status = "CodexDirect/pressure/live",
+            };
+            object[] args = { "Codex", input, 150, null };
+
+            bool built = (bool)TryBuildBotCoachLineMethod.Invoke(null, args);
+
+            Assert.That(built, Is.True);
+            string line = (string)args[3];
+            Assert.That(line, Does.Contain("ctrl CodexDirect/pressure/live"));
+        }
+
+        [Test]
         public void BotCoachHud_IgnoresEmptyBotFeedback()
         {
             Assert.That(TryBuildBotCoachLineMethod, Is.Not.Null);
@@ -1253,14 +1272,16 @@ namespace ProjectPVP.Tests.Editor
             fatalPositionField.SetValue(context, player.RootPosition);
         }
 
-        private sealed class FeedbackInputSource : ICombatantInputSource, IBotFeedbackInputSource
+        private sealed class FeedbackInputSource : ICombatantInputSource, IBotFeedbackInputSource, IBotCoachStatusInputSource
         {
             public string Feedback { get; set; } = string.Empty;
+            public string Status { get; set; } = string.Empty;
             public PlayerInputFrame Frame { get; set; }
             public PlayerInputFrame CurrentFrame => Frame;
             public int ActiveGamepadSlot => -1;
             public string FaceButtonDebug => "Feedback";
             public string BotFeedback => Feedback;
+            public string BotControllerStatus => Status;
 
             public void CaptureFrame()
             {

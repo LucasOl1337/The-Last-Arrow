@@ -8,7 +8,7 @@ using UnityEngine.Networking;
 namespace ProjectPVP.Input
 {
     [DisallowMultipleComponent]
-    public sealed class CodexBrokerCombatantInputSource : MonoBehaviour, ICombatantInputSource, IBotFeedbackInputSource
+    public sealed class CodexBrokerCombatantInputSource : MonoBehaviour, ICombatantInputSource, IBotFeedbackInputSource, IBotCoachStatusInputSource
     {
         private const int MinimumSessionStartTimeoutMs = 3000;
 
@@ -69,6 +69,7 @@ namespace ProjectPVP.Input
         public string LastExecutorSource => _lastExecutorSource;
         public string LastExecutorSummary => _lastExecutorSummary;
         public string BotFeedback => _botFeedback;
+        public string BotControllerStatus => BuildBotControllerStatus();
         public string CurrentIntentMode => _currentIntent != null ? _currentIntent.mode : string.Empty;
         public string CurrentIntentReason => _currentIntent != null ? _currentIntent.reason : string.Empty;
         public bool HasAgentAction => _hasAgentAction;
@@ -80,6 +81,27 @@ namespace ProjectPVP.Input
         public float IntentAgeMs => _currentIntent == null || _lastIntentReceivedTime < 0f
             ? -1f
             : (Time.realtimeSinceStartup - _lastIntentReceivedTime) * 1000f;
+
+        private string BuildBotControllerStatus()
+        {
+            string owner = string.IsNullOrWhiteSpace(_controllerOwner)
+                ? _lastExecutorSource
+                : _controllerOwner;
+            string mode = _currentIntent != null && !string.IsNullOrWhiteSpace(_currentIntent.mode)
+                ? _currentIntent.mode.Trim()
+                : (_hasAgentAction ? "agent" : "fallback");
+            string session = string.IsNullOrWhiteSpace(_sessionId)
+                ? "no-session"
+                : (_sessionStartRequest.InFlight || _strategyRequest.InFlight ? "requesting" : "live");
+            return CompactBotStatusToken(owner) + "/" + CompactBotStatusToken(mode) + "/" + session;
+        }
+
+        private static string CompactBotStatusToken(string value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? "unknown"
+                : value.Trim().Replace(' ', '_');
+        }
 
         private void OnEnable()
         {

@@ -283,15 +283,32 @@ namespace ProjectPVP.Match
 
             int safeMax = Mathf.Max(3, maxFeedbackChars);
             string inputSummary = BuildBotInputSummary(inputSource.CurrentFrame);
+            string statusSummary = BuildBotStatusSummary(inputSource);
             string inputSuffix = string.IsNullOrWhiteSpace(inputSummary)
                 ? string.Empty
                 : " | " + inputSummary;
-            int feedbackMax = Mathf.Max(3, safeMax - inputSuffix.Length);
+            string statusSuffix = string.IsNullOrWhiteSpace(statusSummary)
+                ? string.Empty
+                : " | " + statusSummary;
+            int feedbackMax = Mathf.Max(3, safeMax - inputSuffix.Length - statusSuffix.Length);
             feedback = CompactBotCoachFeedback(feedback, feedbackMax);
 
             string label = string.IsNullOrWhiteSpace(displayName) ? "Bot" : displayName.Trim();
-            line = label + ": " + feedback + inputSuffix;
+            line = label + ": " + feedback + statusSuffix + inputSuffix;
             return true;
+        }
+
+        private static string BuildBotStatusSummary(ICombatantInputSource inputSource)
+        {
+            if (inputSource is not IBotCoachStatusInputSource statusSource)
+            {
+                return string.Empty;
+            }
+
+            string status = NormalizeBotFeedback(statusSource.BotControllerStatus);
+            return string.IsNullOrWhiteSpace(status)
+                ? string.Empty
+                : "ctrl " + status;
         }
 
         private static string BuildBotInputSummary(PlayerInputFrame frame)
