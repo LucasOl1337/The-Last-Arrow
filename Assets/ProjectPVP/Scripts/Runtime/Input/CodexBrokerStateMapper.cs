@@ -65,7 +65,7 @@ namespace ProjectPVP.Input
                 return "projectile threat active now; action pending; improve: defend before attacking.";
             }
 
-            if (IsCurrentProjectileThreat(snapshot))
+            if (IsCurrentProjectileThreat(snapshot) && snapshot.semantics != null && !snapshot.semantics.hasTarget)
             {
                 return "projectile threat active now; action pending; improve: defend before attacking.";
             }
@@ -141,12 +141,13 @@ namespace ProjectPVP.Input
             AiArenaSnapshotEnvelope reportedInputSnapshot,
             CodexReportedInputFrame reportedInput)
         {
-            if (snapshot != null && snapshot.arena != null && snapshot.arena.roundResetPending)
+            if (snapshot != null && snapshot.arena != null && snapshot.arena.roundResetPending && string.IsNullOrWhiteSpace(lastExecutorSummary))
             {
                 return "AI | Fallback:round_reset";
             }
 
-            if (IsNewCurrentProjectileThreat(snapshot, reportedInputSnapshot) || IsCurrentProjectileThreat(snapshot))
+            if (IsNewCurrentProjectileThreat(snapshot, reportedInputSnapshot)
+                || (IsCurrentProjectileThreat(snapshot) && snapshot.semantics != null && !snapshot.semantics.hasTarget))
             {
                 return "AI PROJECTILE THREAT";
             }
@@ -216,12 +217,12 @@ namespace ProjectPVP.Input
 
         private static string ResolveCurrentAwareIntentMode(CodexStrategyIntent currentIntent, AiArenaSnapshotEnvelope snapshot)
         {
-            if (IsCurrentProjectileThreat(snapshot))
+            if (IsCurrentProjectileThreat(snapshot) && snapshot.semantics != null && !snapshot.semantics.hasTarget)
             {
                 return "retreat";
             }
 
-            if (IsRoundResetOrNoTarget(snapshot))
+            if (IsNoTarget(snapshot))
             {
                 return "stabilize";
             }
@@ -236,12 +237,12 @@ namespace ProjectPVP.Input
 
         private static string ResolveCurrentAwareIntentReason(CodexStrategyIntent currentIntent, AiArenaSnapshotEnvelope snapshot)
         {
-            if (IsCurrentProjectileThreat(snapshot))
+            if (IsCurrentProjectileThreat(snapshot) && snapshot.semantics != null && !snapshot.semantics.hasTarget)
             {
                 return "projectile_threat_feedback";
             }
 
-            if (IsRoundResetOrNoTarget(snapshot))
+            if (IsNoTarget(snapshot))
             {
                 return "heuristic_waiting_for_target";
             }
@@ -261,13 +262,20 @@ namespace ProjectPVP.Input
                     || (snapshot.semantics != null && !snapshot.semantics.hasTarget));
         }
 
+        private static bool IsNoTarget(AiArenaSnapshotEnvelope snapshot)
+        {
+            return snapshot != null
+                && snapshot.semantics != null
+                && !snapshot.semantics.hasTarget;
+        }
+
         private static bool IsNewCurrentProjectileThreat(AiArenaSnapshotEnvelope snapshot, AiArenaSnapshotEnvelope reportedInputSnapshot)
         {
             return snapshot != null
                 && snapshot.semantics != null
                 && snapshot.semantics.incomingProjectileThreat
-                && (reportedInputSnapshot == null
-                    || reportedInputSnapshot.semantics == null
+                && reportedInputSnapshot != null
+                && (reportedInputSnapshot.semantics == null
                     || !reportedInputSnapshot.semantics.incomingProjectileThreat);
         }
 
@@ -285,8 +293,8 @@ namespace ProjectPVP.Input
                 && snapshot.semantics.hasTarget
                 && snapshot.semantics.targetUsingRanged
                 && !snapshot.semantics.incomingProjectileThreat
-                && (reportedInputSnapshot == null
-                    || reportedInputSnapshot.semantics == null
+                && reportedInputSnapshot != null
+                && (reportedInputSnapshot.semantics == null
                     || !reportedInputSnapshot.semantics.targetUsingRanged);
         }
 
@@ -305,8 +313,8 @@ namespace ProjectPVP.Input
                 && snapshot.semantics != null
                 && snapshot.semantics.hasTarget
                 && snapshot.semantics.selfCornered
-                && (reportedInputSnapshot == null
-                    || reportedInputSnapshot.semantics == null
+                && reportedInputSnapshot != null
+                && (reportedInputSnapshot.semantics == null
                     || !reportedInputSnapshot.semantics.selfCornered);
         }
 
@@ -389,8 +397,7 @@ namespace ProjectPVP.Input
                 return false;
             }
 
-            return string.IsNullOrWhiteSpace(lastExecutorSummary)
-                || lastExecutorSummary.IndexOf("last arrow pressure", System.StringComparison.OrdinalIgnoreCase) < 0;
+            return true;
         }
 
         private static bool IsStalledLastArrowPressureInput(CodexReportedInputFrame reportedInput)

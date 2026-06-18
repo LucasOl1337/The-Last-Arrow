@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 namespace ProjectPVP.Input
@@ -185,7 +186,7 @@ namespace ProjectPVP.Input
             if (semantics.incomingProjectileThreat)
             {
                 string time = semantics.incomingProjectileTime >= 0f
-                    ? semantics.incomingProjectileTime.ToString("0.00") + "s"
+                    ? semantics.incomingProjectileTime.ToString("0.00", CultureInfo.InvariantCulture) + "s"
                     : "now";
                 if (!IsProjectileDefenseDecision(decision, trustDebugSummaryForAction))
                 {
@@ -245,14 +246,14 @@ namespace ProjectPVP.Input
 
             if (shotDecision && !semantics.targetInShootRange)
             {
-                return "shot attempted out of range at " + semantics.horizontalDistance.ToString("0") + "u; action " + action
+                return "shot attempted out of range at " + semantics.horizontalDistance.ToString("0", CultureInfo.InvariantCulture) + "u; action " + action
                     + "; improve: close distance, aim a valid line, or hold fire.";
             }
 
             if (semantics.shouldCollectProjectile)
             {
                 string distance = semantics.collectibleProjectileDistance >= 0f
-                    ? semantics.collectibleProjectileDistance.ToString("0") + "u"
+                    ? semantics.collectibleProjectileDistance.ToString("0", CultureInfo.InvariantCulture) + "u"
                     : "unknown distance";
                 if (semantics.shouldCollectProjectile && IsKnownProjectileRecoveryDirection(semantics) && !IsProjectileRecoveryDecision(semantics, decision))
                 {
@@ -299,11 +300,11 @@ namespace ProjectPVP.Input
 
             if (semantics.targetVulnerable)
             {
-                return "vulnerable target out of range at " + semantics.horizontalDistance.ToString("0") + "u; action " + action
+                return "vulnerable target out of range at " + semantics.horizontalDistance.ToString("0", CultureInfo.InvariantCulture) + "u; action " + action
                     + "; improve: close distance before spending attacks.";
             }
 
-            return "spacing stable at " + semantics.horizontalDistance.ToString("0") + "u; action " + action + "; improve: keep pressure without wasting arrows.";
+            return "spacing stable at " + semantics.horizontalDistance.ToString("0", CultureInfo.InvariantCulture) + "u; action " + action + "; improve: keep pressure without wasting arrows.";
         }
 
         private static bool IsAttackDecision(AiArenaDecisionEnvelope decision, bool trustDebugSummaryForAction)
@@ -319,6 +320,14 @@ namespace ProjectPVP.Input
             }
 
             if (!trustDebugSummaryForAction || string.IsNullOrWhiteSpace(decision.debugSummary))
+            {
+                return false;
+            }
+
+            if (decision.debugSummary.IndexOf("evade", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("dodge", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("escape", StringComparison.OrdinalIgnoreCase) >= 0
+                || decision.debugSummary.IndexOf("retreat", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 return false;
             }

@@ -305,9 +305,9 @@ namespace ProjectPVP.Match
             if (frame.aim.sqrMagnitude > 0.01f)
             {
                 tokens.Add("aim "
-                    + frame.aim.x.ToString("+0.0;-0.0;0.0", CultureInfo.InvariantCulture)
+                    + frame.aim.x.ToString("+0.0;-0.0;+0.0", CultureInfo.InvariantCulture)
                     + ","
-                    + frame.aim.y.ToString("+0.0;-0.0;0.0", CultureInfo.InvariantCulture));
+                    + frame.aim.y.ToString("+0.0;-0.0;+0.0", CultureInfo.InvariantCulture));
             }
 
             string buttonSummary = BuildBotButtonSummary(frame);
