@@ -310,6 +310,7 @@ namespace ProjectPVP.Tests.Editor
                 reportedInputSnapshot);
 
             Assert.That(feedback.targetVisible, Is.False);
+            Assert.That(feedback.summary, Is.EqualTo("AI | Fallback:no_target"));
             Assert.That(feedback.botFeedback, Does.Contain("no target visible"));
             Assert.That(feedback.botFeedback, Does.Not.Contain("missed corner escape"));
         }
@@ -348,6 +349,43 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(feedback.summary, Is.EqualTo("AI PROJECTILE THREAT"));
             Assert.That(feedback.botFeedback, Does.Contain("projectile threat active now"));
             Assert.That(feedback.botFeedback, Does.Not.Contain("missed projectile defense"));
+        }
+
+        [Test]
+        public void BuildExecutorFeedback_ReportsCurrentCornerThreatSummaryWhenInputSnapshotIsOlder()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfCornered = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var reportedInputSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfCornered = false,
+                    targetDirection = Vector2.right,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI MOVE",
+                currentIntent: null,
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 42, axis = -0.75f, aim = Vector2.right },
+                reportedInputSnapshot);
+
+            Assert.That(feedback.selfCornered, Is.True);
+            Assert.That(feedback.summary, Is.EqualTo("AI CORNER THREAT"));
+            Assert.That(feedback.botFeedback, Does.Contain("corner pressure active now"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("missed corner escape"));
         }
 
         [Test]

@@ -53,6 +53,11 @@ namespace ProjectPVP.Input
                 return "projectile threat active now; action pending; improve: defend before attacking.";
             }
 
+            if (IsNewCurrentCornerThreat(snapshot, reportedInputSnapshot))
+            {
+                return "corner pressure active now; action pending; improve: escape toward arena center before attacking.";
+            }
+
             return AiArenaBotFeedbackBuilder.Build(feedbackSnapshot, lastExecutorSummary, reportedInput);
         }
 
@@ -61,9 +66,24 @@ namespace ProjectPVP.Input
             AiArenaSnapshotEnvelope snapshot,
             AiArenaSnapshotEnvelope reportedInputSnapshot)
         {
+            if (snapshot != null && snapshot.arena != null && snapshot.arena.roundResetPending)
+            {
+                return "AI | Fallback:round_reset";
+            }
+
+            if (snapshot != null && snapshot.semantics != null && !snapshot.semantics.hasTarget)
+            {
+                return "AI | Fallback:no_target";
+            }
+
             if (IsNewCurrentProjectileThreat(snapshot, reportedInputSnapshot))
             {
                 return "AI PROJECTILE THREAT";
+            }
+
+            if (IsNewCurrentCornerThreat(snapshot, reportedInputSnapshot))
+            {
+                return "AI CORNER THREAT";
             }
 
             return lastExecutorSummary;
@@ -77,6 +97,17 @@ namespace ProjectPVP.Input
                 && (reportedInputSnapshot == null
                     || reportedInputSnapshot.semantics == null
                     || !reportedInputSnapshot.semantics.incomingProjectileThreat);
+        }
+
+        private static bool IsNewCurrentCornerThreat(AiArenaSnapshotEnvelope snapshot, AiArenaSnapshotEnvelope reportedInputSnapshot)
+        {
+            return snapshot != null
+                && snapshot.semantics != null
+                && snapshot.semantics.hasTarget
+                && snapshot.semantics.selfCornered
+                && (reportedInputSnapshot == null
+                    || reportedInputSnapshot.semantics == null
+                    || !reportedInputSnapshot.semantics.selfCornered);
         }
 
         private static bool ShouldPreferCurrentFeedbackSnapshot(AiArenaSnapshotEnvelope snapshot)
