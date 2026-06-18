@@ -332,7 +332,47 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
     return bot_feedback
 
 
+def is_waiting_for_visible_target(executor_feedback: dict[str, Any]) -> bool:
+    return (
+        bool(executor_feedback.get("targetVisible", False))
+        and not bool(executor_feedback.get("roundResetPending", False))
+        and str(executor_feedback.get("intentReason", "") or "").strip().lower() == "heuristic_waiting_for_target"
+    )
+
+
+def resolve_visible_target_intent(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> tuple[str, str]:
+    if not is_waiting_for_visible_target(executor_feedback):
+        return (
+            str(executor_feedback.get("intentMode", "") or ""),
+            str(executor_feedback.get("intentReason", "") or ""),
+        )
+
+    cached_mode = str((intent or {}).get("mode", "") or "").strip()
+    cached_reason = str((intent or {}).get("reason", "") or "").strip()
+    if cached_reason and "waiting_for_target" not in cached_reason.lower():
+        return cached_mode or "pressure", cached_reason
+
+    return "pressure", "heuristic_close_distance"
+
+
+def normalize_visible_target_feedback_intent(
+    executor_feedback: dict[str, Any],
+    intent: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not is_waiting_for_visible_target(executor_feedback):
+        return executor_feedback
+
+    normalized = deepcopy(executor_feedback)
+    mode, reason = resolve_visible_target_intent(normalized, intent)
+    normalized["intentMode"] = mode
+    normalized["intentReason"] = reason
+    return normalized
+
+
 def resolve_report_intent_mode(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> str:
+    visible_target_mode, _ = resolve_visible_target_intent(executor_feedback, intent)
+    if visible_target_mode:
+        return visible_target_mode
     feedback_mode = str(executor_feedback.get("intentMode", "") or "").strip()
     if feedback_mode:
         return feedback_mode
@@ -340,6 +380,9 @@ def resolve_report_intent_mode(executor_feedback: dict[str, Any], intent: dict[s
 
 
 def resolve_report_intent_reason(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> str:
+    _, visible_target_reason = resolve_visible_target_intent(executor_feedback, intent)
+    if visible_target_reason:
+        return visible_target_reason
     feedback_reason = str(executor_feedback.get("intentReason", "") or "").strip()
     if feedback_reason:
         return feedback_reason
@@ -676,6 +719,7 @@ class AgentDrivenSession:
         with self.lock:
             prompt_state = deepcopy(self.prompt_state)
             executor_feedback = normalize_executor_feedback(self.executor_feedback)
+            executor_feedback = normalize_visible_target_feedback_intent(executor_feedback, self.cached_intent)
             return {
                 "ok": True,
                 "sessionId": self.session_id,
@@ -697,6 +741,7 @@ class AgentDrivenSession:
     def report_payload(self) -> dict[str, Any]:
         with self.lock:
             executor_feedback = normalize_executor_feedback(self.executor_feedback)
+            executor_feedback = normalize_visible_target_feedback_intent(executor_feedback, self.cached_intent)
             input_payload = deepcopy(executor_feedback.get("reportedInput") or {})
             source = str(executor_feedback.get("source", "")).strip()
             prompt_state = deepcopy(self.prompt_state)

@@ -724,6 +724,58 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertEqual("retreat", report["feedbackIntentMode"])
         self.assertEqual("projectile_threat_feedback", report["feedbackIntentReason"])
 
+    def test_state_payload_replaces_waiting_for_target_when_target_is_visible(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 1333.0},
+            },
+        )
+        session.publish_action(
+            {
+                "mode": "pressure",
+                "reason": "heuristic_anti_air",
+                "antiAir": False,
+            }
+        )
+        session.publish_state(
+            {
+                "frame": 15,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI MOVE",
+                    "botFeedback": "spacing stable at 1333u; action AI MOVE; improve: keep pressure without wasting arrows.",
+                    "intentMode": "stabilize",
+                    "intentReason": "heuristic_waiting_for_target",
+                    "targetVisible": True,
+                    "targetAbove": True,
+                    "targetInShootRange": False,
+                    "verticalDistance": 100.0,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "selfArrows": 3,
+                    "targetArrows": 2,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        payload = session.state_payload()
+        report = session.report_payload()
+
+        self.assertEqual("pressure", payload["executorFeedback"]["intentMode"])
+        self.assertEqual("heuristic_anti_air", payload["executorFeedback"]["intentReason"])
+        self.assertEqual("AI ANTI AIR CHASE", report["summary"])
+        self.assertEqual("pressure", report["intentMode"])
+        self.assertEqual("heuristic_anti_air", report["intentReason"])
+        self.assertEqual("pressure", report["feedbackIntentMode"])
+        self.assertEqual("heuristic_anti_air", report["feedbackIntentReason"])
+
     def test_report_payload_normalizes_current_anti_air_chase_from_cached_intent(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,
