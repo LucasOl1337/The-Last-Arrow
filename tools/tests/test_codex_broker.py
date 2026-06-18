@@ -512,6 +512,7 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "targetVisible": True,
                     "targetAbove": True,
                     "targetInShootRange": False,
+                    "verticalDistance": 340.0,
                     "projectileThreatActive": False,
                     "targetRangedThreatActive": False,
                     "targetUltimateThreatActive": False,
@@ -526,6 +527,54 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertEqual("AI ANTI AIR CHASE", report["summary"])
         self.assertEqual(
             "anti-air chase active now; action pending; improve: climb into range before spending arrows.",
+            report["botFeedback"],
+        )
+
+    def test_report_payload_keeps_move_for_slight_vertical_anti_air_intent(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 1460.0},
+            },
+        )
+
+        session.publish_action(
+            {
+                "mode": "pressure",
+                "reason": "heuristic_anti_air",
+                "antiAir": False,
+            }
+        )
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI MOVE",
+                    "botFeedback": "spacing stable at 1460u; action AI MOVE; improve: keep pressure without wasting arrows.",
+                    "targetVisible": True,
+                    "targetAbove": True,
+                    "targetInShootRange": False,
+                    "shouldAntiAir": False,
+                    "verticalDistance": 44.0,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "selfArrows": 3,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI MOVE", report["summary"])
+        self.assertEqual(
+            "spacing stable at 1460u; action AI MOVE; improve: keep pressure without wasting arrows.",
             report["botFeedback"],
         )
 

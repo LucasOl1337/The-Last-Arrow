@@ -546,6 +546,45 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_DoesNotReportAntiAirChaseForSlightVerticalOffset()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 3,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetAbove = true,
+                    targetInShootRange = false,
+                    shouldAntiAir = false,
+                    horizontalDistance = 1460f,
+                    verticalDistance = 44f,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var currentIntent = new CodexStrategyIntent
+            {
+                mode = "pressure",
+                reason = "heuristic_anti_air",
+                antiAir = false,
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI MOVE",
+                currentIntent,
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 42, axis = 1f, aim = Vector2.right });
+
+            Assert.That(feedback.summary, Is.EqualTo("AI MOVE"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("anti-air chase active now"));
+        }
+
+        [Test]
         public void BuildExecutorFeedback_ReportsCurrentAntiAirShotWhenInputSnapshotIsOlder()
         {
             var currentSnapshot = new AiArenaSnapshotEnvelope

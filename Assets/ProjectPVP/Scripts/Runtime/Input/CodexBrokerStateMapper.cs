@@ -191,6 +191,7 @@ namespace ProjectPVP.Input
                 || snapshot.semantics.targetUsingUltimate
                 || !snapshot.semantics.targetAbove
                 || snapshot.semantics.targetInShootRange
+                || (!snapshot.semantics.shouldAntiAir && snapshot.semantics.verticalDistance < 96f)
                 || snapshot.self.arrows <= 0
                 || !IsAntiAirIntent(currentIntent))
             {

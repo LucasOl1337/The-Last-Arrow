@@ -4680,6 +4680,74 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_SlightVerticalOffsetDoesNotForceAntiAirChase()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 3,
+                    dashCooldownLeft = 0f,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                    isDashing = false,
+                    isGrounded = true,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 2,
+                        position = new Vector2(1460f, 44f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 1460f,
+                    verticalDistance = 44f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = new Vector2(0.99f, 0.03f),
+                    targetAbove = true,
+                    targetInShootRange = false,
+                    targetInMeleeRange = false,
+                    targetInUltimateRange = false,
+                    shouldAntiAir = false,
+                    selfHasArrows = true,
+                    incomingProjectileThreat = false,
+                    targetUsingRanged = false,
+                    targetUsingUltimate = false,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "pressure",
+                preferredRange = 360,
+                advanceBias = 0.7f,
+                shootBias = 0.4f,
+                meleeBias = 0.1f,
+                dashBias = 0.7f,
+                jumpBias = 0.34f,
+                antiProjectile = "hold",
+                antiAir = false,
+                expiresInMs = 400,
+                reason = "heuristic_anti_air",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.Not.EqualTo("AI ANTI AIR CHASE"));
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+        }
+
+        [Test]
         public void StrategicPolicy_SemanticAntiAirShootsWhenTargetAboveAndInRange()
         {
             var snapshot = new AiArenaSnapshotEnvelope

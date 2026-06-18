@@ -148,6 +148,10 @@ def is_current_anti_air_chase(executor_feedback: dict[str, Any], intent: dict[st
         and bool(executor_feedback.get("targetVisible", False))
         and bool(executor_feedback.get("targetAbove", False))
         and not bool(executor_feedback.get("targetInShootRange", False))
+        and (
+            bool(executor_feedback.get("shouldAntiAir", False))
+            or safe_float(executor_feedback.get("verticalDistance", 0), 0) >= 96.0
+        )
         and not bool(executor_feedback.get("projectileThreatActive", False))
         and not bool(executor_feedback.get("targetRangedThreatActive", False))
         and not bool(executor_feedback.get("targetUltimateThreatActive", False))

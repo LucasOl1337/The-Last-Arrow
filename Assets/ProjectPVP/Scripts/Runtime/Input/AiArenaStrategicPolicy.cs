@@ -28,6 +28,7 @@ namespace ProjectPVP.Input
             bool cornerEscapeIntent = IsCornerEscapeIntent(intent);
             bool antiAirIntent = IsAntiAirIntent(intent);
             bool antiAirOpportunity = antiAirIntent || semantics.shouldAntiAir;
+            bool antiAirChaseOpportunity = semantics.shouldAntiAir || (antiAirIntent && semantics.verticalDistance >= 96f);
             bool deferCollectionForCornerEscape = cornerEscapeIntent || AiArenaHeuristicPolicy.ShouldDeferCollectionForCornerEscape(semantics);
             bool prioritizeCollection = semantics.shouldCollectProjectile
                 && (self.arrows <= 1 || targetArrows > self.arrows)
@@ -203,7 +204,7 @@ namespace ProjectPVP.Input
                 escapingCorner = true;
             }
 
-            if (antiAirOpportunity
+            if (antiAirChaseOpportunity
                 && semantics.targetAbove
                 && !semantics.targetInShootRange
                 && self.arrows > 0
