@@ -271,6 +271,35 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["dashBias"], 0.8)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_escapes_after_missed_corner_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 2
+        state["promptState"]["target"]["arrows"] = 0
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 340.0,
+            "verticalDistance": 12.0,
+            "targetInMeleeRange": False,
+            "targetInUltimateRange": False,
+            "targetInShootRange": True,
+            "targetCornered": False,
+            "selfCornered": True,
+            "targetAbove": False,
+        }
+        state["executorFeedback"]["botFeedback"] = (
+            "missed corner escape; action AI PRESSURE; improve: move toward center before committing."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("retreat", intent["mode"])
+        self.assertEqual("heuristic_missed_corner_escape", intent["reason"])
+        self.assertGreaterEqual(intent["cornerEscapeBias"], 0.9)
+        self.assertGreaterEqual(intent["dashBias"], 0.86)
+        self.assertGreaterEqual(intent["jumpBias"], 0.55)
+        self.assertLessEqual(intent["advanceBias"], 0.18)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_build_heuristic_intent_uses_projectile_evade(self) -> None:
         state = _build_base_state()
         state["promptState"]["arena"] = {
@@ -624,6 +653,51 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(tuned["meleeBias"], 0.9)
         self.assertGreaterEqual(tuned["shootBias"], 0.66)
         self.assertGreaterEqual(tuned["dashBias"], 0.8)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
+    def test_apply_aggression_bias_escapes_after_missed_corner_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 2
+        state["promptState"]["target"]["arrows"] = 0
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 340.0,
+            "verticalDistance": 12.0,
+            "targetInMeleeRange": False,
+            "targetInUltimateRange": False,
+            "targetInShootRange": True,
+            "targetCornered": False,
+            "selfCornered": True,
+            "targetAbove": False,
+        }
+        state["executorFeedback"]["botFeedback"] = (
+            "missed corner escape; action AI PRESSURE; improve: move toward center before committing."
+        )
+        intent = {
+            "mode": "pressure",
+            "preferredRange": 180,
+            "advanceBias": 0.9,
+            "shootBias": 0.72,
+            "meleeBias": 0.74,
+            "dashBias": 0.2,
+            "jumpBias": 0.1,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.2,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "last_arrow_pressure",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("retreat", tuned["mode"])
+        self.assertEqual("missed_corner_escape", tuned["reason"])
+        self.assertGreaterEqual(tuned["cornerEscapeBias"], 0.9)
+        self.assertGreaterEqual(tuned["dashBias"], 0.86)
+        self.assertGreaterEqual(tuned["jumpBias"], 0.55)
+        self.assertLessEqual(tuned["advanceBias"], 0.18)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
     def test_heuristic_intent_preserves_movement_stall_escape_after_aggression_bias(self) -> None:

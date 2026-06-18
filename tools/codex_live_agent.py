@@ -223,6 +223,16 @@ def has_missed_punish_window_feedback(state: dict[str, Any]) -> bool:
     return "missed punish window" in combined
 
 
+def has_missed_corner_escape_feedback(state: dict[str, Any]) -> bool:
+    feedback_raw = state.get("executorFeedback")
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    combined = " ".join([
+        str(feedback.get("botFeedback", "")),
+        str(feedback.get("summary", "")),
+    ]).lower()
+    return "missed corner escape" in combined
+
+
 def resolve_runtime_provider(selected_provider: str, codex_available: bool) -> str:
     normalized = str(selected_provider or "openai_codex").strip().lower()
     if normalized == HEURISTIC_PROVIDER:
@@ -308,6 +318,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     missed_anti_air = has_missed_anti_air_feedback(state)
     missed_projectile_defense = has_missed_projectile_defense_feedback(state)
     missed_punish_window = has_missed_punish_window_feedback(state)
+    missed_corner_escape = has_missed_corner_escape_feedback(state)
     try:
         dash_cooldown_left = float(self_state.get("dashCooldownLeft", 0.0) or 0.0)
     except (TypeError, ValueError):
@@ -351,6 +362,19 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["antiProjectile"] = defensive_anti_projectile
         tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.82)
         tuned["reason"] = "missed_projectile_defense"
+        return tuned
+
+    if missed_corner_escape and self_cornered:
+        tuned["mode"] = "retreat"
+        tuned["preferredRange"] = max(tuned["preferredRange"], 320)
+        tuned["advanceBias"] = min(tuned["advanceBias"], 0.18)
+        tuned["shootBias"] = min(tuned["shootBias"], 0.32)
+        tuned["meleeBias"] = min(tuned["meleeBias"], 0.26)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.9 if can_dash else 0.6)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.58 if self_grounded else 0.24)
+        tuned["antiProjectile"] = "hold"
+        tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.94)
+        tuned["reason"] = "missed_corner_escape"
         return tuned
 
     if not target_visible or projectile_risk:
@@ -637,6 +661,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     missed_arrow_recovery = has_missed_arrow_recovery_feedback(state)
     missed_anti_air = has_missed_anti_air_feedback(state)
     missed_punish_window = has_missed_punish_window_feedback(state)
+    missed_corner_escape = has_missed_corner_escape_feedback(state)
 
     projectile_eta: float | None = None
     for projectile in dangerous_projectiles:
@@ -841,6 +866,21 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
             "antiProjectile": "hold",
             "cornerEscapeBias": 0.18,
             "reason": "heuristic_missed_punish_window",
+        })
+        return intent
+
+    if missed_corner_escape and self_cornered:
+        intent.update({
+            "mode": "retreat",
+            "preferredRange": 320,
+            "advanceBias": 0.16,
+            "shootBias": 0.28,
+            "meleeBias": 0.24,
+            "dashBias": 0.9 if can_dash else 0.6,
+            "jumpBias": 0.6 if self_grounded else 0.24,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.94,
+            "reason": "heuristic_missed_corner_escape",
         })
         return intent
 
