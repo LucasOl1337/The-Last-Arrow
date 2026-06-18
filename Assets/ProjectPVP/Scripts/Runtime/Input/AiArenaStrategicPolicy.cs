@@ -28,6 +28,7 @@ namespace ProjectPVP.Input
             bool cornerEscapeIntent = IsCornerEscapeIntent(intent);
             bool antiAirIntent = IsAntiAirIntent(intent);
             bool recoverArrowFeedbackIntent = IsRecoverArrowFeedbackIntent(intent);
+            bool lastArrowCommitIntent = IsLastArrowCommitIntent(intent);
             bool antiAirOpportunity = antiAirIntent || semantics.shouldAntiAir;
             bool antiAirChaseOpportunity = semantics.shouldAntiAir || (antiAirIntent && semantics.verticalDistance >= 96f);
             bool movementStallEscapeIntent = IsMovementStallEscapeIntent(intent);
@@ -245,7 +246,37 @@ namespace ProjectPVP.Input
                 decision.debugSummary = "AI ANTI AIR CHASE";
             }
 
-            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !escapingCorner && !effectiveDefensiveRetreatIntent)
+            if (lastArrowCommitIntent
+                && !semantics.incomingProjectileThreat
+                && !semantics.targetUsingUltimate
+                && !prioritizeCollection
+                && !escapingCorner
+                && targetArrows <= 0
+                && self.arrows > 0)
+            {
+                ClearCombatActions(decision);
+                decision.moveAxis = towardTarget;
+                if (canShoot && semantics.targetInShootRange)
+                {
+                    decision.shootPressed = true;
+                    decision.shootHeld = true;
+                    decision.moveAxis = towardTarget * 0.25f;
+                }
+                else if (canDash && semantics.horizontalDistance > 120f)
+                {
+                    decision.dashPrimaryPressed = true;
+                }
+
+                if (self.isGrounded && semantics.targetAbove)
+                {
+                    decision.jumpPressed = true;
+                    decision.jumpHeld = true;
+                }
+
+                decision.debugSummary = "AI LAST ARROW COMMIT";
+            }
+
+            if (!lastArrowCommitIntent && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !escapingCorner && !effectiveDefensiveRetreatIntent)
             {
                 if (targetArrows <= 0 && self.arrows > 0)
                 {
@@ -482,6 +513,16 @@ namespace ProjectPVP.Input
             return normalized.Contains("recover_arrow_feedback")
                 || normalized.Contains("recover_missed_arrow")
                 || normalized.Contains("recover_arrow_after_empty_shot");
+        }
+
+        private static bool IsLastArrowCommitIntent(CodexStrategyIntent intent)
+        {
+            if (intent == null || string.IsNullOrWhiteSpace(intent.reason))
+            {
+                return false;
+            }
+
+            return intent.reason.Trim().ToLowerInvariant().Contains("last_arrow_stalled_commit");
         }
 
         private static bool IsCornerEscapeIntent(CodexStrategyIntent intent)

@@ -2863,6 +2863,74 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_LastArrowStalledCommitAlwaysAdvancesWhenShotIsBlocked()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = -1,
+                    arrows = 1,
+                    shootCooldownLeft = 0f,
+                    dashCooldownLeft = 999f,
+                    isGrounded = true,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 0,
+                        canParryProjectile = true,
+                        position = new Vector2(-272f, 42f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 272f,
+                    verticalDistance = 42f,
+                    targetDirection = new Vector2(-1f, 0.16f).normalized,
+                    predictedTargetDirection = new Vector2(-1f, 0.16f).normalized,
+                    targetAbove = true,
+                    targetInShootRange = true,
+                    targetInMeleeRange = false,
+                    targetInUltimateRange = false,
+                    selfHasArrows = true,
+                },
+            };
+
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "pressure",
+                preferredRange = 140,
+                shootBias = 0.96f,
+                advanceBias = 0.96f,
+                meleeBias = 0.76f,
+                dashBias = 0.62f,
+                jumpBias = 0.16f,
+                antiProjectile = "hold",
+                antiAir = false,
+                punishRecovery = true,
+                cornerEscapeBias = 0.16f,
+                focusTargetSlot = 2,
+                expiresInMs = 360,
+                reason = "last_arrow_stalled_commit",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI LAST ARROW COMMIT"));
+            Assert.That(decision.moveAxis, Is.LessThan(-0.9f));
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.dashPrimaryPressed, Is.False);
+            Assert.That(decision.jumpPressed, Is.True);
+            Assert.That(decision.jumpHeld, Is.True);
+        }
+
+        [Test]
         public void StrategicPolicy_ResolvedThreatPressuresTargetWithNoArrows()
         {
             var snapshot = new AiArenaSnapshotEnvelope
