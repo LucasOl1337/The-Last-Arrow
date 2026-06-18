@@ -21,8 +21,8 @@ namespace ProjectPVP.Input
             return new CodexExecutorFeedback
             {
                 source = lastExecutorSource,
-                summary = ResolveCurrentAwareSummary(lastExecutorSummary, snapshot, reportedInputSnapshot),
-                botFeedback = ResolveCurrentAwareBotFeedback(snapshot, reportedInputSnapshot, feedbackSnapshot, lastExecutorSummary, resolvedReportedInput),
+                summary = ResolveCurrentAwareSummary(lastExecutorSummary, currentIntent, snapshot, reportedInputSnapshot),
+                botFeedback = ResolveCurrentAwareBotFeedback(snapshot, reportedInputSnapshot, feedbackSnapshot, currentIntent, lastExecutorSummary, resolvedReportedInput),
                 intentMode = currentIntent != null ? currentIntent.mode : string.Empty,
                 intentReason = currentIntent != null ? currentIntent.reason : string.Empty,
                 projectileThreatActive = snapshot != null && snapshot.semantics != null && snapshot.semantics.incomingProjectileThreat,
@@ -56,6 +56,7 @@ namespace ProjectPVP.Input
             AiArenaSnapshotEnvelope snapshot,
             AiArenaSnapshotEnvelope reportedInputSnapshot,
             AiArenaSnapshotEnvelope feedbackSnapshot,
+            CodexStrategyIntent currentIntent,
             string lastExecutorSummary,
             CodexReportedInputFrame reportedInput)
         {
@@ -74,11 +75,17 @@ namespace ProjectPVP.Input
                 return "corner pressure active now; action pending; improve: escape toward arena center before attacking.";
             }
 
+            if (IsCurrentAntiAirChase(snapshot, currentIntent, lastExecutorSummary))
+            {
+                return "anti-air chase active now; action pending; improve: climb into range before spending arrows.";
+            }
+
             return AiArenaBotFeedbackBuilder.Build(feedbackSnapshot, lastExecutorSummary, reportedInput);
         }
 
         private static string ResolveCurrentAwareSummary(
             string lastExecutorSummary,
+            CodexStrategyIntent currentIntent,
             AiArenaSnapshotEnvelope snapshot,
             AiArenaSnapshotEnvelope reportedInputSnapshot)
         {
@@ -105,6 +112,11 @@ namespace ProjectPVP.Input
             if (IsNewCurrentCornerThreat(snapshot, reportedInputSnapshot))
             {
                 return "AI CORNER THREAT";
+            }
+
+            if (IsCurrentAntiAirChase(snapshot, currentIntent, lastExecutorSummary))
+            {
+                return "AI ANTI AIR CHASE";
             }
 
             return lastExecutorSummary;
@@ -141,6 +153,43 @@ namespace ProjectPVP.Input
                 && (reportedInputSnapshot == null
                     || reportedInputSnapshot.semantics == null
                     || !reportedInputSnapshot.semantics.selfCornered);
+        }
+
+        private static bool IsCurrentAntiAirChase(AiArenaSnapshotEnvelope snapshot, CodexStrategyIntent currentIntent, string lastExecutorSummary)
+        {
+            if (snapshot == null
+                || snapshot.semantics == null
+                || snapshot.self == null
+                || !snapshot.semantics.hasTarget
+                || snapshot.semantics.incomingProjectileThreat
+                || snapshot.semantics.targetUsingRanged
+                || snapshot.semantics.targetUsingUltimate
+                || !snapshot.semantics.targetAbove
+                || snapshot.semantics.targetInShootRange
+                || snapshot.self.arrows <= 0
+                || !IsAntiAirIntent(currentIntent))
+            {
+                return false;
+            }
+
+            return string.IsNullOrWhiteSpace(lastExecutorSummary)
+                || lastExecutorSummary.IndexOf("anti air", System.StringComparison.OrdinalIgnoreCase) < 0;
+        }
+
+        private static bool IsAntiAirIntent(CodexStrategyIntent intent)
+        {
+            if (intent == null)
+            {
+                return false;
+            }
+
+            if (intent.antiAir)
+            {
+                return true;
+            }
+
+            return !string.IsNullOrWhiteSpace(intent.reason)
+                && intent.reason.Trim().ToLowerInvariant().Contains("anti_air");
         }
 
         private static bool ShouldPreferCurrentFeedbackSnapshot(AiArenaSnapshotEnvelope snapshot)

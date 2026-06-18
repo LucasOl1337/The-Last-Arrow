@@ -134,7 +134,28 @@ def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, An
     return normalized
 
 
-def resolve_report_summary(executor_feedback: dict[str, Any]) -> str:
+def is_anti_air_intent(intent: dict[str, Any] | None) -> bool:
+    if not isinstance(intent, dict):
+        return False
+    if bool(intent.get("antiAir", False)):
+        return True
+    return "anti_air" in str(intent.get("reason", "") or "").strip().lower()
+
+
+def is_current_anti_air_chase(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> bool:
+    return (
+        is_anti_air_intent(intent)
+        and bool(executor_feedback.get("targetVisible", False))
+        and bool(executor_feedback.get("targetAbove", False))
+        and not bool(executor_feedback.get("targetInShootRange", False))
+        and not bool(executor_feedback.get("projectileThreatActive", False))
+        and not bool(executor_feedback.get("targetRangedThreatActive", False))
+        and not bool(executor_feedback.get("targetUltimateThreatActive", False))
+        and safe_int(executor_feedback.get("selfArrows", -1), -1) > 0
+    )
+
+
+def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, Any] | None = None) -> str:
     summary = str(executor_feedback.get("summary", "") or "")
     if bool(executor_feedback.get("roundResetPending", False)):
         return "AI | Fallback:round_reset"
@@ -146,7 +167,16 @@ def resolve_report_summary(executor_feedback: dict[str, Any]) -> str:
         return "AI RANGED THREAT"
     if bool(executor_feedback.get("selfCornered", False)) and "CORNER" not in summary.upper():
         return "AI CORNER THREAT"
+    if is_current_anti_air_chase(executor_feedback, intent) and "ANTI AIR" not in summary.upper():
+        return "AI ANTI AIR CHASE"
     return summary
+
+
+def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> str:
+    bot_feedback = str(executor_feedback.get("botFeedback", "")).strip()
+    if is_current_anti_air_chase(executor_feedback, intent) and "anti-air chase active now" not in bot_feedback:
+        return "anti-air chase active now; action pending; improve: climb into range before spending arrows."
+    return bot_feedback
 
 
 def compact_input(input_payload: dict[str, Any] | None) -> str:
@@ -510,7 +540,7 @@ class AgentDrivenSession:
             controller_owner = describe_controller(source)
             if source.startswith("codex_") and not has_agent_action:
                 controller_owner = "BrokerDefault"
-            bot_feedback = str(executor_feedback.get("botFeedback", "")).strip()
+            bot_feedback = resolve_report_bot_feedback(executor_feedback, self.cached_intent)
             if not bot_feedback:
                 bot_feedback = derive_agent_bot_feedback(self.cached_intent, has_agent_action)
             heartbeat_age_ms = -1
@@ -526,7 +556,7 @@ class AgentDrivenSession:
                 "stopped": self.stopped,
                 "controllerSource": source,
                 "controllerOwner": controller_owner,
-                "summary": resolve_report_summary(executor_feedback),
+                "summary": resolve_report_summary(executor_feedback, self.cached_intent),
                 "botFeedback": bot_feedback,
                 "intentMode": str((self.cached_intent or {}).get("mode", "")),
                 "intentReason": str((self.cached_intent or {}).get("reason", "")),

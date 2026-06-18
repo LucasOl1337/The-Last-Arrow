@@ -446,6 +446,52 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
             report["botFeedback"],
         )
 
+    def test_report_payload_normalizes_current_anti_air_chase_from_cached_intent(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 1120.0},
+            },
+        )
+
+        session.publish_action(
+            {
+                "mode": "pressure",
+                "reason": "heuristic_anti_air",
+                "antiAir": False,
+            }
+        )
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI MOVE",
+                    "botFeedback": "spacing stable at 1120u; action AI MOVE; improve: keep pressure without wasting arrows.",
+                    "targetVisible": True,
+                    "targetAbove": True,
+                    "targetInShootRange": False,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "selfArrows": 3,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI ANTI AIR CHASE", report["summary"])
+        self.assertEqual(
+            "anti-air chase active now; action pending; improve: climb into range before spending arrows.",
+            report["botFeedback"],
+        )
+
     def test_report_payload_keeps_projectile_summary_ahead_of_ranged_threat(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,
