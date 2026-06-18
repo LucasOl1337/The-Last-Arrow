@@ -33,6 +33,17 @@ namespace ProjectPVP.Input
                 targetCornered = snapshot != null && snapshot.semantics != null && snapshot.semantics.targetCornered,
                 targetVisible = snapshot != null && snapshot.semantics != null && snapshot.semantics.hasTarget,
                 roundResetPending = snapshot != null && snapshot.arena != null && snapshot.arena.roundResetPending,
+                horizontalDistance = ResolveHorizontalDistance(snapshot),
+                verticalDistance = ResolveVerticalDistance(snapshot),
+                targetAbove = snapshot != null && snapshot.semantics != null && snapshot.semantics.targetAbove,
+                targetBelow = snapshot != null && snapshot.semantics != null && snapshot.semantics.targetBelow,
+                targetInShootRange = snapshot != null && snapshot.semantics != null && snapshot.semantics.targetInShootRange,
+                targetInMeleeRange = snapshot != null && snapshot.semantics != null && snapshot.semantics.targetInMeleeRange,
+                targetInUltimateRange = snapshot != null && snapshot.semantics != null && snapshot.semantics.targetInUltimateRange,
+                targetVulnerable = snapshot != null && snapshot.semantics != null && snapshot.semantics.targetVulnerable,
+                shouldAntiAir = snapshot != null && snapshot.semantics != null && snapshot.semantics.shouldAntiAir,
+                selfArrows = ResolveSelfArrows(snapshot),
+                targetArrows = ResolveTargetArrows(snapshot),
                 recoverableProjectileAvailable = CountRecoverableProjectiles(snapshot) > 0,
                 recoverableProjectileCount = CountRecoverableProjectiles(snapshot),
                 nearestRecoverableProjectileDistance = ResolveNearestRecoverableProjectileDistance(snapshot),
@@ -182,6 +193,31 @@ namespace ProjectPVP.Input
             }
 
             return count;
+        }
+
+        private static float ResolveHorizontalDistance(AiArenaSnapshotEnvelope snapshot)
+        {
+            return snapshot != null && snapshot.semantics != null ? snapshot.semantics.horizontalDistance : -1f;
+        }
+
+        private static float ResolveVerticalDistance(AiArenaSnapshotEnvelope snapshot)
+        {
+            return snapshot != null && snapshot.semantics != null ? snapshot.semantics.verticalDistance : 0f;
+        }
+
+        private static int ResolveSelfArrows(AiArenaSnapshotEnvelope snapshot)
+        {
+            return snapshot != null && snapshot.self != null ? snapshot.self.arrows : -1;
+        }
+
+        private static int ResolveTargetArrows(AiArenaSnapshotEnvelope snapshot)
+        {
+            if (snapshot == null || snapshot.opponents == null || snapshot.opponents.Count <= 0 || snapshot.opponents[0] == null)
+            {
+                return -1;
+            }
+
+            return snapshot.opponents[0].arrows;
         }
 
         private static float ResolveNearestRecoverableProjectileDistance(AiArenaSnapshotEnvelope snapshot)

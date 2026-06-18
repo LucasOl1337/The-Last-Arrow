@@ -184,6 +184,17 @@ namespace ProjectPVP.Input
         public bool targetCornered;
         public bool targetVisible;
         public bool roundResetPending;
+        public float horizontalDistance = -1f;
+        public float verticalDistance;
+        public bool targetAbove;
+        public bool targetBelow;
+        public bool targetInShootRange;
+        public bool targetInMeleeRange;
+        public bool targetInUltimateRange;
+        public bool targetVulnerable;
+        public bool shouldAntiAir;
+        public int selfArrows = -1;
+        public int targetArrows = -1;
         public bool recoverableProjectileAvailable;
         public int recoverableProjectileCount;
         public float nearestRecoverableProjectileDistance = -1f;

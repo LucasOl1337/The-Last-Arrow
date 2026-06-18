@@ -87,6 +87,12 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertIn("targetVisible", payload["executorFeedback"])
         self.assertFalse(payload["executorFeedback"]["targetVisible"])
         self.assertFalse(report["targetVisible"])
+        self.assertEqual(-1, report["horizontalDistance"])
+        self.assertEqual(0, report["verticalDistance"])
+        self.assertFalse(report["targetInShootRange"])
+        self.assertFalse(report["shouldAntiAir"])
+        self.assertEqual(-1, report["selfArrows"])
+        self.assertEqual(-1, report["targetArrows"])
 
     def test_agent_session_publish_state_normalizes_partial_executor_feedback(self) -> None:
         session = codex_broker.AgentDrivenSession(
@@ -276,6 +282,16 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "targetRangedThreatActive": True,
                     "targetUltimateThreatActive": True,
                     "selfCornered": True,
+                    "horizontalDistance": 248.5,
+                    "verticalDistance": 96,
+                    "targetAbove": True,
+                    "targetInShootRange": True,
+                    "targetInMeleeRange": False,
+                    "targetInUltimateRange": True,
+                    "targetVulnerable": True,
+                    "shouldAntiAir": True,
+                    "selfArrows": 0,
+                    "targetArrows": 3,
                 },
             }
         )
@@ -289,6 +305,16 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertTrue(report["targetRangedThreatActive"])
         self.assertTrue(report["targetUltimateThreatActive"])
         self.assertTrue(report["selfCornered"])
+        self.assertEqual(248.5, report["horizontalDistance"])
+        self.assertEqual(96, report["verticalDistance"])
+        self.assertTrue(report["targetAbove"])
+        self.assertTrue(report["targetInShootRange"])
+        self.assertFalse(report["targetInMeleeRange"])
+        self.assertTrue(report["targetInUltimateRange"])
+        self.assertTrue(report["targetVulnerable"])
+        self.assertTrue(report["shouldAntiAir"])
+        self.assertEqual(0, report["selfArrows"])
+        self.assertEqual(3, report["targetArrows"])
 
     def test_report_payload_normalizes_summary_for_current_no_target(self) -> None:
         session = codex_broker.AgentDrivenSession(

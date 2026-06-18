@@ -88,12 +88,37 @@ def resolve_report_controller_source(source: str, agent_model: str, has_agent_ac
     return "codex_live"
 
 
+def safe_float(value: Any, fallback: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def safe_int(value: Any, fallback: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
 def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, Any]:
     normalized = deepcopy(feedback) if isinstance(feedback, dict) else {}
     if "targetVisible" not in normalized:
         normalized["targetVisible"] = False
     if "roundResetPending" not in normalized:
         normalized["roundResetPending"] = False
+    normalized.setdefault("horizontalDistance", -1)
+    normalized.setdefault("verticalDistance", 0)
+    normalized.setdefault("targetAbove", False)
+    normalized.setdefault("targetBelow", False)
+    normalized.setdefault("targetInShootRange", False)
+    normalized.setdefault("targetInMeleeRange", False)
+    normalized.setdefault("targetInUltimateRange", False)
+    normalized.setdefault("targetVulnerable", False)
+    normalized.setdefault("shouldAntiAir", False)
+    normalized.setdefault("selfArrows", -1)
+    normalized.setdefault("targetArrows", -1)
     summary = str(normalized.get("summary", "") or "")
     bot_feedback = str(normalized.get("botFeedback", "") or "")
     if (
@@ -523,6 +548,17 @@ class AgentDrivenSession:
                 "targetCornered": bool(executor_feedback.get("targetCornered", False)),
                 "targetVisible": bool(executor_feedback.get("targetVisible", False)),
                 "roundResetPending": bool(executor_feedback.get("roundResetPending", False)),
+                "horizontalDistance": safe_float(executor_feedback.get("horizontalDistance", -1), -1),
+                "verticalDistance": safe_float(executor_feedback.get("verticalDistance", 0), 0),
+                "targetAbove": bool(executor_feedback.get("targetAbove", False)),
+                "targetBelow": bool(executor_feedback.get("targetBelow", False)),
+                "targetInShootRange": bool(executor_feedback.get("targetInShootRange", False)),
+                "targetInMeleeRange": bool(executor_feedback.get("targetInMeleeRange", False)),
+                "targetInUltimateRange": bool(executor_feedback.get("targetInUltimateRange", False)),
+                "targetVulnerable": bool(executor_feedback.get("targetVulnerable", False)),
+                "shouldAntiAir": bool(executor_feedback.get("shouldAntiAir", False)),
+                "selfArrows": safe_int(executor_feedback.get("selfArrows", -1), -1),
+                "targetArrows": safe_int(executor_feedback.get("targetArrows", -1), -1),
                 "lastInput": input_payload,
                 "lastInputSummary": compact_input(input_payload),
                 "agentActionCount": self.agent_action_count,

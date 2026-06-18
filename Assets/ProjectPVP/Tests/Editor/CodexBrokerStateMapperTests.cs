@@ -19,10 +19,26 @@ namespace ProjectPVP.Tests.Editor
                 self = new AiArenaCombatantObservation
                 {
                     position = Vector2.zero,
+                    arrows = 2,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        arrows = 4,
+                    },
                 },
                 semantics = new AiArenaSemanticObservation
                 {
                     hasTarget = true,
+                    horizontalDistance = 312f,
+                    verticalDistance = 96f,
+                    targetAbove = true,
+                    targetInShootRange = true,
+                    targetInMeleeRange = false,
+                    targetInUltimateRange = true,
+                    targetVulnerable = true,
+                    shouldAntiAir = true,
                     incomingProjectileThreat = true,
                     shouldCollectProjectile = true,
                     targetUsingMelee = true,
@@ -74,6 +90,16 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(feedback.targetCornered, Is.True);
             Assert.That(feedback.targetVisible, Is.True);
             Assert.That(feedback.roundResetPending, Is.True);
+            Assert.That(feedback.horizontalDistance, Is.EqualTo(312f).Within(0.001f));
+            Assert.That(feedback.verticalDistance, Is.EqualTo(96f).Within(0.001f));
+            Assert.That(feedback.targetAbove, Is.True);
+            Assert.That(feedback.targetInShootRange, Is.True);
+            Assert.That(feedback.targetInMeleeRange, Is.False);
+            Assert.That(feedback.targetInUltimateRange, Is.True);
+            Assert.That(feedback.targetVulnerable, Is.True);
+            Assert.That(feedback.shouldAntiAir, Is.True);
+            Assert.That(feedback.selfArrows, Is.EqualTo(2));
+            Assert.That(feedback.targetArrows, Is.EqualTo(4));
             Assert.That(feedback.recoverableProjectileAvailable, Is.True);
             Assert.That(feedback.recoverableProjectileCount, Is.EqualTo(1));
             Assert.That(feedback.nearestRecoverableProjectileDistance, Is.EqualTo(48f).Within(0.001f));
@@ -104,6 +130,17 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(feedback.targetCornered, Is.False);
             Assert.That(feedback.targetVisible, Is.False);
             Assert.That(feedback.roundResetPending, Is.False);
+            Assert.That(feedback.horizontalDistance, Is.EqualTo(-1f).Within(0.001f));
+            Assert.That(feedback.verticalDistance, Is.EqualTo(0f).Within(0.001f));
+            Assert.That(feedback.targetAbove, Is.False);
+            Assert.That(feedback.targetBelow, Is.False);
+            Assert.That(feedback.targetInShootRange, Is.False);
+            Assert.That(feedback.targetInMeleeRange, Is.False);
+            Assert.That(feedback.targetInUltimateRange, Is.False);
+            Assert.That(feedback.targetVulnerable, Is.False);
+            Assert.That(feedback.shouldAntiAir, Is.False);
+            Assert.That(feedback.selfArrows, Is.EqualTo(-1));
+            Assert.That(feedback.targetArrows, Is.EqualTo(-1));
             Assert.That(feedback.recoverableProjectileAvailable, Is.False);
             Assert.That(feedback.recoverableProjectileCount, Is.EqualTo(0));
             Assert.That(feedback.nearestRecoverableProjectileDistance, Is.EqualTo(-1f).Within(0.001f));
