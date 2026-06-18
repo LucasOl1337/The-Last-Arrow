@@ -1215,6 +1215,12 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "selfArrows": 3,
                     "targetArrows": 0,
                     "roundResetPending": False,
+                    "reportedInput": {
+                        "frame": 109,
+                        "axis": 0.94,
+                        "aim": {"x": -1.0, "y": 0.0},
+                        "shootPressed": True,
+                    },
                 },
             }
         )
@@ -1223,7 +1229,7 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
 
         self.assertEqual("AI LAST ARROW PRESSURE", report["summary"])
         self.assertEqual(
-            "last-arrow pressure active now; action pending; improve: spend the ammo advantage before the target recovers arrows.",
+            "last-arrow pressure active now; action AI SHOOT; improve: spend the ammo advantage before the target recovers arrows.",
             report["botFeedback"],
         )
 

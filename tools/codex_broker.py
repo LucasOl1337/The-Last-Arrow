@@ -418,7 +418,11 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
     if is_current_last_arrow_pressure(executor_feedback) and is_stalled_last_arrow_pressure_input(executor_feedback):
         return "last-arrow pressure stalled; action none; improve: shoot, dash in, or move into a clean shot before the target recovers arrows."
     if is_current_last_arrow_pressure(executor_feedback) and "last-arrow pressure active now" not in bot_feedback:
-        return "last-arrow pressure active now; action pending; improve: spend the ammo advantage before the target recovers arrows."
+        return (
+            "last-arrow pressure active now; action "
+            + resolve_reported_action(executor_feedback)
+            + "; improve: spend the ammo advantage before the target recovers arrows."
+        )
     if is_current_resolved_threat_pressure(executor_feedback, intent) and "resolved threat pressure active now" not in bot_feedback:
         return "resolved threat pressure active now; action pending; improve: stop retreating and retake the shot window."
     return bot_feedback

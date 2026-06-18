@@ -972,10 +972,12 @@ namespace ProjectPVP.Tests.Editor
                 new CodexStrategyIntent { mode = "retreat", reason = "target_ranged_threat" },
                 currentSnapshot,
                 80f,
-                new CodexReportedInputFrame { frame = 109, axis = 0.94f, aim = Vector2.left });
+                new CodexReportedInputFrame { frame = 109, axis = 0.94f, aim = Vector2.left, shootPressed = true });
 
             Assert.That(feedback.summary, Is.EqualTo("AI LAST ARROW PRESSURE"));
             Assert.That(feedback.botFeedback, Does.Contain("last-arrow pressure active now"));
+            Assert.That(feedback.botFeedback, Does.Contain("action AI SHOOT"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("action pending"));
             Assert.That(feedback.botFeedback, Does.Not.Contain("enemy ranged active"));
         }
 

@@ -130,7 +130,8 @@ namespace ProjectPVP.Input
                     return "last-arrow pressure stalled; action none; improve: shoot, dash in, or move into a clean shot before the target recovers arrows.";
                 }
 
-                return "last-arrow pressure active now; action pending; improve: spend the ammo advantage before the target recovers arrows.";
+                return "last-arrow pressure active now; action " + ResolveReportedAction(reportedInput, null)
+                    + "; improve: spend the ammo advantage before the target recovers arrows.";
             }
 
             if (IsCurrentResolvedThreatPressure(snapshot, currentIntent, lastExecutorSummary))
