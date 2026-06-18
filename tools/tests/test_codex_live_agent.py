@@ -119,6 +119,24 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
             )
         )
 
+    def test_build_idle_heartbeat_note_handles_missing_or_invalid_last_intent(self) -> None:
+        self.assertEqual(
+            "Idle heartbeat frame 42; last - (no-reason)",
+            codex_live_agent.build_idle_heartbeat_note({"frame": 42, "lastIntent": "invalid"}),
+        )
+        self.assertEqual(
+            "Idle heartbeat frame 43; last pressure (heuristic_zone_spacing)",
+            codex_live_agent.build_idle_heartbeat_note(
+                {
+                    "frame": 43,
+                    "lastIntent": {
+                        "mode": "pressure",
+                        "reason": "heuristic_zone_spacing",
+                    },
+                }
+            ),
+        )
+
     def test_build_heuristic_intent_punishes_vulnerable_target(self) -> None:
         state = _build_base_state()
         state["promptState"]["target"] = {

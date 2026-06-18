@@ -1589,6 +1589,17 @@ def should_send_idle_heartbeat(
     return now - last_heartbeat_at >= max(0.25, interval_seconds)
 
 
+def dict_or_empty(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def build_idle_heartbeat_note(state: dict[str, Any]) -> str:
+    last_intent = dict_or_empty(state.get("lastIntent"))
+    last_mode = str(last_intent.get("mode", "") or "-")
+    last_reason = str(last_intent.get("reason", "") or "no-reason")
+    return f"Idle heartbeat frame {state.get('frame', '-')}; last {last_mode} ({last_reason})"
+
+
 def post_intent(session_id: str, intent: dict[str, Any]) -> bool:
     status, payload = http_post(
         "/agent/action",
@@ -1776,15 +1787,12 @@ def main() -> int:
                 now=idle_now,
                 interval_seconds=HEARTBEAT_INTERVAL_SECONDS,
             ):
-                last_intent = as_dict(state.get("lastIntent"))
-                last_mode = str(last_intent.get("mode", "") or "-")
-                last_reason = str(last_intent.get("reason", "") or "no-reason")
                 send_heartbeat(
                     broker_session_id,
                     codex_session_id,
                     "idle",
                     thinking=False,
-                    note=f"Idle heartbeat frame {state.get('frame', '-')}; last {last_mode} ({last_reason})",
+                    note=build_idle_heartbeat_note(state),
                     model=agent_model,
                 )
                 last_idle_heartbeat_at = idle_now
