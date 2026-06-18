@@ -345,6 +345,43 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertEqual("AI | Fallback:no_target", report["summary"])
         self.assertFalse(report["targetVisible"])
 
+    def test_report_payload_uses_move_summary_when_executor_summary_is_empty(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            1,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-1"},
+                "target": {"slotId": 2},
+                "arena": {"horizontalDistance": 980.0},
+            },
+        )
+
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "",
+                    "botFeedback": "spacing stable at 980u; action none; improve: keep pressure without wasting arrows.",
+                    "targetVisible": True,
+                    "roundResetPending": False,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "selfCornered": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI MOVE", report["summary"])
+        self.assertEqual(
+            "spacing stable at 980u; action none; improve: keep pressure without wasting arrows.",
+            report["botFeedback"],
+        )
+
     def test_report_payload_normalizes_summary_for_current_corner_threat(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,

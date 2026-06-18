@@ -149,6 +149,40 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_UsesMoveSummaryWhenCurrentSummaryIsEmpty()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 3,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    horizontalDistance = 980f,
+                    verticalDistance = 24f,
+                    targetDirection = Vector2.right,
+                    incomingProjectileThreat = false,
+                    targetUsingRanged = false,
+                    targetUsingUltimate = false,
+                    selfCornered = false,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                string.Empty,
+                currentIntent: null,
+                snapshot: snapshot,
+                intentAgeMs: 80f,
+                reportedInput: new CodexReportedInputFrame { frame = 0, axis = 0f, aim = Vector2.zero });
+
+            Assert.That(feedback.summary, Is.EqualTo("AI MOVE"));
+            Assert.That(feedback.botFeedback, Does.Contain("spacing stable"));
+        }
+
+        [Test]
         public void BuildExecutorFeedback_MarksRecoverableProjectileAvailableEvenWhenCollectionIsNotRecommended()
         {
             var snapshot = new AiArenaSnapshotEnvelope

@@ -129,6 +129,11 @@ namespace ProjectPVP.Input
                 return "AI ANTI AIR CHASE";
             }
 
+            if (string.IsNullOrWhiteSpace(lastExecutorSummary))
+            {
+                return "AI MOVE";
+            }
+
             return lastExecutorSummary;
         }
 

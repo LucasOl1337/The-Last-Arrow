@@ -184,6 +184,8 @@ def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, 
         return "AI ANTI AIR"
     if is_current_anti_air_chase(executor_feedback, intent) and "ANTI AIR" not in summary.upper():
         return "AI ANTI AIR CHASE"
+    if not summary.strip():
+        return "AI MOVE"
     return summary
 
 
