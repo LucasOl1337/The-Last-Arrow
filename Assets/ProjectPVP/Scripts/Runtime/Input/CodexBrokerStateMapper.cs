@@ -14,7 +14,9 @@ namespace ProjectPVP.Input
             AiArenaSnapshotEnvelope reportedInputSnapshot = null)
         {
             CodexReportedInputFrame resolvedReportedInput = reportedInput != null ? reportedInput : new CodexReportedInputFrame();
-            AiArenaSnapshotEnvelope feedbackSnapshot = reportedInputSnapshot ?? snapshot;
+            AiArenaSnapshotEnvelope feedbackSnapshot = ShouldPreferCurrentFeedbackSnapshot(snapshot)
+                ? snapshot
+                : reportedInputSnapshot ?? snapshot;
 
             return new CodexExecutorFeedback
             {
@@ -37,6 +39,21 @@ namespace ProjectPVP.Input
                 intentAgeMs = intentAgeMs,
                 reportedInput = resolvedReportedInput,
             };
+        }
+
+        private static bool ShouldPreferCurrentFeedbackSnapshot(AiArenaSnapshotEnvelope snapshot)
+        {
+            if (snapshot == null)
+            {
+                return false;
+            }
+
+            if (snapshot.arena != null && snapshot.arena.roundResetPending)
+            {
+                return true;
+            }
+
+            return snapshot.semantics != null && !snapshot.semantics.hasTarget;
         }
 
         internal static string ResolveControllerOwner(string envelopeOwner, bool hasExecutableIntent, bool useAgentDrivenMode)

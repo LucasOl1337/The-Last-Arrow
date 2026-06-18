@@ -275,6 +275,46 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_UsesCurrentNoTargetStateOverReportedInputSnapshot()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = false,
+                },
+            };
+            var reportedInputSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    selfCornered = true,
+                    targetDirection = Vector2.right,
+                },
+            };
+            var reportedInput = new CodexReportedInputFrame
+            {
+                frame = 150,
+                axis = -0.25f,
+                aim = Vector2.right,
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI MOVE",
+                currentIntent: null,
+                currentSnapshot,
+                120f,
+                reportedInput,
+                reportedInputSnapshot);
+
+            Assert.That(feedback.targetVisible, Is.False);
+            Assert.That(feedback.botFeedback, Does.Contain("no target visible"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("missed corner escape"));
+        }
+
+        [Test]
         public void ResolveControllerOwner_ReturnsEnvelopeOwnerWhenPresent()
         {
             string owner = CodexBrokerStateMapper.ResolveControllerOwner(

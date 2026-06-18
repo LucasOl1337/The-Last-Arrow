@@ -154,11 +154,11 @@ namespace ProjectPVP.Input
                 && !prioritizeCollection
                 && (!defensiveRetreatIntent || cornerEscapeIntent)
                 && semantics.selfCornered
-                && (cornerEscapeIntent || semantics.horizontalDistance < preferredRange * 0.75f))
+                && (cornerEscapeIntent || Mathf.Abs(cornerEscapeAxis) > 0.1f))
             {
                 ClearCombatActions(decision);
                 decision.moveAxis = cornerEscapeAxis * Mathf.Lerp(0.55f, 1f, Mathf.Clamp01(intent.cornerEscapeBias));
-                decision.dashPrimaryPressed = canDash && (cornerEscapeIntent || semantics.horizontalDistance < preferredRange * 0.65f);
+                decision.dashPrimaryPressed = canDash && (cornerEscapeIntent || intent.dashBias >= 0.5f || semantics.horizontalDistance < preferredRange * 0.65f);
                 decision.debugSummary = "AI CORNER ESCAPE";
                 escapingCorner = true;
             }
