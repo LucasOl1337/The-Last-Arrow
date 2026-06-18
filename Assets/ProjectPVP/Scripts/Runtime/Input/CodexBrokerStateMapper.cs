@@ -72,7 +72,8 @@ namespace ProjectPVP.Input
 
             if (IsNewCurrentRangedThreat(snapshot, reportedInputSnapshot))
             {
-                return "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.";
+                return "ranged threat active now; action " + ResolveReportedAction(reportedInput, null)
+                    + "; improve: dodge, break line, or interrupt before chasing pickups.";
             }
 
             if (IsCurrentRangedThreat(snapshot))
@@ -80,7 +81,8 @@ namespace ProjectPVP.Input
                 string builtFeedback = AiArenaBotFeedbackBuilder.Build(feedbackSnapshot, lastExecutorSummary, reportedInput);
                 if (builtFeedback.IndexOf("ranged threat active now", System.StringComparison.OrdinalIgnoreCase) < 0)
                 {
-                    return "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.";
+                    return "ranged threat active now; action " + ResolveReportedAction(reportedInput, builtFeedback)
+                        + "; improve: dodge, break line, or interrupt before chasing pickups.";
                 }
 
                 return builtFeedback;

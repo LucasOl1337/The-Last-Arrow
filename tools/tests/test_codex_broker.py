@@ -653,6 +653,12 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "targetRangedThreatActive": True,
                     "selfArrows": 2,
                     "roundResetPending": False,
+                    "reportedInput": {
+                        "frame": 91,
+                        "axis": -1.0,
+                        "aim": {"x": -1.0, "y": 0.0},
+                        "jumpPressed": True,
+                    },
                 },
             }
         )
@@ -734,6 +740,12 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "targetRangedThreatActive": True,
                     "selfArrows": 2,
                     "roundResetPending": False,
+                    "reportedInput": {
+                        "frame": 91,
+                        "axis": -1.0,
+                        "aim": {"x": -1.0, "y": 0.0},
+                        "jumpPressed": True,
+                    },
                 },
             }
         )
@@ -743,11 +755,11 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
 
         self.assertEqual("AI RANGED THREAT", report["summary"])
         self.assertEqual(
-            "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.",
+            "ranged threat active now; action AI JUMP; improve: dodge, break line, or interrupt before chasing pickups.",
             payload["executorFeedback"]["botFeedback"],
         )
         self.assertEqual(
-            "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.",
+            "ranged threat active now; action AI JUMP; improve: dodge, break line, or interrupt before chasing pickups.",
             report["botFeedback"],
         )
         self.assertEqual("pressure", payload["executorFeedback"]["intentMode"])
@@ -782,6 +794,12 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
                     "targetUltimateThreatActive": False,
                     "selfArrows": 2,
                     "roundResetPending": False,
+                    "reportedInput": {
+                        "frame": 144,
+                        "axis": 0.0,
+                        "aim": {"x": -1.0, "y": 0.0},
+                        "dashPrimaryPressed": True,
+                    },
                 },
             }
         )
@@ -791,11 +809,11 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
 
         self.assertEqual("AI RANGED THREAT", report["summary"])
         self.assertEqual(
-            "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.",
+            "ranged threat active now; action AI DASH; improve: dodge, break line, or interrupt before chasing pickups.",
             payload["executorFeedback"]["botFeedback"],
         )
         self.assertEqual(
-            "ranged threat active now; action pending; improve: dodge, break line, or interrupt before chasing pickups.",
+            "ranged threat active now; action AI DASH; improve: dodge, break line, or interrupt before chasing pickups.",
             report["botFeedback"],
         )
         self.assertEqual("pressure", report["feedbackIntentMode"])

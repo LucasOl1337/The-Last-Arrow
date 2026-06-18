@@ -640,6 +640,8 @@ namespace ProjectPVP.Tests.Editor
             Assert.That(feedback.targetRangedThreatActive, Is.True);
             Assert.That(feedback.summary, Is.EqualTo("AI RANGED THREAT"));
             Assert.That(feedback.botFeedback, Does.Contain("ranged threat active now"));
+            Assert.That(feedback.botFeedback, Does.Contain("action AI JUMP"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("action pending"));
             Assert.That(feedback.botFeedback, Does.Not.Contain("missed ranged response"));
         }
 
