@@ -25,7 +25,8 @@ namespace ProjectPVP.Input
             bool canDash = self.dashCooldownLeft <= 0.01f && !self.isDashing;
             int targetArrows = Mathf.Max(0, target.arrows);
             int arrowLead = self.arrows - targetArrows;
-            bool deferCollectionForCornerEscape = AiArenaHeuristicPolicy.ShouldDeferCollectionForCornerEscape(semantics);
+            bool cornerEscapeIntent = IsCornerEscapeIntent(intent);
+            bool deferCollectionForCornerEscape = cornerEscapeIntent || AiArenaHeuristicPolicy.ShouldDeferCollectionForCornerEscape(semantics);
             bool prioritizeCollection = semantics.shouldCollectProjectile
                 && (self.arrows <= 1 || targetArrows > self.arrows)
                 && !deferCollectionForCornerEscape;
@@ -35,7 +36,7 @@ namespace ProjectPVP.Input
             float preferredRange = Mathf.Max(80f, intent.preferredRange);
             float distanceError = semantics.horizontalDistance - preferredRange;
             bool defensiveRetreatIntent = IsDefensiveRetreatIntent(intent);
-            bool cornerEscapeIntent = IsCornerEscapeIntent(intent);
+            float cornerEscapeAxis = ResolveCornerEscapeAxis(snapshot, semantics, self, towardTarget);
             bool escapingCorner = false;
 
             if (prioritizeCollection && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !semantics.targetUsingRanged)
@@ -151,12 +152,12 @@ namespace ProjectPVP.Input
             if (!semantics.incomingProjectileThreat
                 && !semantics.targetUsingUltimate
                 && !prioritizeCollection
-                && !defensiveRetreatIntent
+                && (!defensiveRetreatIntent || cornerEscapeIntent)
                 && semantics.selfCornered
                 && (cornerEscapeIntent || semantics.horizontalDistance < preferredRange * 0.75f))
             {
                 ClearCombatActions(decision);
-                decision.moveAxis = towardTarget * Mathf.Lerp(0.55f, 1f, Mathf.Clamp01(intent.cornerEscapeBias));
+                decision.moveAxis = cornerEscapeAxis * Mathf.Lerp(0.55f, 1f, Mathf.Clamp01(intent.cornerEscapeBias));
                 decision.dashPrimaryPressed = canDash && (cornerEscapeIntent || semantics.horizontalDistance < preferredRange * 0.65f);
                 decision.debugSummary = "AI CORNER ESCAPE";
                 escapingCorner = true;
@@ -377,6 +378,34 @@ namespace ProjectPVP.Input
             return normalized.Contains("missed_corner_escape")
                 || normalized.Contains("corner_escape")
                 || normalized.Contains("self_cornered");
+        }
+
+        private static float ResolveCornerEscapeAxis(
+            AiArenaSnapshotEnvelope snapshot,
+            AiArenaSemanticObservation semantics,
+            AiArenaCombatantObservation self,
+            float fallbackAxis)
+        {
+            if (snapshot != null && snapshot.arena != null && self != null)
+            {
+                float width = snapshot.arena.wrapXMax - snapshot.arena.wrapXMin;
+                if (width > 0.01f)
+                {
+                    float centerX = (snapshot.arena.wrapXMin + snapshot.arena.wrapXMax) * 0.5f;
+                    float delta = centerX - self.position.x;
+                    if (Mathf.Abs(delta) > 0.1f)
+                    {
+                        return delta > 0f ? 1f : -1f;
+                    }
+                }
+            }
+
+            if (semantics != null && Mathf.Abs(semantics.targetDirection.x) > 0.1f)
+            {
+                return semantics.targetDirection.x > 0f ? 1f : -1f;
+            }
+
+            return fallbackAxis >= 0f ? 1f : -1f;
         }
 
         private static void ApplyProjectileDashPreferredFallback(

@@ -3123,6 +3123,79 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_CornerEscapeUsesArenaCenterWhenTargetDirectionPointsOutward()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                arena = new AiArenaArenaObservation
+                {
+                    wrapXMin = -1280f,
+                    wrapXMax = 1280f,
+                },
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = -1,
+                    arrows = 2,
+                    position = new Vector2(-1248f, 0f),
+                    dashCooldownLeft = 0f,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 2,
+                        position = new Vector2(-1560f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 312f,
+                    targetDirection = Vector2.left,
+                    predictedTargetDirection = Vector2.left,
+                    targetInShootRange = true,
+                    selfHasArrows = true,
+                    selfCornered = true,
+                    shouldCollectProjectile = true,
+                    hasCollectibleProjectile = true,
+                    collectibleProjectileDistance = 64f,
+                    collectibleProjectileDirection = Vector2.left,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "retreat",
+                preferredRange = 320,
+                advanceBias = 0.16f,
+                shootBias = 0.28f,
+                meleeBias = 0.24f,
+                dashBias = 0.9f,
+                jumpBias = 0.6f,
+                antiProjectile = "hold",
+                cornerEscapeBias = 0.94f,
+                focusTargetSlot = 2,
+                expiresInMs = 400,
+                reason = "missed_corner_escape",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI CORNER ESCAPE"));
+            Assert.That(decision.moveAxis, Is.GreaterThan(0f));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+        }
+
+        [Test]
         public void HeuristicPolicy_EscapesCornerInsteadOfCollectingWallSideArrow()
         {
             var snapshot = new AiArenaSnapshotEnvelope
