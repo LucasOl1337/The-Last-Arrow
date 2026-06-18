@@ -4404,6 +4404,75 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_DefensiveRangedIntentPreemptsPressureMode()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 0,
+                    dashCooldownLeft = 0f,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                    isDashing = false,
+                    isGrounded = true,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 2,
+                        position = new Vector2(480f, 120f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 480f,
+                    verticalDistance = 120f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetUsingRanged = true,
+                    targetVulnerable = false,
+                    targetAbove = true,
+                    targetInShootRange = true,
+                    shouldAntiAir = true,
+                    selfHasArrows = false,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "pressure",
+                preferredRange = 360,
+                advanceBias = 0.7f,
+                shootBias = 0.7f,
+                meleeBias = 0.2f,
+                dashBias = 0.85f,
+                jumpBias = 0.7f,
+                antiProjectile = "hold",
+                antiAir = true,
+                cornerEscapeBias = 0.8f,
+                expiresInMs = 400,
+                reason = "target_ranged_threat",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI DEFENSIVE RETREAT"));
+            Assert.That(decision.moveAxis, Is.LessThan(0f));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+        }
+
+        [Test]
         public void StrategicPolicy_ParryPreferClearsOffenseDuringProjectileThreat()
         {
             var snapshot = new AiArenaSnapshotEnvelope

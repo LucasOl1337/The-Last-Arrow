@@ -39,7 +39,18 @@ namespace ProjectPVP.Input
             float cornerEscapeAxis = ResolveCornerEscapeAxis(snapshot, semantics, self, towardTarget);
             bool escapingCorner = false;
 
-            if (prioritizeCollection && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !semantics.targetUsingRanged)
+            if (!semantics.incomingProjectileThreat
+                && !semantics.targetUsingUltimate
+                && defensiveRetreatIntent
+                && !cornerEscapeIntent)
+            {
+                ClearCombatActions(decision);
+                decision.moveAxis = awayFromTarget * Mathf.Lerp(0.65f, 1f, Mathf.Clamp01(intent.cornerEscapeBias));
+                decision.dashPrimaryPressed = canDash && intent.dashBias >= 0.75f;
+                decision.debugSummary = "AI DEFENSIVE RETREAT";
+            }
+
+            if (prioritizeCollection && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !semantics.targetUsingRanged && !defensiveRetreatIntent)
             {
                 decision.shootPressed = false;
                 decision.shootHeld = false;
@@ -53,7 +64,7 @@ namespace ProjectPVP.Input
                 decision.debugSummary = "AI COLLECT ARROW";
             }
 
-            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection)
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !defensiveRetreatIntent)
             {
                 switch (NormalizeMode(intent.mode))
                 {
