@@ -26,6 +26,7 @@ namespace ProjectPVP.Input
             int targetArrows = Mathf.Max(0, target.arrows);
             int arrowLead = self.arrows - targetArrows;
             bool cornerEscapeIntent = IsCornerEscapeIntent(intent);
+            bool antiAirIntent = IsAntiAirIntent(intent);
             bool deferCollectionForCornerEscape = cornerEscapeIntent || AiArenaHeuristicPolicy.ShouldDeferCollectionForCornerEscape(semantics);
             bool prioritizeCollection = semantics.shouldCollectProjectile
                 && (self.arrows <= 1 || targetArrows > self.arrows)
@@ -182,6 +183,29 @@ namespace ProjectPVP.Input
                 escapingCorner = true;
             }
 
+            if (antiAirIntent
+                && semantics.targetAbove
+                && !semantics.targetInShootRange
+                && self.arrows > 0
+                && !prioritizeCollection
+                && !escapingCorner
+                && !effectiveDefensiveRetreatIntent
+                && !semantics.incomingProjectileThreat
+                && !semantics.targetUsingRanged
+                && !semantics.targetUsingUltimate)
+            {
+                ClearCombatActions(decision);
+                decision.moveAxis = towardTarget * Mathf.Lerp(0.65f, 1f, Mathf.Clamp01(intent.advanceBias));
+                if (self.isGrounded && intent.jumpBias >= 0.22f)
+                {
+                    decision.jumpPressed = true;
+                }
+
+                decision.jumpHeld = self.isGrounded || semantics.verticalDistance > 96f;
+                decision.dashPrimaryPressed = canDash && semantics.horizontalDistance > preferredRange * 1.35f && intent.dashBias >= 0.5f;
+                decision.debugSummary = "AI ANTI AIR CHASE";
+            }
+
             if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !escapingCorner && !effectiveDefensiveRetreatIntent)
             {
                 if (targetArrows <= 0 && self.arrows > 0)
@@ -229,7 +253,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (intent.antiAir
+            if (antiAirIntent
                 && semantics.targetAbove
                 && semantics.targetInShootRange
                 && canShoot
@@ -407,6 +431,22 @@ namespace ProjectPVP.Input
             }
 
             return intent.reason.Trim().ToLowerInvariant().Contains("projectile_threat_feedback");
+        }
+
+        private static bool IsAntiAirIntent(CodexStrategyIntent intent)
+        {
+            if (intent == null)
+            {
+                return false;
+            }
+
+            if (intent.antiAir)
+            {
+                return true;
+            }
+
+            return !string.IsNullOrWhiteSpace(intent.reason)
+                && intent.reason.Trim().ToLowerInvariant().Contains("anti_air");
         }
 
         private static float ResolveCornerEscapeAxis(
