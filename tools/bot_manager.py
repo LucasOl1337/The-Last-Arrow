@@ -15,6 +15,8 @@ GENERATIONS_LOG = BOT_MEMORY_DIR / "generations.jsonl"
 GLOBAL_KNOWLEDGE_LOG = GLOBAL_DIR / "knowledge_entries.jsonl"
 GLOBAL_KNOWLEDGE_INDEX = GLOBAL_DIR / "knowledge_index.json"
 GLOBAL_KNOWLEDGE_SUMMARY = GLOBAL_DIR / "latest_summary.md"
+ATOMIC_REPLACE_RETRY_COUNT = 5
+ATOMIC_REPLACE_RETRY_DELAY_SECONDS = 0.05
 
 
 def now_iso() -> str:
@@ -50,7 +52,14 @@ def _write_text_atomic(path: Path, text: str) -> None:
     temporary_path = path.with_name(f"{path.name}.{time.time_ns()}.tmp")
     try:
         temporary_path.write_text(text, encoding="utf-8")
-        temporary_path.replace(path)
+        for attempt in range(ATOMIC_REPLACE_RETRY_COUNT):
+            try:
+                temporary_path.replace(path)
+                break
+            except PermissionError:
+                if attempt >= ATOMIC_REPLACE_RETRY_COUNT - 1:
+                    raise
+                time.sleep(ATOMIC_REPLACE_RETRY_DELAY_SECONDS * (attempt + 1))
     finally:
         if temporary_path.exists():
             temporary_path.unlink()
