@@ -444,6 +444,53 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         self.assertEqual("AI RANGED THREAT", report["summary"])
         self.assertTrue(report["targetRangedThreatActive"])
 
+    def test_report_payload_clears_resolved_ranged_threat_retreat(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 340.0},
+            },
+        )
+
+        session.publish_action(
+            {
+                "mode": "retreat",
+                "reason": "target_ranged_threat",
+            }
+        )
+        session.publish_state(
+            {
+                "frame": 2,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI DEFENSIVE RETREAT",
+                    "botFeedback": "enemy ranged active; action AI DEFENSIVE RETREAT; improve: clear the arrow line before committing.",
+                    "targetVisible": True,
+                    "targetInShootRange": True,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetMeleeThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "selfCornered": False,
+                    "selfArrows": 3,
+                    "targetArrows": 1,
+                    "roundResetPending": False,
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI RESOLVED THREAT PRESSURE", report["summary"])
+        self.assertEqual(
+            "resolved threat pressure active now; action pending; improve: stop retreating and retake the shot window.",
+            report["botFeedback"],
+        )
+
     def test_state_payload_normalizes_feedback_for_current_ranged_threat(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,

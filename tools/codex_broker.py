@@ -142,6 +142,18 @@ def is_anti_air_intent(intent: dict[str, Any] | None) -> bool:
     return "anti_air" in str(intent.get("reason", "") or "").strip().lower()
 
 
+def is_ranged_or_projectile_threat_intent(intent: dict[str, Any] | None) -> bool:
+    if not isinstance(intent, dict):
+        return False
+    reason = str(intent.get("reason", "") or "").strip().lower()
+    return (
+        "target_ranged_threat" in reason
+        or "missed_ranged_response" in reason
+        or "projectile_threat_feedback" in reason
+        or "missed_projectile_defense" in reason
+    )
+
+
 def is_current_anti_air_chase(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> bool:
     return (
         is_anti_air_intent(intent)
@@ -185,6 +197,20 @@ def is_current_last_arrow_pressure(executor_feedback: dict[str, Any]) -> bool:
     )
 
 
+def is_current_resolved_threat_pressure(executor_feedback: dict[str, Any], intent: dict[str, Any] | None) -> bool:
+    return (
+        is_ranged_or_projectile_threat_intent(intent)
+        and bool(executor_feedback.get("targetVisible", False))
+        and bool(executor_feedback.get("targetInShootRange", False))
+        and not bool(executor_feedback.get("projectileThreatActive", False))
+        and not bool(executor_feedback.get("targetRangedThreatActive", False))
+        and not bool(executor_feedback.get("targetMeleeThreatActive", False))
+        and not bool(executor_feedback.get("targetUltimateThreatActive", False))
+        and not bool(executor_feedback.get("selfCornered", False))
+        and safe_int(executor_feedback.get("selfArrows", -1), -1) > 0
+    )
+
+
 def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, Any] | None = None) -> str:
     summary = str(executor_feedback.get("summary", "") or "")
     if bool(executor_feedback.get("roundResetPending", False)):
@@ -203,6 +229,8 @@ def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, 
         return "AI ANTI AIR CHASE"
     if is_current_last_arrow_pressure(executor_feedback) and "LAST ARROW PRESSURE" not in summary.upper():
         return "AI LAST ARROW PRESSURE"
+    if is_current_resolved_threat_pressure(executor_feedback, intent) and "RESOLVED THREAT PRESSURE" not in summary.upper():
+        return "AI RESOLVED THREAT PRESSURE"
     if not summary.strip():
         return "AI MOVE"
     return summary
@@ -216,6 +244,8 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
         return "anti-air chase active now; action pending; improve: climb into range before spending arrows."
     if is_current_last_arrow_pressure(executor_feedback) and "last-arrow pressure active now" not in bot_feedback:
         return "last-arrow pressure active now; action pending; improve: spend the ammo advantage before the target recovers arrows."
+    if is_current_resolved_threat_pressure(executor_feedback, intent) and "resolved threat pressure active now" not in bot_feedback:
+        return "resolved threat pressure active now; action pending; improve: stop retreating and retake the shot window."
     return bot_feedback
 
 

@@ -497,6 +497,50 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_ClearsResolvedRangedThreatRetreat()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 3,
+                },
+                opponents = new System.Collections.Generic.List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        arrows = 1,
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetInShootRange = true,
+                    horizontalDistance = 340f,
+                    verticalDistance = 72f,
+                    targetDirection = Vector2.right,
+                    incomingProjectileThreat = false,
+                    targetUsingRanged = false,
+                    targetUsingMelee = false,
+                    targetUsingUltimate = false,
+                    selfCornered = false,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI DEFENSIVE RETREAT",
+                new CodexStrategyIntent { mode = "retreat", reason = "target_ranged_threat" },
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 41, axis = -0.79f, aim = Vector2.right });
+
+            Assert.That(feedback.summary, Is.EqualTo("AI RESOLVED THREAT PRESSURE"));
+            Assert.That(feedback.botFeedback, Does.Contain("resolved threat pressure active now"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("enemy ranged active"));
+        }
+
+        [Test]
         public void BuildExecutorFeedback_ReportsCurrentAntiAirChaseWhenInputSnapshotIsOlder()
         {
             var currentSnapshot = new AiArenaSnapshotEnvelope

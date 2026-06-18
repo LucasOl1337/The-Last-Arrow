@@ -90,6 +90,11 @@ namespace ProjectPVP.Input
                 return "last-arrow pressure active now; action pending; improve: spend the ammo advantage before the target recovers arrows.";
             }
 
+            if (IsCurrentResolvedThreatPressure(snapshot, currentIntent, lastExecutorSummary))
+            {
+                return "resolved threat pressure active now; action pending; improve: stop retreating and retake the shot window.";
+            }
+
             return AiArenaBotFeedbackBuilder.Build(feedbackSnapshot, lastExecutorSummary, reportedInput);
         }
 
@@ -137,6 +142,11 @@ namespace ProjectPVP.Input
             if (IsCurrentLastArrowPressure(snapshot, lastExecutorSummary))
             {
                 return "AI LAST ARROW PRESSURE";
+            }
+
+            if (IsCurrentResolvedThreatPressure(snapshot, currentIntent, lastExecutorSummary))
+            {
+                return "AI RESOLVED THREAT PRESSURE";
             }
 
             if (string.IsNullOrWhiteSpace(lastExecutorSummary))
@@ -244,6 +254,28 @@ namespace ProjectPVP.Input
                 || lastExecutorSummary.IndexOf("last arrow pressure", System.StringComparison.OrdinalIgnoreCase) < 0;
         }
 
+        private static bool IsCurrentResolvedThreatPressure(AiArenaSnapshotEnvelope snapshot, CodexStrategyIntent currentIntent, string lastExecutorSummary)
+        {
+            if (snapshot == null
+                || snapshot.semantics == null
+                || snapshot.self == null
+                || !snapshot.semantics.hasTarget
+                || snapshot.semantics.incomingProjectileThreat
+                || snapshot.semantics.targetUsingRanged
+                || snapshot.semantics.targetUsingMelee
+                || snapshot.semantics.targetUsingUltimate
+                || snapshot.semantics.selfCornered
+                || !snapshot.semantics.targetInShootRange
+                || snapshot.self.arrows <= 0
+                || !IsRangedOrProjectileThreatFeedbackIntent(currentIntent))
+            {
+                return false;
+            }
+
+            return string.IsNullOrWhiteSpace(lastExecutorSummary)
+                || lastExecutorSummary.IndexOf("resolved threat pressure", System.StringComparison.OrdinalIgnoreCase) < 0;
+        }
+
         private static bool IsAntiAirIntent(CodexStrategyIntent intent)
         {
             if (intent == null)
@@ -258,6 +290,20 @@ namespace ProjectPVP.Input
 
             return !string.IsNullOrWhiteSpace(intent.reason)
                 && intent.reason.Trim().ToLowerInvariant().Contains("anti_air");
+        }
+
+        private static bool IsRangedOrProjectileThreatFeedbackIntent(CodexStrategyIntent intent)
+        {
+            if (intent == null || string.IsNullOrWhiteSpace(intent.reason))
+            {
+                return false;
+            }
+
+            string normalized = intent.reason.Trim().ToLowerInvariant();
+            return normalized.Contains("target_ranged_threat")
+                || normalized.Contains("missed_ranged_response")
+                || normalized.Contains("projectile_threat_feedback")
+                || normalized.Contains("missed_projectile_defense");
         }
 
         private static bool ShouldPreferCurrentFeedbackSnapshot(AiArenaSnapshotEnvelope snapshot)

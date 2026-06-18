@@ -62,10 +62,20 @@ namespace ProjectPVP.Input
                 && !semantics.targetUsingUltimate
                 && targetArrows <= 0
                 && self.arrows > 0;
+            bool pressureAfterResolvedRangedOrProjectileThreat = defensiveRetreatIntent
+                && IsRangedOrProjectileThreatFeedbackIntent(intent)
+                && !semantics.incomingProjectileThreat
+                && !semantics.targetUsingRanged
+                && !semantics.targetUsingMelee
+                && !semantics.targetUsingUltimate
+                && !semantics.selfCornered
+                && semantics.targetInShootRange
+                && canShoot;
             bool effectiveDefensiveRetreatIntent = defensiveRetreatIntent
                 && !recoverAfterResolvedProjectileThreat
                 && !attackAfterResolvedThreat
-                && !pressureAfterResolvedThreat;
+                && !pressureAfterResolvedThreat
+                && !pressureAfterResolvedRangedOrProjectileThreat;
             float cornerEscapeAxis = ResolveCornerEscapeAxis(snapshot, semantics, self, towardTarget);
             bool escapingCorner = false;
 
@@ -274,6 +284,20 @@ namespace ProjectPVP.Input
                 }
             }
 
+            if (pressureAfterResolvedRangedOrProjectileThreat
+                && !prioritizeCollection
+                && !escapingCorner
+                && !effectiveDefensiveRetreatIntent
+                && !decision.meleePressed
+                && !decision.ultimatePressed
+                && !decision.dashPrimaryPressed
+                && !decision.dashSecondaryPressed)
+            {
+                decision.shootPressed = true;
+                decision.shootHeld = true;
+                decision.debugSummary = "AI RESOLVED THREAT PRESSURE";
+            }
+
             if (antiAirOpportunity
                 && semantics.targetAbove
                 && semantics.targetInShootRange
@@ -452,6 +476,20 @@ namespace ProjectPVP.Input
             }
 
             return intent.reason.Trim().ToLowerInvariant().Contains("projectile_threat_feedback");
+        }
+
+        private static bool IsRangedOrProjectileThreatFeedbackIntent(CodexStrategyIntent intent)
+        {
+            if (intent == null || string.IsNullOrWhiteSpace(intent.reason))
+            {
+                return false;
+            }
+
+            string normalized = intent.reason.Trim().ToLowerInvariant();
+            return normalized.Contains("target_ranged_threat")
+                || normalized.Contains("missed_ranged_response")
+                || normalized.Contains("projectile_threat_feedback")
+                || normalized.Contains("missed_projectile_defense");
         }
 
         private static bool IsAntiAirIntent(CodexStrategyIntent intent)
