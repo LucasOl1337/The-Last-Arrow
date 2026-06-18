@@ -150,6 +150,7 @@ namespace ProjectPVP.Input
             if (!semantics.incomingProjectileThreat
                 && !semantics.targetUsingUltimate
                 && !prioritizeCollection
+                && !defensiveRetreatIntent
                 && semantics.selfCornered
                 && semantics.horizontalDistance < preferredRange * 0.75f)
             {
@@ -160,7 +161,7 @@ namespace ProjectPVP.Input
                 escapingCorner = true;
             }
 
-            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !escapingCorner)
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !prioritizeCollection && !escapingCorner && !defensiveRetreatIntent)
             {
                 if (targetArrows <= 0 && self.arrows > 0)
                 {
@@ -213,6 +214,7 @@ namespace ProjectPVP.Input
                 && canShoot
                 && !prioritizeCollection
                 && !escapingCorner
+                && !defensiveRetreatIntent
                 && !semantics.incomingProjectileThreat
                 && !decision.meleePressed
                 && !decision.ultimatePressed
@@ -223,7 +225,7 @@ namespace ProjectPVP.Input
                 decision.shootHeld = true;
             }
 
-            if (!prioritizeCollection && !escapingCorner && !decision.shootPressed && !decision.meleePressed && !decision.ultimatePressed && !decision.dashPrimaryPressed)
+            if (!prioritizeCollection && !escapingCorner && !defensiveRetreatIntent && !decision.shootPressed && !decision.meleePressed && !decision.ultimatePressed && !decision.dashPrimaryPressed)
             {
                 if (baseline.ultimatePressed && canUltimate && semantics.targetInUltimateRange)
                 {
