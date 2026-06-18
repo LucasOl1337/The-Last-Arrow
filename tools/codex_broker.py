@@ -236,6 +236,19 @@ def is_stalled_last_arrow_pressure_input(executor_feedback: dict[str, Any]) -> b
     )
 
 
+def is_stalled_anti_air_chase_input(executor_feedback: dict[str, Any]) -> bool:
+    reported_input = executor_feedback.get("reportedInput")
+    if not isinstance(reported_input, dict):
+        return False
+    aim = reported_input.get("aim")
+    aim_y = safe_float(aim.get("y", 0), 0) if isinstance(aim, dict) else 0
+    return (
+        not bool(reported_input.get("jumpPressed", False))
+        and not bool(reported_input.get("jumpHeld", False))
+        and aim_y < 0.55
+    )
+
+
 def is_current_resolved_corner_pressure(executor_feedback: dict[str, Any]) -> bool:
     summary = str(executor_feedback.get("summary", "") or "").lower()
     bot_feedback = str(executor_feedback.get("botFeedback", "") or "").lower()
@@ -296,6 +309,8 @@ def resolve_report_summary(executor_feedback: dict[str, Any], intent: dict[str, 
         return "AI CORNER THREAT"
     if is_current_anti_air_shot(executor_feedback) and "ANTI AIR" not in summary.upper():
         return "AI ANTI AIR"
+    if is_current_anti_air_chase(executor_feedback, intent) and is_stalled_anti_air_chase_input(executor_feedback):
+        return "AI ANTI AIR STALLED"
     if is_current_anti_air_chase(executor_feedback, intent) and "ANTI AIR" not in summary.upper():
         return "AI ANTI AIR CHASE"
     if is_current_last_arrow_pressure(executor_feedback) and is_stalled_last_arrow_pressure_input(executor_feedback):
@@ -317,6 +332,8 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
         return "corner pressure resolved; action pending; improve: retake center control before committing."
     if is_current_anti_air_shot(executor_feedback) and "anti-air shot active now" not in bot_feedback:
         return "anti-air shot active now; action pending; improve: take the vertical shot before repositioning."
+    if is_current_anti_air_chase(executor_feedback, intent) and is_stalled_anti_air_chase_input(executor_feedback):
+        return "anti-air chase stalled; action grounded advance; improve: hold jump or aim upward while closing vertical distance."
     if (
         is_current_anti_air_chase(executor_feedback, intent)
         and "anti-air chase active now" not in bot_feedback

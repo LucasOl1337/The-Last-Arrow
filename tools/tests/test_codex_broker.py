@@ -870,6 +870,61 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
             report["botFeedback"],
         )
 
+    def test_report_payload_marks_stalled_anti_air_chase_from_reported_input(self) -> None:
+        session = codex_broker.AgentDrivenSession(
+            2,
+            "agent-session",
+            {
+                "frame": 1,
+                "self": {"botId": "bot-slot-2"},
+                "target": {"slotId": 1},
+                "arena": {"horizontalDistance": 1158.0},
+            },
+        )
+
+        session.publish_action(
+            {
+                "mode": "pressure",
+                "reason": "heuristic_anti_air",
+                "antiAir": False,
+            }
+        )
+        session.publish_state(
+            {
+                "frame": 15,
+                "executorFeedback": {
+                    "source": "codex",
+                    "summary": "AI ANTI AIR CHASE",
+                    "botFeedback": "anti-air chase active now; action pending; improve: climb into range before spending arrows.",
+                    "targetVisible": True,
+                    "targetAbove": True,
+                    "targetInShootRange": False,
+                    "verticalDistance": 218.0,
+                    "projectileThreatActive": False,
+                    "targetRangedThreatActive": False,
+                    "targetUltimateThreatActive": False,
+                    "selfArrows": 3,
+                    "roundResetPending": False,
+                    "reportedInput": {
+                        "axis": -0.27,
+                        "aim": {"x": -0.84, "y": 0.53},
+                        "jumpPressed": False,
+                        "jumpHeld": False,
+                        "shootPressed": False,
+                        "shootHeld": False,
+                    },
+                },
+            }
+        )
+
+        report = session.report_payload()
+
+        self.assertEqual("AI ANTI AIR STALLED", report["summary"])
+        self.assertEqual(
+            "anti-air chase stalled; action grounded advance; improve: hold jump or aim upward while closing vertical distance.",
+            report["botFeedback"],
+        )
+
     def test_report_payload_keeps_move_for_slight_vertical_anti_air_intent(self) -> None:
         session = codex_broker.AgentDrivenSession(
             2,
