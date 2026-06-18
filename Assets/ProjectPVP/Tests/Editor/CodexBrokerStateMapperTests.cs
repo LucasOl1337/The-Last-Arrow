@@ -900,6 +900,41 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_ReportsExecutedActionForCurrentAntiAirShot()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                self = new AiArenaCombatantObservation
+                {
+                    arrows = 2,
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetAbove = true,
+                    targetInShootRange = true,
+                    shouldAntiAir = true,
+                    horizontalDistance = 240f,
+                    verticalDistance = 160f,
+                    targetDirection = Vector2.right,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI DEFENSIVE RETREAT",
+                new CodexStrategyIntent { mode = "pressure", reason = "heuristic_anti_air_shot_active", antiAir = true },
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 42, axis = 0f, aim = Vector2.up, shootPressed = true });
+
+            Assert.That(feedback.summary, Is.EqualTo("AI ANTI AIR"));
+            Assert.That(feedback.botFeedback, Does.Contain("anti-air shot active now"));
+            Assert.That(feedback.botFeedback, Does.Contain("action AI SHOOT"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("action pending"));
+        }
+
+        [Test]
         public void BuildExecutorFeedback_ReportsCurrentLastArrowPressureWhenInputSnapshotIsOlder()
         {
             var currentSnapshot = new AiArenaSnapshotEnvelope

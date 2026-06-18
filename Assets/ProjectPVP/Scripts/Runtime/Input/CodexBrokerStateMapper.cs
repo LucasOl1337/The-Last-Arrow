@@ -103,7 +103,9 @@ namespace ProjectPVP.Input
 
             if (IsCurrentAntiAirShot(snapshot, lastExecutorSummary))
             {
-                return "anti-air shot active now; action pending; improve: take the vertical shot before repositioning.";
+                string builtFeedback = AiArenaBotFeedbackBuilder.Build(snapshot, lastExecutorSummary, reportedInput);
+                return "anti-air shot active now; action " + ResolveReportedAction(reportedInput, builtFeedback)
+                    + "; improve: take the vertical shot before repositioning.";
             }
 
             if (IsCurrentAntiAirChase(snapshot, currentIntent, lastExecutorSummary))
@@ -132,6 +134,64 @@ namespace ProjectPVP.Input
             }
 
             return AiArenaBotFeedbackBuilder.Build(feedbackSnapshot, lastExecutorSummary, reportedInput);
+        }
+
+        private static string ResolveReportedAction(CodexReportedInputFrame reportedInput, string builtFeedback)
+        {
+            if (reportedInput != null)
+            {
+                if (reportedInput.ultimatePressed)
+                {
+                    return "AI ULTIMATE";
+                }
+
+                if (reportedInput.meleePressed)
+                {
+                    return "AI MELEE";
+                }
+
+                if (reportedInput.shootPressed || reportedInput.shootHeld)
+                {
+                    return "AI SHOOT";
+                }
+
+                if (reportedInput.dashPrimaryPressed || reportedInput.dashSecondaryPressed)
+                {
+                    return "AI DASH";
+                }
+
+                if (reportedInput.jumpPressed || reportedInput.jumpHeld)
+                {
+                    return "AI JUMP";
+                }
+
+                if (Mathf.Abs(reportedInput.axis) > 0.1f)
+                {
+                    return "AI MOVE";
+                }
+            }
+
+            const string marker = "action ";
+            if (string.IsNullOrWhiteSpace(builtFeedback))
+            {
+                return "pending";
+            }
+
+            int start = builtFeedback.IndexOf(marker, System.StringComparison.OrdinalIgnoreCase);
+            if (start < 0)
+            {
+                return "pending";
+            }
+
+            start += marker.Length;
+            int end = builtFeedback.IndexOf(';', start);
+            if (end < 0)
+            {
+                end = builtFeedback.Length;
+            }
+
+            string action = builtFeedback.Substring(start, end - start).Trim();
+            return string.IsNullOrWhiteSpace(action) ? "pending" : action;
         }
 
         private static string ResolveCurrentAwareSummary(
