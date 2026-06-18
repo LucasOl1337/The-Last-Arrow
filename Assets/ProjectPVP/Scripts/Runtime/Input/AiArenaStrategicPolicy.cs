@@ -246,7 +246,7 @@ namespace ProjectPVP.Input
                 }
             }
 
-            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && semantics.targetUsingMelee)
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !defensiveRetreatIntent && semantics.targetUsingMelee)
             {
                 ClearCombatActions(decision);
                 decision.moveAxis = awayFromTarget;
@@ -254,7 +254,7 @@ namespace ProjectPVP.Input
                 decision.debugSummary = "AI EVADE MELEE";
             }
 
-            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && semantics.targetUsingRanged && !semantics.targetVulnerable)
+            if (!semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !defensiveRetreatIntent && semantics.targetUsingRanged && !semantics.targetVulnerable)
             {
                 ClearCombatActions(decision);
                 if (canShoot && semantics.targetInShootRange)

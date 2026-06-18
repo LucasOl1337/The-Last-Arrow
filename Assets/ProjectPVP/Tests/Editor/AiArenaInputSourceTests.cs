@@ -3907,6 +3907,68 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void StrategicPolicy_DefensiveRetreatIntentIsNotOverriddenByRangedInterrupt()
+        {
+            var snapshot = new AiArenaSnapshotEnvelope
+            {
+                schemaVersion = AiArenaSnapshotEnvelope.CurrentSchemaVersion,
+                self = new AiArenaCombatantObservation
+                {
+                    slotId = 1,
+                    facing = 1,
+                    arrows = 2,
+                    shootCooldownLeft = 0f,
+                    meleeCooldownLeft = 0f,
+                    dashCooldownLeft = 0f,
+                    isDashing = false,
+                },
+                opponents = new List<AiArenaCombatantObservation>
+                {
+                    new AiArenaCombatantObservation
+                    {
+                        slotId = 2,
+                        arrows = 2,
+                        position = new Vector2(260f, 0f),
+                    },
+                },
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    targetSlotId = 2,
+                    horizontalDistance = 260f,
+                    targetDirection = Vector2.right,
+                    predictedTargetDirection = Vector2.right,
+                    targetInShootRange = true,
+                    targetUsingRanged = true,
+                    targetVulnerable = false,
+                    selfHasArrows = true,
+                },
+            };
+            CodexStrategyIntent intent = new CodexStrategyIntent
+            {
+                mode = "retreat",
+                preferredRange = 320,
+                advanceBias = 0.18f,
+                shootBias = 0.22f,
+                meleeBias = 0.24f,
+                dashBias = 0.84f,
+                cornerEscapeBias = 0.44f,
+                expiresInMs = 400,
+                reason = "heuristic_missed_ranged_response",
+            };
+
+            AiArenaDecisionEnvelope decision = AiArenaStrategicPolicy.Decide(snapshot, intent);
+
+            Assert.That(decision.debugSummary, Is.EqualTo("AI DEFENSIVE RETREAT"));
+            Assert.That(decision.shootPressed, Is.False);
+            Assert.That(decision.shootHeld, Is.False);
+            Assert.That(decision.meleePressed, Is.False);
+            Assert.That(decision.ultimatePressed, Is.False);
+            Assert.That(decision.moveAxis, Is.LessThan(0f));
+            Assert.That(decision.dashPrimaryPressed, Is.True);
+        }
+
+        [Test]
         public void StrategicPolicy_ParryPreferClearsOffenseDuringProjectileThreat()
         {
             var snapshot = new AiArenaSnapshotEnvelope
