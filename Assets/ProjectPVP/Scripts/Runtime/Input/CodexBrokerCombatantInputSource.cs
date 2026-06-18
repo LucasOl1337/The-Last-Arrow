@@ -10,6 +10,8 @@ namespace ProjectPVP.Input
     [DisallowMultipleComponent]
     public sealed class CodexBrokerCombatantInputSource : MonoBehaviour, ICombatantInputSource, IBotFeedbackInputSource
     {
+        private const int MinimumSessionStartTimeoutMs = 3000;
+
         [Min(1)] public int slotId = 2;
         [Header("Combat Ranges")]
         public float desiredCombatDistance = 360f;
@@ -943,7 +945,7 @@ namespace ProjectPVP.Input
             int minimumRequestTimeoutMs = Mathf.Max(requestTimeoutMs, 600);
             if (path == "/agent/session/start" || path == "/session/start")
             {
-                return Mathf.Max(sessionStartTimeoutMs, minimumRequestTimeoutMs);
+                return Mathf.Max(sessionStartTimeoutMs, MinimumSessionStartTimeoutMs, minimumRequestTimeoutMs);
             }
 
             return minimumRequestTimeoutMs;

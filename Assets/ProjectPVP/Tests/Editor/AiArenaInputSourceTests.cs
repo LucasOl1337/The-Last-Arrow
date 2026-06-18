@@ -203,6 +203,19 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void CodexBrokerCombatantInputSource_SessionStartIgnoresLegacySerializedShortTimeout()
+        {
+            MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
+                "ResolveBrokerRequestTimeoutMs",
+                BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null);
+
+            int timeout = (int)method.Invoke(null, new object[] { "/agent/session/start", 150, 600 });
+
+            Assert.That(timeout, Is.EqualTo(3000));
+        }
+
+        [Test]
         public void CodexBrokerCombatantInputSource_StateRequestKeepsShortBrokerTimeoutFloor()
         {
             MethodInfo method = typeof(CodexBrokerCombatantInputSource).GetMethod(
