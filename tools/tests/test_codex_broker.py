@@ -675,9 +675,18 @@ class AgentDrivenSessionReportTestCase(unittest.TestCase):
         )
 
         report = session.report_payload()
+        payload = session.state_payload()
 
         self.assertEqual("AI RANGED THREAT", report["summary"])
         self.assertTrue(report["targetRangedThreatActive"])
+        self.assertEqual(
+            "ranged threat active now; action AI JUMP; improve: dodge, break line, or interrupt before chasing pickups.",
+            payload["executorFeedback"]["botFeedback"],
+        )
+        self.assertEqual(
+            "ranged threat active now; action AI JUMP; improve: dodge, break line, or interrupt before chasing pickups.",
+            report["botFeedback"],
+        )
 
     def test_report_payload_clears_resolved_ranged_threat_retreat(self) -> None:
         session = codex_broker.AgentDrivenSession(

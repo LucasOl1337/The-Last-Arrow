@@ -130,6 +130,7 @@ def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, An
                 + resolve_reported_action(normalized)
                 + "; improve: defend before attacking."
             )
+        normalized["botFeedback"] = upgrade_pending_feedback_action(normalized)
         return normalized
 
     if bool(normalized.get("roundResetPending", False)) or not bool(normalized.get("targetVisible", False)):
@@ -162,6 +163,7 @@ def normalize_executor_feedback(feedback: dict[str, Any] | None) -> dict[str, An
             + resolve_reported_action(normalized)
             + "; improve: retake center control before committing."
         )
+    normalized["botFeedback"] = upgrade_pending_feedback_action(normalized)
     return normalized
 
 
@@ -435,7 +437,7 @@ def resolve_report_bot_feedback(executor_feedback: dict[str, Any], intent: dict[
             + resolve_reported_action(executor_feedback)
             + "; improve: stop retreating and retake the shot window."
         )
-    return bot_feedback
+    return upgrade_pending_feedback_action(executor_feedback, bot_feedback)
 
 
 def resolve_reported_action(executor_feedback: dict[str, Any]) -> str:
@@ -456,6 +458,18 @@ def resolve_reported_action(executor_feedback: dict[str, Any]) -> str:
     if abs(safe_float(reported_input.get("axis", 0), 0)) > 0.1:
         return "AI MOVE"
     return "pending"
+
+
+def upgrade_pending_feedback_action(executor_feedback: dict[str, Any], bot_feedback: str | None = None) -> str:
+    feedback = str(executor_feedback.get("botFeedback", "") if bot_feedback is None else bot_feedback).strip()
+    if "action pending" not in feedback:
+        return feedback
+
+    action = resolve_reported_action(executor_feedback)
+    if action == "pending":
+        return feedback
+
+    return feedback.replace("action pending", "action " + action, 1)
 
 
 def is_waiting_for_visible_target(executor_feedback: dict[str, Any]) -> bool:
