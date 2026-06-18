@@ -758,6 +758,8 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     recover_arrow = has_recover_arrow_feedback(state)
     missed_anti_air = has_missed_anti_air_feedback(state)
     anti_air_opportunity = has_anti_air_opportunity_feedback(state)
+    missed_projectile_defense = has_missed_projectile_defense_feedback(state)
+    projectile_threat_feedback = has_projectile_threat_feedback(state)
     missed_punish_window = has_missed_punish_window_feedback(state)
     punish_window_available = has_punish_window_available_feedback(state)
     missed_corner_escape = has_missed_corner_escape_feedback(state)
@@ -859,6 +861,30 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
                 "antiProjectile": "parry_prefer" if bool(self_state.get("canParryProjectile", False)) else "hold",
                 "cornerEscapeBias": 0.62,
                 "reason": "heuristic_projectile_hold",
+        })
+        return intent
+
+    if missed_projectile_defense or projectile_threat_feedback:
+        if can_dash:
+            anti_projectile = "dash"
+        elif self_grounded:
+            anti_projectile = "jump"
+        elif bool(self_state.get("canParryProjectile", False)):
+            anti_projectile = "parry_prefer"
+        else:
+            anti_projectile = "hold"
+
+        intent.update({
+            "mode": "retreat",
+            "preferredRange": 300,
+            "advanceBias": 0.16,
+            "shootBias": 0.28,
+            "meleeBias": 0.22,
+            "dashBias": 0.94 if can_dash else 0.52,
+            "jumpBias": 0.56 if self_grounded else 0.22,
+            "antiProjectile": anti_projectile,
+            "cornerEscapeBias": 0.82,
+            "reason": "heuristic_missed_projectile_defense" if missed_projectile_defense else "heuristic_projectile_threat_feedback",
         })
         return intent
 

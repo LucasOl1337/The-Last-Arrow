@@ -402,6 +402,24 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["dashBias"], 0.9)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_defends_after_projectile_threat_text_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["dangerousProjectiles"] = []
+        state["executorFeedback"]["projectileThreatActive"] = False
+        state["executorFeedback"]["botFeedback"] = (
+            "projectile threat 0.12s; action AI PARRY HOLD; improve: defend before attacking."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("retreat", intent["mode"])
+        self.assertEqual("heuristic_projectile_threat_feedback", intent["reason"])
+        self.assertEqual("dash", intent["antiProjectile"])
+        self.assertLessEqual(intent["advanceBias"], 0.18)
+        self.assertLessEqual(intent["meleeBias"], 0.24)
+        self.assertGreaterEqual(intent["dashBias"], 0.9)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_build_heuristic_intent_uses_ranged_threat_feedback(self) -> None:
         state = _build_base_state()
         state["promptState"]["self"]["arrows"] = 0
