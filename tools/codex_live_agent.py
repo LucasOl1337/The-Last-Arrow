@@ -303,6 +303,13 @@ def has_missed_ranged_response_feedback(state: dict[str, Any]) -> bool:
     return "missed ranged response" in combined
 
 
+def resolve_target_visible(feedback: dict[str, Any], target: dict[str, Any]) -> bool:
+    if "targetVisible" in feedback:
+        return bool(feedback.get("targetVisible"))
+
+    return bool(target.get("slotId")) or bool(target.get("botId")) or bool(target.get("displayName"))
+
+
 def resolve_runtime_provider(selected_provider: str, codex_available: bool) -> str:
     normalized = str(selected_provider or "openai_codex").strip().lower()
     if normalized == HEURISTIC_PROVIDER:
@@ -361,11 +368,10 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     arena = prompt_state.get("arena") or {}
     target = prompt_state.get("target") or {}
     self_state = prompt_state.get("self") or {}
-    has_prompt_target = bool(target.get("slotId")) or bool(target.get("botId")) or bool(target.get("displayName"))
     has_prompt_projectiles = bool(prompt_state.get("dangerousProjectiles"))
 
     round_reset = bool(arena.get("roundResetPending")) or bool(feedback.get("roundResetPending"))
-    target_visible = bool(feedback.get("targetVisible")) or has_prompt_target
+    target_visible = resolve_target_visible(feedback, target)
     projectile_risk = bool(feedback.get("projectileThreatActive")) or has_prompt_projectiles
     self_cornered = bool(feedback.get("selfCornered")) or bool(arena.get("selfCornered"))
     target_cornered = bool(feedback.get("targetCornered")) or bool(arena.get("targetCornered"))
@@ -724,7 +730,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     events = [str(item) for item in as_list(prompt_state.get("events"))]
     dangerous_projectiles = [as_dict(item) for item in as_list(prompt_state.get("dangerousProjectiles"))]
 
-    target_visible = bool(read_int(target_state, "slotId", 0)) or bool(target_state.get("botId")) or bool(target_state.get("displayName")) or bool(feedback.get("targetVisible"))
+    target_visible = resolve_target_visible(feedback, target_state)
     self_dead = bool(self_state.get("isDead", False))
     round_reset = bool(arena.get("roundResetPending", False)) or bool(feedback.get("roundResetPending", False)) or "round_reset_started" in events
 

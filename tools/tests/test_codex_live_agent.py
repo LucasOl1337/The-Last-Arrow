@@ -1160,6 +1160,19 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["advanceBias"], 0.9)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_waits_when_executor_reports_no_visible_target(self) -> None:
+        state = _build_base_state()
+        state["executorFeedback"]["targetVisible"] = False
+        state["promptState"]["self"]["arrows"] = 2
+        state["promptState"]["target"]["arrows"] = 0
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("stabilize", intent["mode"])
+        self.assertEqual("heuristic_waiting_for_target", intent["reason"])
+        self.assertLessEqual(intent["advanceBias"], 0.2)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_apply_aggression_bias_promotes_visible_zone_opening_without_feedback(self) -> None:
         state = _build_base_state()
         state["executorFeedback"] = {}
@@ -1226,6 +1239,36 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertEqual("pressure", tuned["mode"])
         self.assertEqual("last_arrow_pressure", tuned["reason"])
         self.assertGreaterEqual(tuned["advanceBias"], 0.9)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
+    def test_apply_aggression_bias_does_not_promote_last_arrow_without_visible_target_feedback(self) -> None:
+        state = _build_base_state()
+        state["executorFeedback"]["targetVisible"] = False
+        state["promptState"]["self"]["arrows"] = 2
+        state["promptState"]["target"]["arrows"] = 0
+
+        intent = {
+            "mode": "stabilize",
+            "preferredRange": 280,
+            "advanceBias": 0.2,
+            "shootBias": 0.2,
+            "meleeBias": 0.2,
+            "dashBias": 0.15,
+            "jumpBias": 0.15,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.4,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "heuristic_waiting_for_target",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("stabilize", tuned["mode"])
+        self.assertEqual("heuristic_waiting_for_target", tuned["reason"])
+        self.assertLessEqual(tuned["advanceBias"], 0.2)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
 
