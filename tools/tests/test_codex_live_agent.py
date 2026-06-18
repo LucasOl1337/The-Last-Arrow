@@ -297,6 +297,31 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["cornerEscapeBias"], 0.84)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_prioritizes_stalled_arrow_recovery_over_movement_stall(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 0
+        state["promptState"]["target"]["arrows"] = 1
+        state["promptState"]["events"] = ["movement_stalled"]
+        state["promptState"]["memory"] = ["movement_stalled"]
+        state["promptState"]["recoverableProjectiles"] = [
+            {"sourceSlotId": 2, "distanceToSelf": 347.0},
+        ]
+        state["executorFeedback"]["summary"] = "AI ARROW RECOVERY STALLED"
+        state["executorFeedback"]["recoverableProjectileAvailable"] = True
+        state["executorFeedback"]["recoverableProjectileCount"] = 1
+        state["executorFeedback"]["nearestRecoverableProjectileDistance"] = 347.0
+        state["executorFeedback"]["botFeedback"] = (
+            "arrow recovery movement stalled at 347u; action none; improve: move, jump, or dash toward the pickup before re-engaging."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("retreat", intent["mode"])
+        self.assertEqual("heuristic_recover_arrow_feedback", intent["reason"])
+        self.assertGreaterEqual(intent["dashBias"], 0.82)
+        self.assertGreaterEqual(intent["cornerEscapeBias"], 0.84)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_build_heuristic_intent_ignores_unknown_recover_arrow_feedback(self) -> None:
         state = _build_base_state()
         state["promptState"]["self"]["arrows"] = 0
@@ -1285,6 +1310,47 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["cornerEscapeBias"], 0.9)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_apply_aggression_bias_prioritizes_stalled_arrow_recovery_over_movement_stall(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 0
+        state["promptState"]["target"]["arrows"] = 1
+        state["promptState"]["events"] = ["movement_stalled"]
+        state["promptState"]["memory"] = ["movement_stalled"]
+        state["promptState"]["recoverableProjectiles"] = [
+            {"sourceSlotId": 2, "distanceToSelf": 347.0},
+        ]
+        state["executorFeedback"]["summary"] = "AI ARROW RECOVERY STALLED"
+        state["executorFeedback"]["recoverableProjectileAvailable"] = True
+        state["executorFeedback"]["recoverableProjectileCount"] = 1
+        state["executorFeedback"]["nearestRecoverableProjectileDistance"] = 347.0
+        state["executorFeedback"]["botFeedback"] = (
+            "arrow recovery movement stalled at 347u; action none; improve: move, jump, or dash toward the pickup before re-engaging."
+        )
+        intent = {
+            "mode": "retreat",
+            "preferredRange": 320,
+            "advanceBias": 0.12,
+            "shootBias": 0.24,
+            "meleeBias": 0.2,
+            "dashBias": 0.62,
+            "jumpBias": 0.78,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.92,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "heuristic_movement_stall_escape",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("retreat", tuned["mode"])
+        self.assertEqual("recover_arrow_feedback", tuned["reason"])
+        self.assertGreaterEqual(tuned["dashBias"], 0.82)
+        self.assertGreaterEqual(tuned["cornerEscapeBias"], 0.84)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
     def test_build_heuristic_intent_pressures_last_arrow_target(self) -> None:
         state = _build_base_state()
         state["promptState"]["self"]["arrows"] = 2
@@ -1306,6 +1372,34 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertEqual("pressure", intent["mode"])
         self.assertEqual("heuristic_last_arrow_pressure", intent["reason"])
         self.assertGreaterEqual(intent["advanceBias"], 0.9)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
+    def test_build_heuristic_intent_commits_after_stalled_last_arrow_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 1
+        state["promptState"]["target"]["arrows"] = 0
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 268.0,
+            "verticalDistance": 66.0,
+            "targetInMeleeRange": False,
+            "targetInUltimateRange": False,
+            "targetInShootRange": True,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": True,
+        }
+        state["executorFeedback"]["summary"] = "AI LAST ARROW STALLED"
+        state["executorFeedback"]["botFeedback"] = (
+            "last-arrow pressure stalled; action none; improve: shoot, dash in, or move into a clean shot before the target recovers arrows."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("pressure", intent["mode"])
+        self.assertEqual("heuristic_last_arrow_stalled_commit", intent["reason"])
+        self.assertGreaterEqual(intent["shootBias"], 0.95)
+        self.assertGreaterEqual(intent["dashBias"], 0.88)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
     def test_build_heuristic_intent_waits_when_executor_reports_no_visible_target(self) -> None:
@@ -1387,6 +1481,51 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertEqual("pressure", tuned["mode"])
         self.assertEqual("last_arrow_pressure", tuned["reason"])
         self.assertGreaterEqual(tuned["advanceBias"], 0.9)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
+    def test_apply_aggression_bias_commits_after_stalled_last_arrow_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["self"]["arrows"] = 1
+        state["promptState"]["target"]["arrows"] = 0
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 268.0,
+            "verticalDistance": 66.0,
+            "targetInMeleeRange": False,
+            "targetInUltimateRange": False,
+            "targetInShootRange": True,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": True,
+        }
+        state["executorFeedback"]["summary"] = "AI LAST ARROW STALLED"
+        state["executorFeedback"]["botFeedback"] = (
+            "last-arrow pressure stalled; action none; improve: shoot, dash in, or move into a clean shot before the target recovers arrows."
+        )
+        intent = {
+            "mode": "pressure",
+            "preferredRange": 180,
+            "advanceBias": 0.72,
+            "shootBias": 0.58,
+            "meleeBias": 0.74,
+            "dashBias": 0.5,
+            "jumpBias": 0.3,
+            "antiProjectile": "hold",
+            "antiAir": True,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.22,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "last_arrow_pressure",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("pressure", tuned["mode"])
+        self.assertEqual("last_arrow_stalled_commit", tuned["reason"])
+        self.assertGreaterEqual(tuned["shootBias"], 0.95)
+        self.assertGreaterEqual(tuned["dashBias"], 0.88)
+        self.assertLessEqual(tuned["jumpBias"], 0.28)
         self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
 
     def test_apply_aggression_bias_does_not_promote_last_arrow_without_visible_target_feedback(self) -> None:

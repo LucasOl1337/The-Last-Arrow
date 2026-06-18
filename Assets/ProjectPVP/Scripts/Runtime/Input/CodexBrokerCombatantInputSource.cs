@@ -166,6 +166,8 @@ namespace ProjectPVP.Input
                 AiArenaBotFeedbackBuilder.Build(snapshot, _debugSummary, _currentFrame));
             _lastExecutorSummary = _debugSummary;
             _currentFrame = ObserveMovementStall(snapshot, _currentFrame);
+            _currentFrame = ApplyRecoverArrowFeedbackFailsafe(snapshot, _currentFrame);
+            _currentFrame = ApplyLastArrowCommitFailsafe(snapshot, _currentFrame);
             _lastReportedFrame = _currentFrame;
             _previousSnapshot = snapshot;
             _frameIndex += 1;
@@ -748,9 +750,164 @@ namespace ProjectPVP.Input
             return resolvedFrame;
         }
 
+        private PlayerInputFrame ApplyRecoverArrowFeedbackFailsafe(AiArenaSnapshotEnvelope snapshot, PlayerInputFrame frame)
+        {
+            if (!IsRecoverArrowFeedbackIntent(_currentIntent)
+                || snapshot == null
+                || snapshot.self == null
+                || snapshot.semantics == null
+                || !snapshot.semantics.shouldCollectProjectile
+                || snapshot.semantics.incomingProjectileThreat
+                || snapshot.semantics.targetUsingUltimate)
+            {
+                return frame;
+            }
+
+            bool alreadyMoving = Mathf.Abs(frame.axis) > 0.1f
+                || frame.jumpPressed
+                || frame.jumpHeld
+                || frame.dashPrimaryPressed
+                || frame.dashSecondaryPressed;
+            if (alreadyMoving)
+            {
+                return frame;
+            }
+
+            bool canDash = snapshot.self.dashCooldownLeft <= 0.01f && !snapshot.self.isDashing;
+            float axis = AiArenaHeuristicPolicy.ResolveCollectionMoveAxis(
+                snapshot.semantics.collectibleProjectileDirection,
+                snapshot.self);
+            bool jump = AiArenaHeuristicPolicy.ShouldJumpForCollectible(
+                snapshot.semantics.collectibleProjectileDirection,
+                snapshot.self);
+            bool dash = AiArenaHeuristicPolicy.ShouldDashForAirborneCollectible(
+                snapshot.semantics.collectibleProjectileDirection,
+                snapshot.self,
+                canDash);
+
+            if (Mathf.Abs(axis) <= 0.1f && !jump && !dash)
+            {
+                return frame;
+            }
+
+            frame.axis = Mathf.Clamp(axis, -1f, 1f);
+            frame.left = frame.axis < -0.1f;
+            frame.right = frame.axis > 0.1f;
+            frame.up = jump;
+            frame.down = false;
+            frame.jumpPressed = jump;
+            frame.jumpHeld = jump;
+            frame.dashPrimaryPressed = dash;
+            frame.dashSecondaryPressed = false;
+            frame.shootPressed = false;
+            frame.shootHeld = false;
+            frame.meleePressed = false;
+            frame.ultimatePressed = false;
+            _debugSummary = "AI COLLECT ARROW";
+            _lastExecutorSummary = _debugSummary;
+            _botFeedback = DecorateBotFeedbackForExecutorSource(
+                _lastExecutorSource,
+                AiArenaBotFeedbackBuilder.Build(snapshot, _debugSummary, frame));
+            return frame;
+        }
+
+        private PlayerInputFrame ApplyLastArrowCommitFailsafe(AiArenaSnapshotEnvelope snapshot, PlayerInputFrame frame)
+        {
+            if (!IsLastArrowCommitIntent(_currentIntent)
+                || snapshot == null
+                || snapshot.self == null
+                || snapshot.semantics == null
+                || snapshot.opponents == null
+                || snapshot.opponents.Count == 0
+                || snapshot.opponents[0] == null
+                || snapshot.semantics.incomingProjectileThreat
+                || snapshot.semantics.targetUsingUltimate)
+            {
+                return frame;
+            }
+
+            AiArenaCombatantObservation target = snapshot.opponents[0];
+            if (snapshot.self.arrows <= 0 || target.arrows > 0)
+            {
+                return frame;
+            }
+
+            bool alreadyActing = Mathf.Abs(frame.axis) > 0.1f
+                || frame.shootPressed
+                || frame.shootHeld
+                || frame.meleePressed
+                || frame.ultimatePressed
+                || frame.jumpPressed
+                || frame.dashPrimaryPressed
+                || frame.dashSecondaryPressed;
+            if (alreadyActing)
+            {
+                return frame;
+            }
+
+            bool targetCanStopProjectile = !target.isDead && (target.canParryProjectile || target.canBlockProjectiles);
+            bool canShoot = snapshot.self.shootCooldownLeft <= 0.01f && !targetCanStopProjectile;
+            bool canDash = snapshot.self.dashCooldownLeft <= 0.01f && !snapshot.self.isDashing;
+            float towardTarget = snapshot.semantics.targetDirection.x >= 0f ? 1f : -1f;
+
+            frame.axis = towardTarget;
+            frame.left = frame.axis < -0.1f;
+            frame.right = frame.axis > 0.1f;
+            frame.down = false;
+            if (canShoot && snapshot.semantics.targetInShootRange)
+            {
+                frame.shootPressed = true;
+                frame.shootHeld = true;
+                frame.axis = Mathf.Clamp(towardTarget * 0.25f, -1f, 1f);
+                frame.left = frame.axis < -0.1f;
+                frame.right = frame.axis > 0.1f;
+            }
+            else if (canDash && snapshot.semantics.horizontalDistance > 120f)
+            {
+                frame.dashPrimaryPressed = true;
+            }
+
+            if (snapshot.self.isGrounded && snapshot.semantics.targetAbove)
+            {
+                frame.up = true;
+                frame.jumpPressed = true;
+                frame.jumpHeld = true;
+            }
+
+            _debugSummary = "AI LAST ARROW COMMIT";
+            _lastExecutorSummary = _debugSummary;
+            _botFeedback = DecorateBotFeedbackForExecutorSource(
+                _lastExecutorSource,
+                AiArenaBotFeedbackBuilder.Build(snapshot, _debugSummary, frame));
+            return frame;
+        }
+
         private void ResetMovementStall()
         {
             _movementStallEscape.Reset();
+        }
+
+        private static bool IsRecoverArrowFeedbackIntent(CodexStrategyIntent intent)
+        {
+            if (intent == null || string.IsNullOrWhiteSpace(intent.reason))
+            {
+                return false;
+            }
+
+            string normalized = intent.reason.Trim().ToLowerInvariant();
+            return normalized.Contains("recover_arrow_feedback")
+                || normalized.Contains("recover_missed_arrow")
+                || normalized.Contains("recover_arrow_after_empty_shot");
+        }
+
+        private static bool IsLastArrowCommitIntent(CodexStrategyIntent intent)
+        {
+            if (intent == null || string.IsNullOrWhiteSpace(intent.reason))
+            {
+                return false;
+            }
+
+            return intent.reason.Trim().ToLowerInvariant().Contains("last_arrow_stalled_commit");
         }
 
         private void ApplyBrokerEnvelope(string responseJson)

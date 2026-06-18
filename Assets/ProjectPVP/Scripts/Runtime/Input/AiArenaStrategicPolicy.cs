@@ -27,14 +27,15 @@ namespace ProjectPVP.Input
             int arrowLead = self.arrows - targetArrows;
             bool cornerEscapeIntent = IsCornerEscapeIntent(intent);
             bool antiAirIntent = IsAntiAirIntent(intent);
+            bool recoverArrowFeedbackIntent = IsRecoverArrowFeedbackIntent(intent);
             bool antiAirOpportunity = antiAirIntent || semantics.shouldAntiAir;
             bool antiAirChaseOpportunity = semantics.shouldAntiAir || (antiAirIntent && semantics.verticalDistance >= 96f);
             bool movementStallEscapeIntent = IsMovementStallEscapeIntent(intent);
             bool deferCollectionForCornerEscape = cornerEscapeIntent || AiArenaHeuristicPolicy.ShouldDeferCollectionForCornerEscape(semantics);
             bool prioritizeCollection = semantics.shouldCollectProjectile
-                && (self.arrows <= 1 || targetArrows > self.arrows)
+                && (recoverArrowFeedbackIntent || self.arrows <= 1 || targetArrows > self.arrows)
                 && !deferCollectionForCornerEscape
-                && !movementStallEscapeIntent;
+                && (!movementStallEscapeIntent || recoverArrowFeedbackIntent);
 
             float towardTarget = semantics.targetDirection.x >= 0f ? 1f : -1f;
             float awayFromTarget = -towardTarget;
@@ -92,7 +93,11 @@ namespace ProjectPVP.Input
                 decision.debugSummary = "AI DEFENSIVE RETREAT";
             }
 
-            if (prioritizeCollection && !semantics.incomingProjectileThreat && !semantics.targetUsingUltimate && !semantics.targetUsingRanged && !effectiveDefensiveRetreatIntent)
+            if (prioritizeCollection
+                && !semantics.incomingProjectileThreat
+                && !semantics.targetUsingUltimate
+                && (recoverArrowFeedbackIntent || !semantics.targetUsingRanged)
+                && !effectiveDefensiveRetreatIntent)
             {
                 decision.shootPressed = false;
                 decision.shootHeld = false;
@@ -464,6 +469,19 @@ namespace ProjectPVP.Input
             return intent != null
                 && !string.IsNullOrWhiteSpace(intent.reason)
                 && intent.reason.Trim().ToLowerInvariant().Contains("movement_stall_escape");
+        }
+
+        private static bool IsRecoverArrowFeedbackIntent(CodexStrategyIntent intent)
+        {
+            if (intent == null || string.IsNullOrWhiteSpace(intent.reason))
+            {
+                return false;
+            }
+
+            string normalized = intent.reason.Trim().ToLowerInvariant();
+            return normalized.Contains("recover_arrow_feedback")
+                || normalized.Contains("recover_missed_arrow")
+                || normalized.Contains("recover_arrow_after_empty_shot");
         }
 
         private static bool IsCornerEscapeIntent(CodexStrategyIntent intent)

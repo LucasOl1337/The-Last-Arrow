@@ -204,6 +204,16 @@ def has_recover_arrow_feedback(state: dict[str, Any]) -> bool:
     return "recover arrow at" in combined
 
 
+def has_arrow_recovery_stalled_feedback(state: dict[str, Any]) -> bool:
+    feedback_raw = state.get("executorFeedback")
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    combined = " ".join([
+        str(feedback.get("botFeedback", "")),
+        str(feedback.get("summary", "")),
+    ]).lower()
+    return "arrow recovery movement stalled" in combined or "ai arrow recovery stalled" in combined
+
+
 def has_known_recoverable_projectile(state: dict[str, Any]) -> bool:
     prompt_state_raw = state.get("promptState")
     prompt_state = prompt_state_raw if isinstance(prompt_state_raw, dict) else {}
@@ -284,6 +294,16 @@ def has_punish_window_available_feedback(state: dict[str, Any]) -> bool:
         str(feedback.get("summary", "")),
     ]).lower()
     return "punish window available" in combined
+
+
+def has_last_arrow_stalled_feedback(state: dict[str, Any]) -> bool:
+    feedback_raw = state.get("executorFeedback")
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    combined = " ".join([
+        str(feedback.get("botFeedback", "")),
+        str(feedback.get("summary", "")),
+    ]).lower()
+    return "last-arrow pressure stalled" in combined or "ai last arrow stalled" in combined
 
 
 def has_missed_corner_escape_feedback(state: dict[str, Any]) -> bool:
@@ -418,13 +438,17 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     shot_out_of_range = has_shot_out_of_range_feedback(state)
     empty_shot = has_empty_shot_feedback(state)
     missed_arrow_recovery = has_missed_arrow_recovery_feedback(state)
-    recover_arrow = has_recover_arrow_feedback(state) and has_known_recoverable_projectile(state)
+    recover_arrow = (
+        has_recover_arrow_feedback(state)
+        or has_arrow_recovery_stalled_feedback(state)
+    ) and has_known_recoverable_projectile(state)
     missed_anti_air = has_missed_anti_air_feedback(state)
     anti_air_opportunity = has_anti_air_opportunity_feedback(state)
     missed_projectile_defense = has_missed_projectile_defense_feedback(state)
     projectile_threat_feedback = has_projectile_threat_feedback(state)
     missed_punish_window = has_missed_punish_window_feedback(state)
     punish_window_available = has_punish_window_available_feedback(state)
+    last_arrow_stalled = has_last_arrow_stalled_feedback(state)
     missed_corner_escape = has_missed_corner_escape_feedback(state)
     missed_ultimate_escape = has_missed_ultimate_escape_feedback(state)
     missed_melee_escape = has_missed_melee_escape_feedback(state)
@@ -451,19 +475,6 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["antiProjectile"] = "hold"
         tuned["cornerEscapeBias"] = min(tuned["cornerEscapeBias"], 0.32)
         tuned["reason"] = "target_reacquired"
-        return tuned
-
-    if movement_stalled and target_visible and not projectile_risk:
-        tuned["mode"] = "retreat"
-        tuned["preferredRange"] = max(tuned["preferredRange"], 320)
-        tuned["advanceBias"] = min(tuned["advanceBias"], 0.18)
-        tuned["shootBias"] = min(tuned["shootBias"], 0.28)
-        tuned["meleeBias"] = min(tuned["meleeBias"], 0.24)
-        tuned["dashBias"] = max(tuned["dashBias"], 0.92 if can_dash else 0.62)
-        tuned["jumpBias"] = max(tuned["jumpBias"], 0.78 if self_grounded else 0.28)
-        tuned["antiProjectile"] = "hold"
-        tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.92)
-        tuned["reason"] = "heuristic_movement_stall_escape"
         return tuned
 
     if missed_projectile_defense or projectile_threat_feedback:
@@ -575,6 +586,19 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["reason"] = "missed_punish_window" if missed_punish_window else "punish_window_available"
         return tuned
 
+    if last_arrow_stalled and target_visible and self_arrows > 0 and target_arrows <= 0:
+        tuned["mode"] = "pressure"
+        tuned["preferredRange"] = min(tuned["preferredRange"], 140)
+        tuned["advanceBias"] = max(tuned["advanceBias"], 0.96)
+        tuned["shootBias"] = max(tuned["shootBias"], 0.96 if in_shoot else 0.72)
+        tuned["meleeBias"] = max(tuned["meleeBias"], 0.9 if in_melee else 0.76)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.9 if can_dash else 0.62)
+        tuned["jumpBias"] = min(max(tuned["jumpBias"], 0.12), 0.28)
+        tuned["antiProjectile"] = "hold"
+        tuned["cornerEscapeBias"] = min(tuned["cornerEscapeBias"], 0.16)
+        tuned["reason"] = "last_arrow_stalled_commit"
+        return tuned
+
     if vulnerable_out_of_range:
         tuned["mode"] = "pressure"
         tuned["preferredRange"] = min(tuned["preferredRange"], 220)
@@ -638,6 +662,19 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["antiProjectile"] = "hold"
         tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.86)
         tuned["reason"] = "recover_arrow_feedback"
+        return tuned
+
+    if movement_stalled and target_visible and not projectile_risk:
+        tuned["mode"] = "retreat"
+        tuned["preferredRange"] = max(tuned["preferredRange"], 320)
+        tuned["advanceBias"] = min(tuned["advanceBias"], 0.18)
+        tuned["shootBias"] = min(tuned["shootBias"], 0.28)
+        tuned["meleeBias"] = min(tuned["meleeBias"], 0.24)
+        tuned["dashBias"] = max(tuned["dashBias"], 0.92 if can_dash else 0.62)
+        tuned["jumpBias"] = max(tuned["jumpBias"], 0.78 if self_grounded else 0.28)
+        tuned["antiProjectile"] = "hold"
+        tuned["cornerEscapeBias"] = max(tuned["cornerEscapeBias"], 0.92)
+        tuned["reason"] = "heuristic_movement_stall_escape"
         return tuned
 
     if target_vulnerable:
@@ -801,13 +838,17 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     shot_out_of_range = has_shot_out_of_range_feedback(state)
     empty_shot = has_empty_shot_feedback(state)
     missed_arrow_recovery = has_missed_arrow_recovery_feedback(state)
-    recover_arrow = has_recover_arrow_feedback(state) and has_known_recoverable_projectile(state)
+    recover_arrow = (
+        has_recover_arrow_feedback(state)
+        or has_arrow_recovery_stalled_feedback(state)
+    ) and has_known_recoverable_projectile(state)
     missed_anti_air = has_missed_anti_air_feedback(state)
     anti_air_opportunity = has_anti_air_opportunity_feedback(state)
     missed_projectile_defense = has_missed_projectile_defense_feedback(state)
     projectile_threat_feedback = has_projectile_threat_feedback(state)
     missed_punish_window = has_missed_punish_window_feedback(state)
     punish_window_available = has_punish_window_available_feedback(state)
+    last_arrow_stalled = has_last_arrow_stalled_feedback(state)
     missed_corner_escape = has_missed_corner_escape_feedback(state)
     missed_ultimate_escape = has_missed_ultimate_escape_feedback(state)
     missed_melee_escape = has_missed_melee_escape_feedback(state)
@@ -997,21 +1038,6 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
         })
         return intent
 
-    if movement_stalled:
-        intent.update({
-            "mode": "retreat",
-            "preferredRange": 320,
-            "advanceBias": 0.12,
-            "shootBias": 0.24,
-            "meleeBias": 0.2,
-            "dashBias": 0.94 if can_dash else 0.62,
-            "jumpBias": 0.78 if self_grounded else 0.28,
-            "antiProjectile": "hold",
-            "cornerEscapeBias": 0.92,
-            "reason": "heuristic_movement_stall_escape",
-        })
-        return intent
-
     if (missed_anti_air or anti_air_opportunity) and target_above:
         anti_air_shoot_bias = 0.42
         if target_in_shoot and can_shoot:
@@ -1061,6 +1087,21 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
             "antiProjectile": "hold",
             "cornerEscapeBias": 0.94,
             "reason": "heuristic_missed_corner_escape",
+        })
+        return intent
+
+    if last_arrow_stalled and target_visible and self_arrows > 0 and target_arrows <= 0:
+        intent.update({
+            "mode": "pressure",
+            "preferredRange": 140,
+            "advanceBias": 0.96,
+            "shootBias": 0.96 if target_in_shoot and can_shoot else 0.72,
+            "meleeBias": 0.9 if can_melee and target_in_melee else 0.76,
+            "dashBias": 0.9 if can_dash else 0.62,
+            "jumpBias": 0.16,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.16,
+            "reason": "heuristic_last_arrow_stalled_commit",
         })
         return intent
 
@@ -1136,6 +1177,21 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
             "antiProjectile": "hold",
             "cornerEscapeBias": 0.86,
             "reason": "heuristic_recover_arrow_feedback",
+        })
+        return intent
+
+    if movement_stalled:
+        intent.update({
+            "mode": "retreat",
+            "preferredRange": 320,
+            "advanceBias": 0.12,
+            "shootBias": 0.24,
+            "meleeBias": 0.2,
+            "dashBias": 0.94 if can_dash else 0.62,
+            "jumpBias": 0.78 if self_grounded else 0.28,
+            "antiProjectile": "hold",
+            "cornerEscapeBias": 0.92,
+            "reason": "heuristic_movement_stall_escape",
         })
         return intent
 
