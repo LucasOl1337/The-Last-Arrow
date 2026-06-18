@@ -233,6 +233,16 @@ def has_missed_punish_window_feedback(state: dict[str, Any]) -> bool:
     return "missed punish window" in combined
 
 
+def has_punish_window_available_feedback(state: dict[str, Any]) -> bool:
+    feedback_raw = state.get("executorFeedback")
+    feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
+    combined = " ".join([
+        str(feedback.get("botFeedback", "")),
+        str(feedback.get("summary", "")),
+    ]).lower()
+    return "punish window available" in combined
+
+
 def has_missed_corner_escape_feedback(state: dict[str, Any]) -> bool:
     feedback_raw = state.get("executorFeedback")
     feedback = feedback_raw if isinstance(feedback_raw, dict) else {}
@@ -359,6 +369,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
     missed_anti_air = has_missed_anti_air_feedback(state)
     missed_projectile_defense = has_missed_projectile_defense_feedback(state)
     missed_punish_window = has_missed_punish_window_feedback(state)
+    punish_window_available = has_punish_window_available_feedback(state)
     missed_corner_escape = has_missed_corner_escape_feedback(state)
     missed_ultimate_escape = has_missed_ultimate_escape_feedback(state)
     missed_melee_escape = has_missed_melee_escape_feedback(state)
@@ -477,7 +488,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["reason"] = "missed_anti_air"
         return tuned
 
-    if missed_punish_window and (in_melee or in_shoot):
+    if (missed_punish_window or punish_window_available) and (in_melee or in_shoot):
         tuned["mode"] = "punish"
         tuned["preferredRange"] = min(tuned["preferredRange"], 160)
         tuned["advanceBias"] = max(tuned["advanceBias"], 0.92)
@@ -487,7 +498,7 @@ def apply_aggression_bias(intent: dict[str, Any], state: dict[str, Any]) -> dict
         tuned["jumpBias"] = min(max(tuned["jumpBias"], 0.16), 0.32)
         tuned["antiProjectile"] = "hold"
         tuned["cornerEscapeBias"] = min(tuned["cornerEscapeBias"], 0.2)
-        tuned["reason"] = "missed_punish_window"
+        tuned["reason"] = "missed_punish_window" if missed_punish_window else "punish_window_available"
         return tuned
 
     if vulnerable_out_of_range:
@@ -719,6 +730,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
     recover_arrow = has_recover_arrow_feedback(state)
     missed_anti_air = has_missed_anti_air_feedback(state)
     missed_punish_window = has_missed_punish_window_feedback(state)
+    punish_window_available = has_punish_window_available_feedback(state)
     missed_corner_escape = has_missed_corner_escape_feedback(state)
 
     projectile_eta: float | None = None
@@ -912,7 +924,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
         })
         return intent
 
-    if missed_punish_window and (target_in_melee or target_in_shoot):
+    if (missed_punish_window or punish_window_available) and (target_in_melee or target_in_shoot):
         intent.update({
             "mode": "punish",
             "preferredRange": min(160, max(120, int(horizontal_distance))),
@@ -923,7 +935,7 @@ def build_heuristic_intent(state: dict[str, Any]) -> dict[str, Any]:
             "jumpBias": 0.18,
             "antiProjectile": "hold",
             "cornerEscapeBias": 0.18,
-            "reason": "heuristic_missed_punish_window",
+            "reason": "heuristic_missed_punish_window" if missed_punish_window else "heuristic_punish_window_available",
         })
         return intent
 

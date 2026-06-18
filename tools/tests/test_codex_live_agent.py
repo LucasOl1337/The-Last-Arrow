@@ -295,6 +295,34 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
         self.assertGreaterEqual(intent["dashBias"], 0.8)
         self.assertIsNotNone(codex_live_agent.validate_intent(intent))
 
+    def test_build_heuristic_intent_converts_punish_window_available_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["target"]["isHitStunned"] = False
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 148.0,
+            "verticalDistance": 8.0,
+            "targetInMeleeRange": True,
+            "targetInUltimateRange": True,
+            "targetInShootRange": True,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": False,
+        }
+        state["executorFeedback"]["botFeedback"] = (
+            "punish window available; action AI MELEE; improve: convert vulnerability quickly."
+        )
+
+        intent = codex_live_agent.build_heuristic_intent(state)
+
+        self.assertEqual("punish", intent["mode"])
+        self.assertEqual("heuristic_punish_window_available", intent["reason"])
+        self.assertLessEqual(intent["preferredRange"], 160)
+        self.assertGreaterEqual(intent["meleeBias"], 0.9)
+        self.assertGreaterEqual(intent["shootBias"], 0.66)
+        self.assertGreaterEqual(intent["dashBias"], 0.8)
+        self.assertIsNotNone(codex_live_agent.validate_intent(intent))
+
     def test_build_heuristic_intent_escapes_after_missed_corner_feedback(self) -> None:
         state = _build_base_state()
         state["promptState"]["self"]["arrows"] = 2
@@ -819,6 +847,50 @@ class CodexLiveAgentHeuristicTestCase(unittest.TestCase):
 
         self.assertEqual("punish", tuned["mode"])
         self.assertEqual("missed_punish_window", tuned["reason"])
+        self.assertLessEqual(tuned["preferredRange"], 160)
+        self.assertGreaterEqual(tuned["meleeBias"], 0.9)
+        self.assertGreaterEqual(tuned["shootBias"], 0.66)
+        self.assertGreaterEqual(tuned["dashBias"], 0.8)
+        self.assertIsNotNone(codex_live_agent.validate_intent(tuned))
+
+    def test_apply_aggression_bias_converts_punish_window_available_feedback(self) -> None:
+        state = _build_base_state()
+        state["promptState"]["target"]["isHitStunned"] = False
+        state["promptState"]["arena"] = {
+            "roundResetPending": False,
+            "horizontalDistance": 148.0,
+            "verticalDistance": 8.0,
+            "targetInMeleeRange": True,
+            "targetInUltimateRange": True,
+            "targetInShootRange": True,
+            "targetCornered": False,
+            "selfCornered": False,
+            "targetAbove": False,
+        }
+        state["executorFeedback"]["botFeedback"] = (
+            "punish window available; action AI MELEE; improve: convert vulnerability quickly."
+        )
+        intent = {
+            "mode": "zone",
+            "preferredRange": 420,
+            "advanceBias": 0.2,
+            "shootBias": 0.3,
+            "meleeBias": 0.24,
+            "dashBias": 0.2,
+            "jumpBias": 0.1,
+            "antiProjectile": "hold",
+            "antiAir": False,
+            "punishRecovery": True,
+            "cornerEscapeBias": 0.2,
+            "focusTargetSlot": 1,
+            "expiresInMs": 360,
+            "reason": "passive_zone",
+        }
+
+        tuned = codex_live_agent.apply_aggression_bias(intent, state)
+
+        self.assertEqual("punish", tuned["mode"])
+        self.assertEqual("punish_window_available", tuned["reason"])
         self.assertLessEqual(tuned["preferredRange"], 160)
         self.assertGreaterEqual(tuned["meleeBias"], 0.9)
         self.assertGreaterEqual(tuned["shootBias"], 0.66)
