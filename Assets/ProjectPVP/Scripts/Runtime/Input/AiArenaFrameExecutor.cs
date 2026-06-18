@@ -162,6 +162,11 @@ namespace ProjectPVP.Input
                 return "AI PROJECTILE DRIFT";
             }
 
+            if (incomingProjectileThreat && Mathf.Abs(moveAxis) > 0.1f)
+            {
+                return "AI PROJECTILE DRIFT";
+            }
+
             return string.IsNullOrWhiteSpace(decision.debugSummary)
                 ? "AI | OK"
                 : decision.debugSummary;

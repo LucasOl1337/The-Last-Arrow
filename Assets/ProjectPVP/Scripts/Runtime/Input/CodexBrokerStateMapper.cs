@@ -21,8 +21,8 @@ namespace ProjectPVP.Input
             return new CodexExecutorFeedback
             {
                 source = lastExecutorSource,
-                summary = lastExecutorSummary,
-                botFeedback = AiArenaBotFeedbackBuilder.Build(feedbackSnapshot, lastExecutorSummary, resolvedReportedInput),
+                summary = ResolveCurrentAwareSummary(lastExecutorSummary, snapshot, reportedInputSnapshot),
+                botFeedback = ResolveCurrentAwareBotFeedback(snapshot, reportedInputSnapshot, feedbackSnapshot, lastExecutorSummary, resolvedReportedInput),
                 intentMode = currentIntent != null ? currentIntent.mode : string.Empty,
                 intentReason = currentIntent != null ? currentIntent.reason : string.Empty,
                 projectileThreatActive = snapshot != null && snapshot.semantics != null && snapshot.semantics.incomingProjectileThreat,
@@ -39,6 +39,44 @@ namespace ProjectPVP.Input
                 intentAgeMs = intentAgeMs,
                 reportedInput = resolvedReportedInput,
             };
+        }
+
+        private static string ResolveCurrentAwareBotFeedback(
+            AiArenaSnapshotEnvelope snapshot,
+            AiArenaSnapshotEnvelope reportedInputSnapshot,
+            AiArenaSnapshotEnvelope feedbackSnapshot,
+            string lastExecutorSummary,
+            CodexReportedInputFrame reportedInput)
+        {
+            if (IsNewCurrentProjectileThreat(snapshot, reportedInputSnapshot))
+            {
+                return "projectile threat active now; action pending; improve: defend before attacking.";
+            }
+
+            return AiArenaBotFeedbackBuilder.Build(feedbackSnapshot, lastExecutorSummary, reportedInput);
+        }
+
+        private static string ResolveCurrentAwareSummary(
+            string lastExecutorSummary,
+            AiArenaSnapshotEnvelope snapshot,
+            AiArenaSnapshotEnvelope reportedInputSnapshot)
+        {
+            if (IsNewCurrentProjectileThreat(snapshot, reportedInputSnapshot))
+            {
+                return "AI PROJECTILE THREAT";
+            }
+
+            return lastExecutorSummary;
+        }
+
+        private static bool IsNewCurrentProjectileThreat(AiArenaSnapshotEnvelope snapshot, AiArenaSnapshotEnvelope reportedInputSnapshot)
+        {
+            return snapshot != null
+                && snapshot.semantics != null
+                && snapshot.semantics.incomingProjectileThreat
+                && (reportedInputSnapshot == null
+                    || reportedInputSnapshot.semantics == null
+                    || !reportedInputSnapshot.semantics.incomingProjectileThreat);
         }
 
         private static bool ShouldPreferCurrentFeedbackSnapshot(AiArenaSnapshotEnvelope snapshot)

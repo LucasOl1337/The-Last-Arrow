@@ -315,6 +315,42 @@ namespace ProjectPVP.Tests.Editor
         }
 
         [Test]
+        public void BuildExecutorFeedback_ReportsCurrentProjectileThreatSummaryWhenInputSnapshotIsOlder()
+        {
+            var currentSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = true,
+                    incomingProjectileTime = 0.18f,
+                },
+            };
+            var reportedInputSnapshot = new AiArenaSnapshotEnvelope
+            {
+                semantics = new AiArenaSemanticObservation
+                {
+                    hasTarget = true,
+                    incomingProjectileThreat = false,
+                },
+            };
+
+            CodexExecutorFeedback feedback = CodexBrokerStateMapper.BuildExecutorFeedback(
+                "codex",
+                "AI MOVE",
+                currentIntent: null,
+                currentSnapshot,
+                80f,
+                new CodexReportedInputFrame { frame = 42, axis = 0.75f, aim = Vector2.right },
+                reportedInputSnapshot);
+
+            Assert.That(feedback.projectileThreatActive, Is.True);
+            Assert.That(feedback.summary, Is.EqualTo("AI PROJECTILE THREAT"));
+            Assert.That(feedback.botFeedback, Does.Contain("projectile threat active now"));
+            Assert.That(feedback.botFeedback, Does.Not.Contain("missed projectile defense"));
+        }
+
+        [Test]
         public void ResolveControllerOwner_ReturnsEnvelopeOwnerWhenPresent()
         {
             string owner = CodexBrokerStateMapper.ResolveControllerOwner(
