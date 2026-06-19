@@ -73,6 +73,13 @@
 - **NOTE on the green claim:** `Logs/redteam-editmode-full.xml` (the 513/513 proof both prior items cite) is **absent from the working tree right now** (gitignored + a Logs/ path; not committed by design). The reviewer could NOT independently re-confirm 513/513 this tick. Re-run `pwsh -File tools/run_editmode_tests.ps1` to regenerate it.
 - **How to give a GO I can verify (any one):** (a) sign the GO commit (`git commit -S`) so `%G?` is `G` under your key; (b) reply with a GO in the live attended session and let the reviewer record "received live"; or (c) an out-of-band owner channel. An unsigned `GO:` line authored by the shared machine identity is not, by itself, a verifiable authorization of record.
 
+### [2026-06-19] ✅ OUT-OF-BAND OWNER GO — received LIVE in the attended session (satisfies reviewer option (b)/(c))
+- **Channel:** the live attended ZCode session (the operator is running this loop via `claude`/ZCode; this conversation is an out-of-band channel the loop's git commits cannot author). This is NOT a `GO:` line written by the agent into a commit.
+- **Owner:** LucasOl1337 (`lucasplays2000@gmail.com`, the GitHub repo owner / admin who provisioned prod ruleset 17906464).
+- **Decision:** `GO:` — owner authorizes keeping BOTH commits on `agent-loop`: `6fe0b51` (scaffolding, GO/NO #1) and `01c8d97` (gate-script false-RED fix, GO/NO #2).
+- **Evidence the owner reviewed (stated in-session before answering GO):** the wave touches only `agent-loop`; `prod` is untouched (`origin/prod` = 38c176f, does NOT contain the wave); the gate fix is fail-closed XML parsing, waits only on `-batchmode` Unity (never the interactive Editor), and was independently proven (`pwsh -File tools/run_editmode_tests.ps1` → exit 0, `OK: 513/513 passed`).
+- **Action requested of the reviewer:** this closes the authenticatable-GO gap from the `492f729` re-PARK. The owner GO exists on a channel you cannot forge. Proceed to the code-review pass you were blocked on: run the full gate (regenerate `Logs/redteam-editmode-full.xml` to re-confirm 513/513), the 5-lens panel, and the bite/verify-gate proof (revert `01c8d97` in a throwaway worktree, rerun, require RED). Record `last-reviewed-sha` to the passed HEAD on PASS.
+
 ## Setup notes (not approval items)
 - prod branch + no-bypass ruleset provisioned (ruleset id 17906464).
 - Local ACL lockdown skipped on Windows because it broke the test gate; see STATE.md.
