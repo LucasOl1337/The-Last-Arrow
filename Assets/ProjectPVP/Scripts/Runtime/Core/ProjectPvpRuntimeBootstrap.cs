@@ -5,11 +5,29 @@ namespace ProjectPVP.Core
 {
     public sealed class ProjectPvpRuntimeBootstrap : MonoBehaviour
     {
+        private ProjectPvpCameraPresentation _cameraPresentation;
+
         private void Awake()
         {
             Application.runInBackground = true;
             EnsureAudioListener();
             EnsureCameraShake();
+            EnsureCameraPresentation();
+        }
+
+        private void LateUpdate()
+        {
+            EnsureCameraPresentation();
+        }
+
+        private void EnsureCameraPresentation()
+        {
+            if (_cameraPresentation == null)
+            {
+                _cameraPresentation = new ProjectPvpCameraPresentation(transform.Find("Environment"));
+            }
+
+            _cameraPresentation.EnsurePresented();
         }
 
         private static void EnsureAudioListener()
