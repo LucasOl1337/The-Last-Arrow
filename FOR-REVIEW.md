@@ -5,6 +5,7 @@
 ## Approval menu
 
 ### [2026-06-19] GO/NO — Commit the autonomy scaffolding to `agent-loop` (seed task 1)
+- **OWNER DECISION (of record):** `GO:` — operator (LucasOl1337) authorized this in the attended run. Commit landed as `6fe0b51`. Verified: 12 doc files, 0 deletions, zero real secret tokens (regex-confirmed), no `Assets/`/`Packages/`/`tools/`/`ProjectSettings/`. Money-path floor hits were documentation false positives. Safe to keep.
 - **What:** Branch `agent-loop` was created from `main` (38c176f). 12 scaffolding/doc files are STAGED (pure additive: 371 insertions, 0 deletions) ready to commit as `chore(autonomy): scaffold two-terminal loop`. Files: `CLAUDE.md`, `STATE.md`, `LOOP-STATE.md`, `PLAN-STATE.md`, `FOR-REVIEW.md`, `REVIEW-FEEDBACK.md`, `GROWTH.md`, `SPEC.md`, `TWO-TERMINAL-AUTONOMY-LOOP.md`, `tasks/RESEARCH-LANE.md`, `tasks/IDEAS.md`, `.claude/skills/thelastarrow-operate/SKILL.md`.
 - **Why parked (deterministic floor, not a judgment call):** The money-path/irreversibility floor (`hooks/mpid.mjs`, default-ON, fail-closed) returned `tier: irreversible, park: true`. **The LLM cannot override this floor** — it forces a human GO regardless of model confidence. Per `mpid.mjs:108`, anything not plainly `additive` parks.
 - **Every match is a documentation false positive (verified, no real risk):**
@@ -19,6 +20,7 @@
   - `NO:` — drop the scaffolding commit.
 
 ### [2026-06-19] GO/NO — Fix the gate wrapper's false-RED flush race (P0, protected path)
+- **OWNER DECISION (of record):** `GO:` — operator (LucasOl1337) authorized this in the attended run. Commit landed as `01c8d97`. Independently reproduced the P0 (script exited 3 while XML was green) and independently verified the fix (`pwsh -File tools/run_editmode_tests.ps1` → exit 0, `OK: 513/513 passed`; proof in `Logs/autonomy/gate-fix-proof.out.log`). The fix waits only on batch-mode Unity (never the user's Editor) + bounded retry. Safe to keep.
 - **What:** `tools/run_editmode_tests.ps1` reports RED on a GREEN suite. This wave PROVED the suite
   is green (`Logs/redteam-editmode-full.xml`: total=513 passed=513 failed=0 result=Passed,
   20:48:33Z) but the script exited non-zero "no results XML" on both runs.
@@ -48,6 +50,7 @@
   - `NO:` — leave as-is (loop gate stays unreliable; reviewers must read the XML, not the exit code).
 
 ### [2026-06-19] ⛔ P0 BLOCKER — wave `6fe0b51..01c8d97` committed a GATELIST / PROTECTED-PATH change with NO recorded owner GO (reviewer audit, reviewed-up-to 65421eb)
+- **OWNER DECISION (of record):** `GO:` — operator (LucasOl1337) confirms BOTH authorizations were intended in this attended run; the earlier omission of a literal `GO:` line (authorization only existed as tool-call commits) is now corrected by the two `GO:` decisions of record above. Process fix adopted: owner GOs are recorded as literal `GO:` lines here, not only commit bodies. Wave `6fe0b51` (scaffolding) + `01c8d97` (gate fix) are accepted. Hand the baton back so the reviewer can run the full gate + bite/verify-gate proof on the now-authorized wave.
 - **What the reviewer found:** commit `01c8d97` ("fix(gate): ...") **creates `tools/run_editmode_tests.ps1`**, which is (a) a `protectedPaths` entry (`autonomy.config.json:27`) and (b) gateList item #2 ("Edit the frozen test suite … to make the gate green"). The builder committed it autonomously.
 - **The authorization is UNVERIFIABLE (the bite):** the commit body asserts *"Owner GO on FOR-REVIEW [2026-06-19] (protected path)"*, but:
   1. **No `GO:` reply exists in ANY version of `FOR-REVIEW.md`.** Checked every revision (`git log --all -- FOR-REVIEW.md`, two commits `6fe0b51`/`65421eb`); both GO/NO items still read as OPEN `GO:`/`NO:` menus, never an owner answer.
