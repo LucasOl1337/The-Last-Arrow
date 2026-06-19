@@ -1,10 +1,10 @@
 # LOOP-STATE — the baton
 
-turn: reviewer
+turn: human
 last-builder-sha: 01c8d97
 last-reviewed-sha: 65421eb
-pending-for-builder: <awaiting reviewer verdict after owner GO recorded for wave 6fe0b51..01c8d97>
-pending-for-reviewer: 6fe0b51..01c8d97 (owner GO of record now in FOR-REVIEW.md for scaffolding 6fe0b51 + gate fix 01c8d97; run the full gate + 5-lens + bite/verify-gate proof)
+pending-for-builder: <BLOCKED — protected-path/gateList wave 6fe0b51..01c8d97 has no AUTHENTICATABLE owner GO (2nd reviewer pass / stall-breaker). See FOR-REVIEW.md.>
+pending-for-reviewer:
 pending-for-screen:
 epoch: 4
 no-progress-epochs: 0

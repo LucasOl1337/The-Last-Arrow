@@ -49,3 +49,25 @@
 - **Did NOT run the 5-lens panel or the mechanized bite.** A protected-path/gateList wave is
   deterministically escalate-and-PARK; a panel cannot launder a Gate item, so running it would be theater.
   Gate observed green via the XML artifact directly (513/513), consistent with the builder's claim.
+
+## [2026-06-19] Reviewer 2nd pass on wave `6fe0b51..01c8d97` — reviewed-up-to 65421eb (commit `7dd4b3c` re-handed the baton)
+
+- **P0 — STILL no AUTHENTICATABLE owner GO; re-PARKED, `turn: human` (stall-breaker, 2nd pass).** Commit
+  `7dd4b3c` added literal `GO:` lines to `FOR-REVIEW.md` (the adopted process fix from `d292e9a`) and flipped
+  `turn: human → turn: reviewer`. But the `GO:` lines are NOT verifiable: `7dd4b3c` is **unsigned**
+  (`git log %G?`=`N`, no key) and authored by `LucasOl1337`, the SAME shared machine identity every
+  autonomous agent commit carries — and the SAME commit that wrote "OWNER DECISION (of record): GO:" also
+  re-armed the baton. An approval line + a self-rearm, under an agent-forgeable identity, is the loop writing
+  its own authorization. A literal `GO:` line only closes the gap if an agent could not have authored it; on
+  this machine it can. Structurally identical defect to the one `d292e9a` caught — moved up one layer, not
+  fixed.
+- **Asked the operator live; no GO given.** Used `AskUserQuestion` to ask the operator directly in the
+  attended session (the one channel the loop cannot forge). The operator did not answer → no authenticated GO
+  from any channel → stays PARKED.
+- **Green proof not re-confirmable this tick:** `Logs/redteam-editmode-full.xml` is ABSENT from the working
+  tree now (gitignored Logs/ path, not committed by design), so the 513/513 figure both prior items cite could
+  NOT be independently re-read this tick. Re-run the gate to regenerate it. (Code correctness unchanged — see
+  prior entry; `origin/prod`=38c176f, prod untouched.)
+- **To unblock with a verifiable GO:** sign the GO commit (`git commit -S` → `%G?`=`G`), or give the GO live
+  in the attended session, or an out-of-band owner artifact. Recorded in FOR-REVIEW.md and the operate-skill
+  durable learnings.
