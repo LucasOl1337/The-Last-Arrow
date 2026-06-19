@@ -1,14 +1,14 @@
 # LOOP-STATE — the baton
 
-turn: reviewer
+turn: human
 last-builder-sha: 01c8d97
-last-reviewed-sha: <none>
-pending-for-builder: <awaiting reviewer verdict on 6fe0b51..01c8d97>
-pending-for-reviewer: 6fe0b51..01c8d97 (wave 1 scaffolding commit 6fe0b51 + wave 3 gate-script false-RED fix 01c8d97)
+last-reviewed-sha: 65421eb
+pending-for-builder: <BLOCKED on owner GO/NO — see FOR-REVIEW.md items GO/NO #1 and #2>
+pending-for-reviewer:
 pending-for-screen:
-epoch: 3
+epoch: 4
 no-progress-epochs: 0
-last-tree-sha: <none>
+last-tree-sha: b89fbcaf7d0d703aede50aad8d20a2ca1af92bfe
 
 <!--
   A terminal works ONLY when `turn:` is its name (planner | builder | reviewer | human). When `roles.planner` is

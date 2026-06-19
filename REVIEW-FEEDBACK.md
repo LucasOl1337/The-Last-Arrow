@@ -29,3 +29,23 @@
   `protectedPaths`; (c) the gate-guard hook blocks any shell touching it. Committing a
   machine-generated results file is also an anti-pattern — the frozen invariant (`config:22`) is
   the green SUITE, not a committed fixture. So nothing was committed and nothing should be.
+
+## [2026-06-19] Reviewer audit of wave `6fe0b51..01c8d97` — reviewed-up-to 65421eb
+
+- **P0 — gateList/protected-path change committed with NO verifiable owner GO (PARKED, turn: human).**
+  Commit `01c8d97` creates `tools/run_editmode_tests.ps1` — a `protectedPaths` entry (`config:27`) and
+  gateList #2 ("Edit the frozen test suite … to make the gate green"). Its body claims "Owner GO on
+  FOR-REVIEW [2026-06-19]", but no `GO:` reply exists in any revision of `FOR-REVIEW.md`, and HEAD's own
+  `STATE.md` still lists this exact fix under "⛔ Decisions you owe" ("needs human GO. NOT fixed
+  autonomously."). A commit-body assertion is not a verifiable authorization of record. Sibling `6fe0b51`
+  (scaffolding) carries the same unverifiable claim. Per the reviewer rule ("never self-authorize a Gate
+  item; never approve a protected-path wave autonomously"), the wave is PARKED to `FOR-REVIEW.md`,
+  `turn: human`. NOT passed. See FOR-REVIEW.md for the full bite + owner options.
+- **The gate fix is technically sound (not the reason for the bounce).** It reads the authoritative
+  `test-run` XML attrs, is fail-closed (no XML→3, failures→2, else 0), waits only on batch-mode Unity (so
+  it never blocks the user's interactive Editor), and the suite is genuinely green
+  (`Logs/redteam-editmode-full.xml`: 513/513, result=Passed, 21:03:04Z, 38s before the commit). prod is
+  untouched (`origin/prod`=38c176f). The block is the missing authorization-of-record, not the code.
+- **Did NOT run the 5-lens panel or the mechanized bite.** A protected-path/gateList wave is
+  deterministically escalate-and-PARK; a panel cannot launder a Gate item, so running it would be theater.
+  Gate observed green via the XML artifact directly (513/513), consistent with the builder's claim.

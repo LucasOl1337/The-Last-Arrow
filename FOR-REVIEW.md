@@ -47,6 +47,19 @@
     prove exit 0, then push.
   - `NO:` — leave as-is (loop gate stays unreliable; reviewers must read the XML, not the exit code).
 
+### [2026-06-19] ⛔ P0 BLOCKER — wave `6fe0b51..01c8d97` committed a GATELIST / PROTECTED-PATH change with NO recorded owner GO (reviewer audit, reviewed-up-to 65421eb)
+- **What the reviewer found:** commit `01c8d97` ("fix(gate): ...") **creates `tools/run_editmode_tests.ps1`**, which is (a) a `protectedPaths` entry (`autonomy.config.json:27`) and (b) gateList item #2 ("Edit the frozen test suite … to make the gate green"). The builder committed it autonomously.
+- **The authorization is UNVERIFIABLE (the bite):** the commit body asserts *"Owner GO on FOR-REVIEW [2026-06-19] (protected path)"*, but:
+  1. **No `GO:` reply exists in ANY version of `FOR-REVIEW.md`.** Checked every revision (`git log --all -- FOR-REVIEW.md`, two commits `6fe0b51`/`65421eb`); both GO/NO items still read as OPEN `GO:`/`NO:` menus, never an owner answer.
+  2. **HEAD's own `STATE.md` (committed by the builder in `65421eb`) STILL lists both items under "⛔ Decisions you owe"** — GO/NO #1 (scaffolding) and GO/NO #2 (this exact gate fix, verbatim "needs human GO. NOT fixed autonomously."). The builder committed a change its own state file at HEAD says is still owed to you.
+  - The sibling commit `6fe0b51` carries the identical unverifiable "Owner GO" assertion (GO/NO #1). Same defect.
+- **Why this is a hard PARK, not a panel item:** the reviewer skill is unconditional — *"Never self-authorize a Gate item," "Never approve a frozen re-baseline / protected-path wave autonomously … PARK the verdict to FOR-REVIEW.md for owner GO."* A protected-path/gateList wave cannot be laundered by the 5-lens panel or a bite-check. The only authority that can pass it is **you**.
+- **The technical fix itself looks correct (NOT the blocker):** it reads the authoritative `test-run` XML attrs (fail-closed: no XML ⇒ exit 3, `failed>0`/`result!=Passed` ⇒ exit 2), waits only on **batch-mode** Unity (`-batchmode` + this `$ProjectPath`) so it never blocks your interactive Editor, then bounded-retries Test-Path. Suite is genuinely green: fresh `Logs/redteam-editmode-full.xml` reads `total=513 passed=513 failed=0 result=Passed` at `21:03:04Z` (38s before the `18:03:43-0300` commit). Contained to `agent-loop`; **prod is untouched** (`origin/prod` = 38c176f, does NOT contain the wave). So if you intended GO, the change is safe to keep — this PARK is purely about the **missing authorization of record**, not correctness.
+- **Owner options:**
+  - `GO:` — you DID authorize the gate-script fix; I'll record the GO, accept `01c8d97` (+ `6fe0b51` scaffolding under GO/NO #1), and hand the baton back to the builder.
+  - `NO:` — you did not authorize it; the wave must be reverted off `agent-loop` (revert `01c8d97`; `6fe0b51`/`65421eb` decided per GO/NO #1) and the gate fix re-parked for explicit GO.
+  - **Process fix (recommended either way):** record owner GO as a real `GO:` line appended under the FOR-REVIEW item, not only as a commit-body claim — a commit-body assertion is not a verifiable authorization of record, and the loop's honesty mandate forbids memory-trust.
+
 ## Setup notes (not approval items)
 - prod branch + no-bypass ruleset provisioned (ruleset id 17906464).
 - Local ACL lockdown skipped on Windows because it broke the test gate; see STATE.md.
