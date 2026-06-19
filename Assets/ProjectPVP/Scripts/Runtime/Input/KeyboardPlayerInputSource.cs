@@ -28,6 +28,8 @@ namespace ProjectPVP.Input
         [Header("Mouse Aim")]
         [Tooltip("Enable only for keyboard+mouse setups. Keep disabled for 2 players on one keyboard.")]
         public bool enableMouseAim;
+        [Tooltip("When enabled, slot 1 human input gets mouse aim automatically while slot 2 and AI stay keyboard/gamepad only.")]
+        public bool useDefaultMouseAimPolicy = true;
         [Tooltip("Transform used as the world-space origin for mouse aim direction (e.g. the player's body centre). " +
                  "Leave empty to fall back to this component's own transform position.")]
         public Transform mouseAimOrigin;
@@ -167,6 +169,7 @@ namespace ProjectPVP.Input
             _activeGamepadSlot = -1;
             _dashSecondaryAxisHeldLastFrame = false;
             ApplyDefaultsIfNeeded();
+            ApplyDefaultMouseAimPolicy(CombatantControlMode.Human);
         }
 
         public void ConfigureForSlot(CombatantSlotId configuredSlotId)
@@ -185,6 +188,7 @@ namespace ProjectPVP.Input
                 usePlayerDefaults = true;
                 preferredGamepadFamily = PreferredGamepadFamily.Any;
                 ApplyDefaultsIfNeeded();
+                ApplyDefaultMouseAimPolicy(CombatantControlMode.Human);
                 return;
             }
 
@@ -195,6 +199,21 @@ namespace ProjectPVP.Input
             enableGamepad = profile.enableGamepad;
             preferredGamepadIndex = profile.ResolvePreferredGamepadIndex(configuredSlotId);
             preferredGamepadFamily = profile.ResolvePreferredGamepadFamily();
+            ApplyDefaultMouseAimPolicy(profile.ResolveControlMode());
+        }
+
+        private void ApplyDefaultMouseAimPolicy(CombatantControlMode controlMode)
+        {
+            if (!useDefaultMouseAimPolicy)
+            {
+                return;
+            }
+
+            enableMouseAim = KeyboardMouseAimPolicy.ShouldEnableDefaultMouseAim(controlMode, slotId);
+            if (enableMouseAim && mouseAimOrigin == null)
+            {
+                mouseAimOrigin = transform;
+            }
         }
 
         private void PollBufferedButtons()
