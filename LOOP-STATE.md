@@ -1,12 +1,12 @@
 # LOOP-STATE — the baton
 
-turn: builder
-last-builder-sha: <none>
+turn: reviewer
+last-builder-sha: 01c8d97
 last-reviewed-sha: <none>
-pending-for-builder: see file `pending-for-builder` (task 1: create agent-loop branch + land scaffolding, RED->GREEN test)
-pending-for-reviewer: <T1 writes the commit range to review here>
+pending-for-builder: <awaiting reviewer verdict on 6fe0b51..01c8d97>
+pending-for-reviewer: 6fe0b51..01c8d97 (wave 1 scaffolding commit 6fe0b51 + wave 3 gate-script false-RED fix 01c8d97)
 pending-for-screen:
-epoch: 0
+epoch: 3
 no-progress-epochs: 0
 last-tree-sha: <none>
 

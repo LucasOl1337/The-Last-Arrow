@@ -20,8 +20,15 @@
 - New: `ProjectPvpCharacterPortraitRepairTools.cs` (editor), `Resources/ProjectPVP/UI/`, `DocsDev/towerfall-clone-audit/`
 
 ## ⛔ Decisions you owe
+- **[2026-06-19] OWNER GO/NO #1** — seed scaffolding commit on `agent-loop` is parked in `FOR-REVIEW.md`. The deterministic money-path floor (`mpid.mjs`) false-parked it on doc prose (entropy on long plugin-paths/SHAs = `secret`; prose `session`/`login` = `auth`; `GROWTH.md` hard-coded in public-content glob). Verified ZERO real secrets. Floor cannot be LLM-overridden → needs human GO.
+- **[2026-06-19] OWNER GO/NO #2 (P0, NEW this wave)** — the gate wrapper `tools/run_editmode_tests.ps1` reports FALSE-RED on a GREEN suite (flush race: `& Unity.exe` returns before the XML flushes, so the immediate `Test-Path` at `:49` fails → `exit 3`, while the Unity log says `Test run completed. Exiting with code 0 (Ok)` and the XML is green). This blocks the loop's whole gate mechanism. Fix is a few lines (wait-for-exit + bounded Test-Path retry) but the script is a protected path + gateList item → parked in `FOR-REVIEW.md`, needs human GO. NOT fixed autonomously.
 - Whether the in-flight worktree changes should be the loop's first task, or committed to `agent-loop` first.
-- `workBranch` `agent-loop` does not exist yet — create from `main` before the builder runs.
+
+## ✅ GREEN baseline OBSERVED (wave 2, 2026-06-19)
+- `Logs/redteam-editmode-full.xml` ran real this wave: **total=513 passed=513 failed=0 result=Passed** (20:48:33Z, engine 6000.3.11f1). The frozen invariant now has a first-party value (513/513). The XML is gitignored (`.gitignore:7`) + a protected path (`config:27`), so it was NOT committed — correct (the invariant is the green suite, not a committed fixture). Reproduce by re-running the gate and reading the XML directly (not the script exit code, which is broken — see GO/NO #2).
+
+## ✅ Done this run
+- `agent-loop` branch CREATED from `main` (38c176f). 12 scaffolding doc files STAGED (additive, 0 deletions) but NOT committed (parked, see above). User's in-flight gameplay edits remain uncommitted + untouched.
 
 ## 🗒 Tasks you owe
 - See `pending-for-builder` (LOOP-STATE.md) for the seeded first task.
