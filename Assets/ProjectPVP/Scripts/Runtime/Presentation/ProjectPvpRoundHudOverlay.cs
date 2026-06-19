@@ -7,6 +7,7 @@ namespace ProjectPVP.Presentation
     public sealed class ProjectPvpRoundHudOverlay : MonoBehaviour
     {
         private const int DotCount = 5;
+        private static readonly Color InactiveDotColor = new Color(0.08f, 0.08f, 0.08f, 0.82f);
 
         private MatchController _matchController;
         private Canvas _canvas;
@@ -54,19 +55,15 @@ namespace ProjectPVP.Presentation
                 return;
             }
 
-            GameObject canvasObject = new GameObject("RoundHudOverlay", typeof(RectTransform));
-            _canvas = canvasObject.AddComponent<Canvas>();
-            _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            _canvas.sortingOrder = short.MaxValue;
-            canvasObject.AddComponent<CanvasScaler>();
-            canvasObject.AddComponent<GraphicRaycaster>();
+            _canvas = ProjectPvpRuntimeUiFactory.CreateOverlayCanvas("RoundHudOverlay");
+            Transform canvasTransform = _canvas.transform;
 
-            _dotSprite = CreateDotSprite();
-            _leftDots = CreateDots(CreateRoot(canvasObject.transform, "LeftRoundDots", new Vector2(18f, -16f), TextAnchor.UpperLeft), true);
-            _rightDots = CreateDots(CreateRoot(canvasObject.transform, "RightRoundDots", new Vector2(-18f, -16f), TextAnchor.UpperRight), false);
+            _dotSprite = ProjectPvpRuntimeUiFactory.CreateDotSprite();
+            _leftDots = ProjectPvpRuntimeUiFactory.CreateDotRow(CreateRoot(canvasTransform, "LeftRoundDots", new Vector2(18f, -16f), TextAnchor.UpperLeft), _dotSprite, DotCount, true, InactiveDotColor);
+            _rightDots = ProjectPvpRuntimeUiFactory.CreateDotRow(CreateRoot(canvasTransform, "RightRoundDots", new Vector2(-18f, -16f), TextAnchor.UpperRight), _dotSprite, DotCount, false, InactiveDotColor);
 
             GameObject bannerObject = new GameObject("WinnerBanner", typeof(RectTransform));
-            bannerObject.transform.SetParent(canvasObject.transform, false);
+            bannerObject.transform.SetParent(canvasTransform, false);
             _winnerBackground = bannerObject.AddComponent<Image>();
             _winnerBackground.color = new Color(0f, 0f, 0f, 0f);
             RectTransform bannerRect = _winnerBackground.rectTransform;
@@ -79,7 +76,7 @@ namespace ProjectPVP.Presentation
             GameObject textObject = new GameObject("WinnerText", typeof(RectTransform));
             textObject.transform.SetParent(bannerObject.transform, false);
             _winnerText = textObject.AddComponent<Text>();
-            _winnerText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            _winnerText.font = ProjectPvpRuntimeUiFactory.ResolveRuntimeFont();
             _winnerText.fontSize = 24;
             _winnerText.fontStyle = FontStyle.Bold;
             _winnerText.alignment = TextAnchor.MiddleCenter;
@@ -91,9 +88,9 @@ namespace ProjectPVP.Presentation
             textRect.offsetMax = Vector2.zero;
 
             GameObject ruleObject = new GameObject("RuleText", typeof(RectTransform));
-            ruleObject.transform.SetParent(canvasObject.transform, false);
+            ruleObject.transform.SetParent(canvasTransform, false);
             _ruleText = ruleObject.AddComponent<Text>();
-            _ruleText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            _ruleText.font = ProjectPvpRuntimeUiFactory.ResolveRuntimeFont();
             _ruleText.fontSize = 16;
             _ruleText.fontStyle = FontStyle.Bold;
             _ruleText.alignment = TextAnchor.UpperCenter;
@@ -120,29 +117,6 @@ namespace ProjectPVP.Presentation
             root.anchoredPosition = anchoredPosition;
             root.sizeDelta = new Vector2(140f, 24f);
             return root;
-        }
-
-        private Image[] CreateDots(RectTransform root, bool leftToRight)
-        {
-            Image[] dots = new Image[DotCount];
-            for (int index = 0; index < DotCount; index += 1)
-            {
-                GameObject dotObject = new GameObject("Dot" + index, typeof(RectTransform));
-                dotObject.transform.SetParent(root, false);
-                Image image = dotObject.AddComponent<Image>();
-                image.sprite = _dotSprite;
-                image.type = Image.Type.Simple;
-                image.color = new Color(0.08f, 0.08f, 0.08f, 0.82f);
-
-                RectTransform rect = image.rectTransform;
-                rect.anchorMin = new Vector2(0f, 0.5f);
-                rect.anchorMax = new Vector2(0f, 0.5f);
-                rect.sizeDelta = new Vector2(10f, 10f);
-                rect.anchoredPosition = new Vector2((leftToRight ? index : (DotCount - 1 - index)) * 18f, 0f);
-                dots[index] = image;
-            }
-
-            return dots;
         }
 
         private void UpdateHud()
@@ -194,28 +168,8 @@ namespace ProjectPVP.Presentation
 
                 dots[index].color = index < wins
                     ? new Color(0.86f, 0.12f, 0.12f, 0.95f)
-                    : new Color(0.08f, 0.08f, 0.08f, 0.82f);
+                    : InactiveDotColor;
             }
-        }
-
-        private static Sprite CreateDotSprite()
-        {
-            Texture2D texture = new Texture2D(16, 16, TextureFormat.RGBA32, false);
-            texture.filterMode = FilterMode.Bilinear;
-            Vector2 center = new Vector2(7.5f, 7.5f);
-            float radius = 7f;
-
-            for (int y = 0; y < texture.height; y += 1)
-            {
-                for (int x = 0; x < texture.width; x += 1)
-                {
-                    float distance = Vector2.Distance(new Vector2(x, y), center);
-                    texture.SetPixel(x, y, distance <= radius ? new Color(1f, 1f, 1f, 1f) : Color.clear);
-                }
-            }
-
-            texture.Apply();
-            return Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 16f);
         }
     }
 }

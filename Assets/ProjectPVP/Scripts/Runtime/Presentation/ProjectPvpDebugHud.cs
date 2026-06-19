@@ -3,7 +3,6 @@ using ProjectPVP.Gameplay;
 using ProjectPVP.Input;
 using ProjectPVP.Match;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.Serialization;
 
 namespace ProjectPVP.Presentation
@@ -25,14 +24,6 @@ namespace ProjectPVP.Presentation
         private GUIStyle _roundDotInactiveStyle;
         private GUIStyle _winnerBannerStyle;
         private GUIStyle _winnerTextStyle;
-        private Canvas _overlayCanvas;
-        private RectTransform _leftDotRoot;
-        private RectTransform _rightDotRoot;
-        private Image[] _leftDots;
-        private Image[] _rightDots;
-        private Text _winnerText;
-        private Image _winnerBackground;
-        private Sprite _dotSprite;
 
         private void OnGUI()
         {
@@ -56,14 +47,6 @@ namespace ProjectPVP.Presentation
         private void Start()
         {
             // Legacy IMGUI HUD only. The visible round overlay now comes from MatchController.
-        }
-
-        private void LateUpdate()
-        {
-        }
-
-        private void OnDestroy()
-        {
         }
 
         private void EnsureStyles()
@@ -121,167 +104,6 @@ namespace ProjectPVP.Presentation
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = new Color(1f, 0.94f, 0.94f) },
             };
-        }
-
-        private void EnsureOverlayHud()
-        {
-            if (_overlayCanvas != null)
-            {
-                return;
-            }
-
-            GameObject canvasObject = new GameObject("RoundHudOverlay");
-            canvasObject.transform.SetParent(transform, false);
-
-            _overlayCanvas = canvasObject.AddComponent<Canvas>();
-            _overlayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            _overlayCanvas.sortingOrder = short.MaxValue;
-
-            canvasObject.AddComponent<CanvasScaler>();
-            canvasObject.AddComponent<GraphicRaycaster>();
-
-            _dotSprite = CreateDotSprite();
-            _leftDotRoot = CreateDotRoot("LeftRoundDots", canvasObject.transform, new Vector2(18f, -18f), TextAnchor.UpperLeft);
-            _rightDotRoot = CreateDotRoot("RightRoundDots", canvasObject.transform, new Vector2(-18f, -18f), TextAnchor.UpperRight);
-            _leftDots = CreateDotRow(_leftDotRoot, true);
-            _rightDots = CreateDotRow(_rightDotRoot, false);
-
-            GameObject winnerObject = new GameObject("WinnerBanner", typeof(RectTransform));
-            winnerObject.transform.SetParent(canvasObject.transform, false);
-            _winnerBackground = winnerObject.AddComponent<Image>();
-            _winnerBackground.color = new Color(0f, 0f, 0f, 0f);
-            RectTransform winnerRect = _winnerBackground.rectTransform;
-            winnerRect.anchorMin = new Vector2(0.5f, 1f);
-            winnerRect.anchorMax = new Vector2(0.5f, 1f);
-            winnerRect.pivot = new Vector2(0.5f, 1f);
-            winnerRect.anchoredPosition = new Vector2(0f, -14f);
-            winnerRect.sizeDelta = new Vector2(380f, 44f);
-
-            GameObject winnerTextObject = new GameObject("WinnerText", typeof(RectTransform));
-            winnerTextObject.transform.SetParent(winnerObject.transform, false);
-            _winnerText = winnerTextObject.AddComponent<Text>();
-            _winnerText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            _winnerText.fontSize = 24;
-            _winnerText.fontStyle = FontStyle.Bold;
-            _winnerText.alignment = TextAnchor.MiddleCenter;
-            _winnerText.color = new Color(1f, 0.94f, 0.94f, 1f);
-            _winnerText.text = string.Empty;
-
-            RectTransform textRect = _winnerText.rectTransform;
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
-        }
-
-        private RectTransform CreateDotRoot(string name, Transform parent, Vector2 anchoredPosition, TextAnchor anchor)
-        {
-            GameObject rootObject = new GameObject(name, typeof(RectTransform));
-            rootObject.transform.SetParent(parent, false);
-            RectTransform root = rootObject.AddComponent<RectTransform>();
-            root.anchorMin = anchor == TextAnchor.UpperLeft ? new Vector2(0f, 1f) : new Vector2(1f, 1f);
-            root.anchorMax = root.anchorMin;
-            root.pivot = anchor == TextAnchor.UpperLeft ? new Vector2(0f, 1f) : new Vector2(1f, 1f);
-            root.anchoredPosition = anchoredPosition;
-            root.sizeDelta = new Vector2(140f, 24f);
-            return root;
-        }
-
-        private Image[] CreateDotRow(RectTransform root, bool leftToRight)
-        {
-            const int dotCount = 5;
-            Image[] dots = new Image[dotCount];
-            for (int index = 0; index < dotCount; index += 1)
-            {
-                GameObject dotObject = new GameObject("Dot" + index, typeof(RectTransform));
-                dotObject.transform.SetParent(root, false);
-                Image image = dotObject.AddComponent<Image>();
-                image.sprite = _dotSprite;
-                image.type = Image.Type.Simple;
-                image.color = new Color(0.08f, 0.08f, 0.08f, 0.82f);
-
-                RectTransform rect = image.rectTransform;
-                rect.anchorMin = new Vector2(0f, 0.5f);
-                rect.anchorMax = new Vector2(0f, 0.5f);
-                rect.sizeDelta = new Vector2(10f, 10f);
-                rect.anchoredPosition = new Vector2((leftToRight ? index : (dotCount - 1 - index)) * 18f, 0f);
-                dots[index] = image;
-            }
-
-            return dots;
-        }
-
-        private void UpdateOverlayHud()
-        {
-            if (matchController == null)
-            {
-                return;
-            }
-
-            EnsureOverlayHud();
-
-            UpdateDotRow(_leftDots, matchController.PlayerOneWins);
-            UpdateDotRow(_rightDots, matchController.PlayerTwoWins);
-
-            if (_winnerBackground != null && _winnerText != null)
-            {
-                bool showWinner = matchController.ChampionAnnouncementSlot != CombatantSlotId.None;
-                _winnerBackground.enabled = showWinner;
-                _winnerText.enabled = showWinner;
-                if (showWinner)
-                {
-                    _winnerBackground.color = new Color(0f, 0f, 0f, 0.62f);
-                    _winnerText.text = "VENCEDOR = " + matchController.ResolveSlotDisplayName(matchController.ChampionAnnouncementSlot);
-                }
-            }
-        }
-
-        private void UpdateDotRow(Image[] dots, int wins)
-        {
-            if (dots == null)
-            {
-                return;
-            }
-
-            for (int index = 0; index < dots.Length; index += 1)
-            {
-                if (dots[index] == null)
-                {
-                    continue;
-                }
-
-                dots[index].color = index < wins
-                    ? new Color(0.86f, 0.12f, 0.12f, 0.95f)
-                    : new Color(0.08f, 0.08f, 0.08f, 0.82f);
-            }
-        }
-
-        private Sprite CreateDotSprite()
-        {
-            Texture2D texture = new Texture2D(16, 16, TextureFormat.RGBA32, false);
-            texture.filterMode = FilterMode.Bilinear;
-            Vector2 center = new Vector2(7.5f, 7.5f);
-            float radius = 7f;
-
-            for (int y = 0; y < texture.height; y += 1)
-            {
-                for (int x = 0; x < texture.width; x += 1)
-                {
-                    float distance = Vector2.Distance(new Vector2(x, y), center);
-                    float alpha = Mathf.Clamp01(1f - ((distance - radius) / 1.5f));
-                    if (distance <= radius)
-                    {
-                        texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
-                    }
-                    else
-                    {
-                        texture.SetPixel(x, y, Color.clear);
-                    }
-                }
-            }
-
-            texture.Apply();
-            return Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 16f);
         }
 
         private void DrawSummaryPanel(Rect rect)
