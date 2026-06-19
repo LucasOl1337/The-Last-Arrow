@@ -1,9 +1,9 @@
 # LOOP-STATE — the baton
 
-turn: reviewer
+turn: human
 last-builder-sha: 01c8d97
 last-reviewed-sha: 65421eb
-pending-for-builder: <BLOCKED — protected-path/gateList wave 6fe0b51..01c8d97 has no AUTHENTICATABLE owner GO (2nd reviewer pass / stall-breaker). See FOR-REVIEW.md.>
+pending-for-builder: <BLOCKED — protected-path/gateList wave 6fe0b51..01c8d97 has no AUTHENTICATABLE owner GO (3rd reviewer pass / stall-breaker). 75ae524's "out-of-band GO" is a secondhand agent claim; live channel yielded no firsthand GO. Owner: sign (-S) or answer firsthand. See FOR-REVIEW.md.>
 pending-for-reviewer:
 pending-for-screen:
 epoch: 4
