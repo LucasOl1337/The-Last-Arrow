@@ -1,14 +1,14 @@
 # LOOP-STATE — the baton
 
-turn: reviewer
+turn: human
 last-builder-sha: 01c8d97
 last-reviewed-sha: 65421eb
-pending-for-builder: <BLOCKED — protected-path/gateList wave 6fe0b51..01c8d97 has no AUTHENTICATABLE owner GO (3rd reviewer pass / stall-breaker). 75ae524's "out-of-band GO" is a secondhand agent claim; live channel yielded no firsthand GO. Owner: sign (-S) or answer firsthand. See FOR-REVIEW.md.>
+pending-for-builder: <BLOCKED — protected-path/gateList wave 6fe0b51..01c8d97 has no AUTHENTICATABLE owner GO (4th reviewer pass / stall-breaker). Signed commit e6648e9 is a SELF-MINTED key (GitHub: verified=false, unknown_key) — does not authenticate the owner. Firsthand ask yielded no GO this pass. Owner: give a GitHub-Verified signature, a GitHub PR Approve, or answer firsthand. See FOR-REVIEW.md.>
 pending-for-reviewer:
 pending-for-screen:
-epoch: 4
+epoch: 5
 no-progress-epochs: 0
-last-tree-sha: b89fbcaf7d0d703aede50aad8d20a2ca1af92bfe
+last-tree-sha: d2edcdd02c806bfeec53d077e1edde6d5a71de06
 
 <!--
   A terminal works ONLY when `turn:` is its name (planner | builder | reviewer | human). When `roles.planner` is
