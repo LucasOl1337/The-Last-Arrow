@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Last Arrow x TowerFall - Visual Audit</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #121416;
+      --panel: #1c2024;
+      --line: #303842;
+      --text: #f1f4f6;
+      --muted: #aeb8c2;
+      --ok: #70d67b;
+      --partial: #f0c15a;
+      --missing: #ee6767;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 34px;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin: 0 0 28px;
+      max-width: 980px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    figure {
+      margin: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    figure img {
+      display: block;
+      width: 100%;
+      height: 360px;
+      object-fit: cover;
+      background: #050607;
+    }
+
+    figcaption {
+      padding: 14px 16px 18px;
+      color: var(--muted);
+    }
+
+    figcaption strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: 4px;
+      font-size: 18px;
+    }
+
+    .assets {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .asset {
+      min-height: 188px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      justify-content: space-between;
+    }
+
+    .asset img {
+      align-self: center;
+      max-width: 100%;
+      max-height: 96px;
+      object-fit: contain;
+      image-rendering: auto;
+    }
+
+    .asset span {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .matrix {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .cell {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 122px;
+    }
+
+    .cell h2 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      color: #101214;
+    }
+
+    .ok { background: var(--ok); }
+    .partial { background: var(--partial); }
+    .missing { background: var(--missing); }
+
+    .cell p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 980px) {
+      main { padding: 18px; }
+      .grid, .matrix, .assets { grid-template-columns: 1fr; }
+      figure img { height: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>The Last Arrow x TowerFall Ascension</h1>
+    <p class="subtitle">Resumo visual da auditoria em 18/06/2026. A esquerda: referencia oficial/comercial de TowerFall. A direita e abaixo: material atual versionado no The Last Arrow.</p>
+
+    <section class="grid" aria-label="referencias principais">
+      <figure>
+        <img src="screenshots/towerfall-official-home.png" alt="TowerFall official site screenshot">
+        <figcaption>
+          <strong>TowerFall: referencia de produto</strong>
+          Pixel art de marca, promessa de arena party, multiplas plataformas e identidade muito reconhecivel.
+        </figcaption>
+      </figure>
+      <figure>
+        <img src="screenshots/the-last-arrow-current-arena.png" alt="The Last Arrow current arena art">
+        <figcaption>
+          <strong>The Last Arrow: arena atual</strong>
+          Uma arena base bonita e legivel, mas ainda sem variedade, seletor de mapas, hazards, baus ou variantes.
+        </figcaption>
+      </figure>
+    </section>
+
+    <section class="assets" aria-label="assets locais">
+      <div class="asset">
+        <img src="screenshots/the-last-arrow-mizu-ult-frame.png" alt="Mizu ultimate frame">
+        <strong>Mizu</strong>
+        <span>Um dos 2 personagens jogaveis atuais.</span>
+      </div>
+      <div class="asset">
+        <img src="screenshots/the-last-arrow-stormdragon-aim-frame.png" alt="Storm Dragon aim frame">
+        <strong>Storm Dragon</strong>
+        <span>Segundo personagem jogavel atual.</span>
+      </div>
+      <div class="asset">
+        <img src="screenshots/the-last-arrow-crystal-arrow.png" alt="Crystal arrow">
+        <strong>Flecha base</strong>
+        <span>Economia de flechas existe, mas ainda sem familia completa de tipos especiais.</span>
+      </div>
+    </section>
+
+    <section class="matrix" aria-label="estado de cobertura">
+      <div class="cell">
+        <span class="status partial">Parcial</span>
+        <h2>Versus core</h2>
+        <p>Round, first-to-5, tiro, melee, dash, parry, stomp e coleta de flechas existem.</p>
+      </div>
+      <div class="cell">
+        <span class="status missing">Falta</span>
+        <h2>4 jogadores</h2>
+        <p>O codigo e a UI estao centrados em Slot 1 e Slot 2.</p>
+      </div>
+      <div class="cell">
+        <span class="status missing">Falta</span>
+        <h2>Conteudo Ascension</h2>
+        <p>Sem Quest, Trials, seletor de arenas, baus, power-ups, variantes e campanha co-op.</p>
+      </div>
+      <div class="cell">
+        <span class="status partial">Parcial</span>
+        <h2>Polish</h2>
+        <p>HUD e feedback existem, mas nao ha replay final, awards, estatisticas e fluxo completo.</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
