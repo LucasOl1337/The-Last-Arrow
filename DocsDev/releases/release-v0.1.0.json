@@ -1,0 +1,78 @@
+{
+  "brand": {
+    "name": "The-Last-Arrow",
+    "vendor": "UNITY PVP",
+    "footer": "THE-LAST-ARROW",
+    "masthead": "NOTAS DA ATUALIZACAO",
+    "footerLeft": "Lista completa das notas no GitHub Releases",
+    "bgGradient": ["#10131B", "#1B2430", "#2C253A"],
+    "pillGradient": ["#D97706", "#FBBF24"]
+  },
+  "version": "v0.1.0",
+  "date": "22 de junho de 2026 - Release oficial",
+  "categories": [
+    {
+      "label": "Novidades",
+      "title": "NOVIDADES",
+      "color": "#FBBF24",
+      "items": [
+        {
+          "name": "Ferramenta de portraits PVP",
+          "desc": "editor tool repara portraits dos personagens",
+          "tag": "UNITY"
+        },
+        {
+          "name": "Baseline Unity MCP",
+          "desc": "documenta o sprint e a base de integracao",
+          "tag": "DOCS"
+        }
+      ]
+    },
+    {
+      "label": "Melhorias",
+      "title": "MELHORIAS",
+      "color": "#34D399",
+      "items": [
+        {
+          "name": "UI ProjectPVP organizada",
+          "desc": "assets de menu ficam em Resources/ProjectPVP/UI",
+          "tag": "UI"
+        },
+        {
+          "name": "Auditoria TowerFall",
+          "desc": "matriz visual compara arena e apresentacao",
+          "tag": "DOCS"
+        }
+      ]
+    },
+    {
+      "label": "Correcoes",
+      "title": "CORRECOES",
+      "color": "#38BDF8",
+      "items": [
+        {
+          "name": "Estado de merge explicitado",
+          "desc": "release registra que main depende de GO firsthand",
+          "tag": "FLOW"
+        }
+      ]
+    },
+    {
+      "label": "Sistemas",
+      "title": "SISTEMAS",
+      "color": "#A78BFA",
+      "items": [
+        {
+          "name": "Regras de agente canonicas",
+          "desc": "AGENTS.md fixa operacao, Unity e verificacao",
+          "tag": "OPS"
+        },
+        {
+          "name": "Unity AI Assistant",
+          "desc": "pacote oficial mantido no manifesto do projeto",
+          "tag": "UNITY"
+        }
+      ]
+    }
+  ]
+}
