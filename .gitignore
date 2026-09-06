@@ -50,3 +50,17 @@ tools/*.err.log
 tools/bot_memory/
 tools/tests/__pycache__/
 unity-batch-validate.log
+
+# Autonomy/agent automation artifacts (not source code)
+.autonomy-coverage.json
+.autonomy-preflight.json
+.autonomy_tree.json
+ProjetosThe-Last-Arrow.autonomy_tree.json
+autonomy.config.json
+.codex/
+pending-for-builder
+tasks/ledger.jsonl
+nul
+
+# Windows null device artifact (accidental file from bash > nul)
+nul
